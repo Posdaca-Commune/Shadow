@@ -11,9 +11,12 @@ internal sealed class PluginCatalog
 {
     private PluginCatalog(IReadOnlyList<LoadedPlugin> plugins)
     {
+        Plugins = plugins;
         NavigationItems = plugins.SelectMany(plugin => plugin.NavigationItems).ToArray();
         SettingsSections = plugins.SelectMany(plugin => plugin.SettingsSections).ToArray();
     }
+
+    public IReadOnlyList<LoadedPlugin> Plugins { get; }
 
     public IReadOnlyList<ShadowNavigationItem> NavigationItems { get; }
 
@@ -40,11 +43,40 @@ internal sealed class PluginCatalog
         return new PluginCatalog(loadedPlugins);
     }
 
+    public ShadowCommandResult ExecuteCommand(ShadowCommandLine commandLine)
+    {
+        if (string.IsNullOrWhiteSpace(commandLine.Command))
+        {
+            return ShadowCommandResult.NotHandled;
+        }
+
+        foreach (var loadedPlugin in Plugins)
+        {
+            if (loadedPlugin.Plugin is not IShadowCommandPlugin commandPlugin)
+            {
+                continue;
+            }
+
+            var result = commandPlugin.ExecuteCommand(new ShadowCommandContext(
+                loadedPlugin.Context,
+                commandLine.Command,
+                commandLine.Options));
+            if (result.Handled)
+            {
+                return result;
+            }
+        }
+
+        return ShadowCommandResult.Failure($"未知 Shadow 命令：{commandLine.Command}");
+    }
+
     private static IEnumerable<string> EnumeratePluginAssemblies(string pluginsDirectory)
     {
         return Directory.EnumerateFiles(pluginsDirectory, "*.dll", SearchOption.AllDirectories)
-            .Where(path => !string.Equals(Path.GetFileName(path), "Shadow.Abstractions.dll", StringComparison.OrdinalIgnoreCase))
-            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}runtimes{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Where(path => !string.Equals(Path.GetFileName(path), "Shadow.Abstractions.dll",
+                StringComparison.OrdinalIgnoreCase))
+            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}runtimes{Path.DirectorySeparatorChar}",
+                StringComparison.OrdinalIgnoreCase))
             .Where(path => Path.GetFileName(path).StartsWith("Shadow.", StringComparison.OrdinalIgnoreCase))
             .Order(StringComparer.OrdinalIgnoreCase);
     }
@@ -71,8 +103,7 @@ internal sealed class PluginCatalog
                 var context = new ShadowHostContext(applicationDataDirectory, pluginDataDirectory);
                 loadedPlugins.Add(new LoadedPlugin(
                     plugin,
-                    plugin.CreateNavigationItems(context),
-                    plugin.CreateSettingsSections(context)));
+                    context));
             }
         }
         catch (Exception ex)

@@ -156,6 +156,15 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
             Mods.Add(mod);
         }
 
+        try
+        {
+            _configuration.PlaysetStore.SaveModIndex(Mods);
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Mod 索引写入失败：{ex.Message}";
+        }
+
         Dlcs.Clear();
         foreach (var dlc in _service.DiscoverDlcs())
         {

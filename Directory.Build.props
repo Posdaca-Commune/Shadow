@@ -1,0 +1,12 @@
+<Project>
+    <PropertyGroup>
+        <Version>1.0.0-beta.1</Version>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
+        <FileVersion>1.0.0.0</FileVersion>
+        <InformationalVersion>1.0.0-beta.1</InformationalVersion>
+        <Authors>Posdaca Commune</Authors>
+        <Company>Posdaca Commune</Company>
+        <RepositoryUrl>https://github.com/Posdaca-Commune/Shadow</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+    </PropertyGroup>
+</Project>

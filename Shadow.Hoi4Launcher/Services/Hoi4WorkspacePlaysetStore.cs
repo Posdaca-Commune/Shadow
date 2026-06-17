@@ -16,11 +16,17 @@ public sealed class Hoi4WorkspacePlaysetStore
     {
         WorkspaceDirectory = workspaceDirectory;
         PlaysetsDirectory = Path.Combine(workspaceDirectory, "playsets");
+        ModsDirectory = Path.Combine(workspaceDirectory, "mods");
+        ModIndexPath = Path.Combine(ModsDirectory, "index.json");
     }
 
     public string WorkspaceDirectory { get; }
 
     public string PlaysetsDirectory { get; }
+
+    public string ModsDirectory { get; }
+
+    public string ModIndexPath { get; }
 
     public static Hoi4WorkspacePlaysetStore CreateDefault()
     {
@@ -63,6 +69,33 @@ public sealed class Hoi4WorkspacePlaysetStore
         }
 
         playset.StorageFilePath = string.Empty;
+    }
+
+    public void SaveModIndex(IEnumerable<ModEntry> mods)
+    {
+        Directory.CreateDirectory(ModsDirectory);
+
+        var index = new Hoi4WorkspaceModIndex(
+            "1.0",
+            DateTimeOffset.UtcNow,
+            mods
+                .GroupBy(mod => mod.Id, StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.First())
+                .OrderBy(mod => mod.Title, StringComparer.CurrentCultureIgnoreCase)
+                .Select(mod => new Hoi4WorkspaceModIndexEntry(
+                    mod.Id,
+                    mod.Title,
+                    mod.IsSteamWorkshopMod ? "steam" : "local",
+                    mod.RemoteFileId,
+                    mod.DescriptorPath,
+                    mod.LauncherPath,
+                    mod.ContentPath,
+                    mod.Version))
+                .ToList());
+
+        var temporaryPath = $"{ModIndexPath}.{Guid.NewGuid():N}.tmp";
+        File.WriteAllText(temporaryPath, JsonSerializer.Serialize(index, SerializerOptions));
+        File.Move(temporaryPath, ModIndexPath, true);
     }
 
     private Playset? TryLoadPlayset(string filePath)
