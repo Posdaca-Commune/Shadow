@@ -1,0 +1,58 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+
+# .NET publish / generated files
+publish/
+Publish/
+*.nupkg
+*.snupkg
+*.pdb
+*.cache
+*.generated.cs
+*.g.cs
+*.g.i.cs
+
+# Visual Studio / Rider / JetBrains
+.vs/
+.idea/
+*.user
+*.rsuser
+*.suo
+*.userosscache
+*.sln.docstates
+*.DotSettings.user
+
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Test and coverage output
+TestResults/
+[Tt]est[Rr]esult*/
+coverage/
+CoverageReport/
+*.trx
+*.coverage
+*.coveragexml
+
+# Logs and temp files
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*.DS_Store
+Thumbs.db
+
+# Local tooling state
+.codex/

@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Shadow.Abstractions\Shadow.Abstractions.csproj">
+            <Private>false</Private>
+            <ExcludeAssets>runtime</ExcludeAssets>
+        </ProjectReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Avalonia" Version="12.0.4"/>
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2"/>
+        <PackageReference Include="FluentAvaloniaUI" Version="3.0.0-preview4"/>
+        <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.0"/>
+    </ItemGroup>
+
+    <Target Name="CopyPluginToHost" AfterTargets="Build">
+        <PropertyGroup>
+            <PluginHostDirectory>$(MSBuildThisFileDirectory)..\Shadow\bin\$(Configuration)\net10.0\Plugins\Hoi4Launcher</PluginHostDirectory>
+        </PropertyGroup>
+
+        <ItemGroup>
+            <PluginOutput Include="$(TargetDir)**\*.*"/>
+        </ItemGroup>
+
+        <MakeDir Directories="$(PluginHostDirectory)"/>
+        <Copy SourceFiles="@(PluginOutput)"
+              DestinationFiles="@(PluginOutput->'$(PluginHostDirectory)\%(RecursiveDir)%(Filename)%(Extension)')"
+              SkipUnchangedFiles="true"/>
+    </Target>
+</Project>

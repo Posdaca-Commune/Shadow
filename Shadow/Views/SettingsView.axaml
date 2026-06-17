@@ -1,0 +1,177 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:vm="using:Shadow.ViewModels"
+             x:Class="Shadow.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+    <Grid ColumnDefinitions="260,*"
+          Margin="28,28,32,28">
+        <Grid RowDefinitions="Auto,*"
+              Margin="0,0,22,0">
+            <StackPanel Spacing="6"
+                        Margin="4,0,0,18">
+                <TextBlock Text="设置"
+                           FontSize="28"
+                           FontWeight="SemiBold"/>
+                <TextBlock Text="应用首选项和工作站配置"
+                           FontSize="13"
+                           Opacity="0.68"/>
+            </StackPanel>
+
+            <ListBox Grid.Row="1"
+                     ItemsSource="{Binding Sections}"
+                     SelectedItem="{Binding SelectedSection}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:SettingsSectionViewModel">
+                        <Grid ColumnDefinitions="32,*"
+                              Height="52">
+                            <ui:FASymbolIcon Grid.Column="0"
+                                             Symbol="{Binding Symbol}"
+                                             FontSize="16"
+                                             HorizontalAlignment="Center"
+                                             VerticalAlignment="Center"/>
+                            <StackPanel Grid.Column="1"
+                                        Spacing="2"
+                                        VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Title}"
+                                           FontSize="13"
+                                           FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding Description}"
+                                           FontSize="11"
+                                           Opacity="0.62"
+                                           TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Grid>
+
+        <ScrollViewer Grid.Column="1">
+            <StackPanel Spacing="14"
+                        MaxWidth="760">
+                <StackPanel Spacing="4"
+                            Margin="0,2,0,10">
+                    <TextBlock Text="{Binding SelectedSection.Title}"
+                               FontSize="24"
+                               FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding SelectedSection.Description}"
+                               FontSize="13"
+                               Opacity="0.68"/>
+                </StackPanel>
+
+                <StackPanel IsVisible="{Binding IsPersonalizationSelected}"
+                            Spacing="12">
+                    <ui:FASettingsExpander Header="应用主题"
+                                           Description="选择 Shadow 使用系统主题、浅色主题或深色主题。">
+                        <ui:FASettingsExpander.IconSource>
+                            <ui:FASymbolIconSource Symbol="Setting"/>
+                        </ui:FASettingsExpander.IconSource>
+                        <ui:FASettingsExpander.Footer>
+                            <ComboBox SelectedIndex="{Binding SelectedThemeModeIndex}"
+                                      Width="220">
+                                <ComboBoxItem Content="跟随系统"/>
+                                <ComboBoxItem Content="浅色"/>
+                                <ComboBoxItem Content="深色"/>
+                            </ComboBox>
+                        </ui:FASettingsExpander.Footer>
+                    </ui:FASettingsExpander>
+
+                    <ui:FASettingsExpander Header="窗口背景材质"
+                                           Description="控制窗口背景使用 Mica、亚克力或纯色回退。">
+                        <ui:FASettingsExpander.IconSource>
+                            <ui:FASymbolIconSource Symbol="Pictures"/>
+                        </ui:FASettingsExpander.IconSource>
+                        <ui:FASettingsExpander.Footer>
+                            <ComboBox SelectedIndex="{Binding SelectedBackdropIndex}"
+                                      Width="220">
+                                <ComboBoxItem Content="Mica"/>
+                                <ComboBoxItem Content="亚克力"/>
+                                <ComboBoxItem Content="纯色"/>
+                            </ComboBox>
+                        </ui:FASettingsExpander.Footer>
+                    </ui:FASettingsExpander>
+
+                    <ui:FASettingsExpander Header="强调色"
+                                           Description="用于导航选中条和关键交互控件。">
+                        <ui:FASettingsExpander.IconSource>
+                            <ui:FASymbolIconSource Symbol="Edit"/>
+                        </ui:FASettingsExpander.IconSource>
+                        <ui:FASettingsExpander.Footer>
+                            <StackPanel Orientation="Horizontal"
+                                        Spacing="8"
+                                        VerticalAlignment="Center">
+                                <Button Width="32"
+                                        Height="32"
+                                        Padding="0"
+                                        Background="#5B7CFA"
+                                        Command="{Binding SetAccentColorCommand}"
+                                        CommandParameter="#5B7CFA"/>
+                                <Button Width="32"
+                                        Height="32"
+                                        Padding="0"
+                                        Background="#0078D4"
+                                        Command="{Binding SetAccentColorCommand}"
+                                        CommandParameter="#0078D4"/>
+                                <Button Width="32"
+                                        Height="32"
+                                        Padding="0"
+                                        Background="#0F7B6C"
+                                        Command="{Binding SetAccentColorCommand}"
+                                        CommandParameter="#0F7B6C"/>
+                                <Button Width="32"
+                                        Height="32"
+                                        Padding="0"
+                                        Background="#C239B3"
+                                        Command="{Binding SetAccentColorCommand}"
+                                        CommandParameter="#C239B3"/>
+                                <Button Width="32"
+                                        Height="32"
+                                        Padding="0"
+                                        Background="#D83B01"
+                                        Command="{Binding SetAccentColorCommand}"
+                                        CommandParameter="#D83B01"/>
+                            </StackPanel>
+                        </ui:FASettingsExpander.Footer>
+                    </ui:FASettingsExpander>
+
+                    <ui:FASettingsExpander Header="系统外观"
+                                           Description="和 Windows 当前外观保持同步。">
+                        <ui:FASettingsExpander.IconSource>
+                            <ui:FASymbolIconSource Symbol="Sync"/>
+                        </ui:FASettingsExpander.IconSource>
+                        <ui:FASettingsExpanderItem Content="使用系统强调色"
+                                                   Description="启用后优先跟随 Windows 当前强调色。">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ToggleSwitch IsChecked="{Binding Personalization.UseSystemAccentColor}"/>
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="紧凑侧边栏"
+                                                   Description="为后续插件较多时预留更紧凑的导航显示模式。">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ToggleSwitch IsChecked="{Binding Personalization.ShowCompactSidebar}"/>
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                        <ui:FASettingsExpanderItem Content="界面动画"
+                                                   Description="允许页面过渡、控件反馈和 Fluent 动效。">
+                            <ui:FASettingsExpanderItem.Footer>
+                                <ToggleSwitch IsChecked="{Binding Personalization.EnableAnimations}"/>
+                            </ui:FASettingsExpanderItem.Footer>
+                        </ui:FASettingsExpanderItem>
+                    </ui:FASettingsExpander>
+                </StackPanel>
+
+                <ui:FASettingsExpander Header="该分类已预留"
+                                        Description="后续会在这里接入对应的工作站功能。"
+                                        IsVisible="{Binding IsPlaceholderSectionSelected}">
+                    <ui:FASettingsExpander.IconSource>
+                        <ui:FASymbolIconSource Symbol="Help"/>
+                    </ui:FASettingsExpander.IconSource>
+                </ui:FASettingsExpander>
+
+                <ContentControl Content="{Binding SelectedSection.Content}"
+                                IsVisible="{Binding IsPluginSectionSelected}"/>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

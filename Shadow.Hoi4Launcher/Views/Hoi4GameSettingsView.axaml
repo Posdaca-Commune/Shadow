@@ -1,0 +1,200 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:vm="using:Shadow.Hoi4Launcher.ViewModels"
+             x:Class="Shadow.Hoi4Launcher.Views.Hoi4GameSettingsView"
+             x:DataType="vm:Hoi4GameSettingsViewModel">
+    <StackPanel Spacing="12">
+        <ui:FASettingsExpander Header="启动路径"
+                               Description="游戏程序、HOI4 用户目录和 Steam 创意工坊目录。">
+            <ui:FASettingsExpander.IconSource>
+                <ui:FASymbolIconSource Symbol="Folder"/>
+            </ui:FASettingsExpander.IconSource>
+            <Grid RowDefinitions="Auto,Auto,Auto"
+                  ColumnDefinitions="150,*"
+                  RowSpacing="10"
+                  ColumnSpacing="14"
+                  Margin="0,8,0,0">
+                <TextBlock Text="游戏程序"
+                           VerticalAlignment="Center"/>
+                <TextBox Grid.Column="1"
+                         Text="{Binding GameExecutablePath}"
+                         PlaceholderText="...\Hearts of Iron IV\hoi4.exe"/>
+
+                <TextBlock Grid.Row="1"
+                           Text="用户目录"
+                           VerticalAlignment="Center"/>
+                <TextBox Grid.Row="1"
+                         Grid.Column="1"
+                         Text="{Binding GameUserDirectory}"
+                         PlaceholderText="Documents\Paradox Interactive\Hearts of Iron IV"/>
+
+                <TextBlock Grid.Row="2"
+                           Text="创意工坊目录"
+                           VerticalAlignment="Center"/>
+                <TextBox Grid.Row="2"
+                         Grid.Column="1"
+                         Text="{Binding WorkshopDirectory}"
+                         PlaceholderText="...\steamapps\workshop\content\394360"/>
+            </Grid>
+        </ui:FASettingsExpander>
+
+        <ui:FASettingsExpander Header="启动行为"
+                               Description="启动参数和启动后的应用行为。">
+            <ui:FASettingsExpander.IconSource>
+                <ui:FASymbolIconSource Symbol="Play"/>
+            </ui:FASettingsExpander.IconSource>
+            <Grid RowDefinitions="Auto,Auto"
+                  ColumnDefinitions="150,*"
+                  RowSpacing="10"
+                  ColumnSpacing="14"
+                  Margin="0,8,0,0">
+                <TextBlock Text="启动参数"
+                           VerticalAlignment="Center"/>
+                <TextBox Grid.Column="1"
+                         Text="{Binding LaunchArguments}"
+                         PlaceholderText="-debug -opengl"/>
+
+                <TextBlock Grid.Row="1"
+                           Text="启动后"
+                           VerticalAlignment="Center"/>
+                <ToggleSwitch Grid.Row="1"
+                              Grid.Column="1"
+                              Content="关闭 Shadow"
+                              IsChecked="{Binding CloseAfterLaunch}"/>
+            </Grid>
+        </ui:FASettingsExpander>
+
+        <ui:FASettingsExpander Header="显示"
+                               Description="分辨率、显示模式、刷新率和垂直同步。">
+            <ui:FASettingsExpander.IconSource>
+                <ui:FASymbolIconSource Symbol="Pictures"/>
+            </ui:FASettingsExpander.IconSource>
+            <Grid RowDefinitions="Auto,Auto,Auto"
+                  ColumnDefinitions="*,*"
+                  RowSpacing="10"
+                  ColumnSpacing="16"
+                  Margin="0,8,0,0">
+                <ComboBox ItemsSource="{Binding FullscreenModes}"
+                          SelectedIndex="{Binding SelectedFullscreenModeIndex}"
+                          HorizontalAlignment="Stretch"/>
+                <ToggleSwitch Grid.Column="1"
+                              Content="垂直同步"
+                              IsChecked="{Binding VSync}"/>
+                <StackPanel Grid.Row="1"
+                            Orientation="Horizontal"
+                            Spacing="8">
+                    <NumericUpDown Value="{Binding ResolutionWidth}"
+                                   Minimum="640"
+                                   Maximum="7680"
+                                   Width="120"/>
+                    <TextBlock Text="x"
+                               VerticalAlignment="Center"/>
+                    <NumericUpDown Value="{Binding ResolutionHeight}"
+                                   Minimum="480"
+                                   Maximum="4320"
+                                   Width="120"/>
+                </StackPanel>
+                <StackPanel Grid.Row="1"
+                            Grid.Column="1"
+                            Orientation="Horizontal"
+                            Spacing="8">
+                    <NumericUpDown Value="{Binding RefreshRate}"
+                                   Minimum="24"
+                                   Maximum="360"
+                                   Width="120"/>
+                    <TextBlock Text="Hz"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Grid.Row="2"
+                            Orientation="Horizontal"
+                            Spacing="8">
+                    <TextBlock Text="显示器"
+                               VerticalAlignment="Center"/>
+                    <NumericUpDown Value="{Binding DisplayIndex}"
+                                   Minimum="0"
+                                   Maximum="8"
+                                   Width="120"/>
+                </StackPanel>
+            </Grid>
+        </ui:FASettingsExpander>
+
+        <ui:FASettingsExpander Header="语言和音频"
+                               Description="对应原版启动器的语言与音量设置。">
+            <ui:FASettingsExpander.IconSource>
+                <ui:FASymbolIconSource Symbol="Audio"/>
+            </ui:FASettingsExpander.IconSource>
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+                  ColumnDefinitions="180,*"
+                  RowSpacing="10"
+                  ColumnSpacing="18"
+                  Margin="0,8,0,0">
+                <TextBlock Text="语言"
+                           VerticalAlignment="Center"/>
+                <ComboBox Grid.Column="1"
+                          ItemsSource="{Binding Languages}"
+                          SelectedItem="{Binding SelectedLanguage}"
+                          Width="220"
+                          HorizontalAlignment="Left"/>
+
+                <TextBlock Grid.Row="1"
+                           Text="主音量"
+                           VerticalAlignment="Center"/>
+                <Slider Grid.Row="1"
+                        Grid.Column="1"
+                        Minimum="0"
+                        Maximum="1"
+                        Value="{Binding MasterVolume}"/>
+
+                <TextBlock Grid.Row="2"
+                           Text="音乐"
+                           VerticalAlignment="Center"/>
+                <Slider Grid.Row="2"
+                        Grid.Column="1"
+                        Minimum="0"
+                        Maximum="1"
+                        Value="{Binding MusicVolume}"/>
+
+                <TextBlock Grid.Row="3"
+                           Text="效果"
+                           VerticalAlignment="Center"/>
+                <Slider Grid.Row="3"
+                        Grid.Column="1"
+                        Minimum="0"
+                        Maximum="1"
+                        Value="{Binding EffectsVolume}"/>
+
+                <TextBlock Grid.Row="4"
+                           Text="界面"
+                           VerticalAlignment="Center"/>
+                <Slider Grid.Row="4"
+                        Grid.Column="1"
+                        Minimum="0"
+                        Maximum="1"
+                        Value="{Binding InterfaceVolume}"/>
+            </Grid>
+        </ui:FASettingsExpander>
+
+        <StackPanel Orientation="Horizontal"
+                    Spacing="10"
+                    HorizontalAlignment="Right">
+            <TextBlock Text="{Binding StatusText}"
+                       VerticalAlignment="Center"
+                       Opacity="0.68"/>
+            <Button Command="{Binding ReloadCommand}">
+                <StackPanel Orientation="Horizontal"
+                            Spacing="6">
+                    <ui:FASymbolIcon Symbol="Sync"/>
+                    <TextBlock Text="重新读取"/>
+                </StackPanel>
+            </Button>
+            <Button Command="{Binding SaveCommand}">
+                <StackPanel Orientation="Horizontal"
+                            Spacing="6">
+                    <ui:FASymbolIcon Symbol="Save"/>
+                    <TextBlock Text="保存"/>
+                </StackPanel>
+            </Button>
+        </StackPanel>
+    </StackPanel>
+</UserControl>
