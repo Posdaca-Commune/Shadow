@@ -43,11 +43,11 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
 
     public IReadOnlyList<LauncherSection> Sections { get; } =
     [
-        new("Home", "启动首页", FASymbol.Home),
-        new("Mods", "Mod 列表", FASymbol.Library),
-        new("Dlcs", "DLC 列表", FASymbol.Shop),
-        new("Playsets", "播放集列表", FASymbol.BulletList),
-        new("GameSettings", "游戏设置", FASymbol.Setting),
+        new("Home", "启动首页", "当前播放集、路径和启动状态", FASymbol.Home),
+        new("Mods", "Mod 列表", "已发现的本地和创意工坊 Mod", FASymbol.Library),
+        new("Dlcs", "DLC 列表", "DLC 启用状态和加载文件", FASymbol.Shop),
+        new("Playsets", "播放集列表", "播放集选择、Mod 调整和排序", FASymbol.BulletList),
+        new("GameSettings", "游戏设置", "启动路径、显示、语言和音频", FASymbol.Setting),
     ];
 
     public ObservableCollection<ModEntry> Mods { get; } = [];

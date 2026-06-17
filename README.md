@@ -1,6 +1,6 @@
 # Shadow
 
-[简体中文](README.zh-CN.md)
+[简体中文](docs/README.zh-CN.md)
 
 Shadow is an Avalonia-based workstation shell for Hearts of Iron IV tooling.
 The host application loads feature plugins from a `Plugins` directory, while
