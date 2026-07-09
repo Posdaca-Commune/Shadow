@@ -16,7 +16,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     internal MainWindowViewModel(PluginCatalog pluginCatalog)
     {
-        SettingsPage = new SettingsViewModel(pluginCatalog.SettingsSections);
+        SettingsPage = new SettingsViewModel(pluginCatalog.SettingsSections, pluginCatalog.Plugins);
         NavigationItems = new ObservableCollection<NavigationItemViewModel>(
             new[]
             {

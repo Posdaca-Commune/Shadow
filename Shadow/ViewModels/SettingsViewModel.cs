@@ -12,17 +12,25 @@ using FluentAvalonia.Styling;
 using FluentAvalonia.UI.Controls;
 using Shadow.Models;
 using Shadow.Abstractions;
+using Shadow.Plugins;
 
 namespace Shadow.ViewModels;
 
 public partial class SettingsViewModel : ViewModelBase
 {
     public SettingsViewModel()
-        : this([])
+        : this([], [])
     {
     }
 
     public SettingsViewModel(IReadOnlyList<ShadowSettingsSection> pluginSections)
+        : this(pluginSections, [])
+    {
+    }
+
+    internal SettingsViewModel(
+        IReadOnlyList<ShadowSettingsSection> pluginSections,
+        IReadOnlyList<LoadedPlugin> loadedPlugins)
     {
         Sections =
         [
@@ -38,6 +46,10 @@ public partial class SettingsViewModel : ViewModelBase
 
         Sections.Add(new SettingsSectionViewModel("About", "关于", "版本和运行环境", FASymbol.Help));
 
+        LoadedPlugins = new ObservableCollection<PluginInfoViewModel>(
+            loadedPlugins
+                .Select(plugin => new PluginInfoViewModel(plugin))
+                .OrderBy(plugin => plugin.DisplayName));
         SelectedSection = Sections[0];
         SelectedSection.IsSelected = true;
         Personalization.PropertyChanged += Personalization_OnPropertyChanged;
@@ -45,6 +57,8 @@ public partial class SettingsViewModel : ViewModelBase
     }
 
     public ObservableCollection<SettingsSectionViewModel> Sections { get; }
+
+    public ObservableCollection<PluginInfoViewModel> LoadedPlugins { get; }
 
     public PersonalizationOptions Personalization { get; } = new();
 
@@ -73,9 +87,22 @@ public partial class SettingsViewModel : ViewModelBase
 
     public bool IsPersonalizationSelected => SelectedSection.Key == "Personalization";
 
+    public bool IsPluginInventorySelected => SelectedSection.Key == "Plugins";
+
     public bool IsPluginSectionSelected => SelectedSection.Content is not null;
 
-    public bool IsPlaceholderSectionSelected => !IsPersonalizationSelected && !IsPluginSectionSelected;
+    public bool IsPlaceholderSectionSelected =>
+        !IsPersonalizationSelected && !IsPluginInventorySelected && !IsPluginSectionSelected;
+
+    public int LoadedPluginCount => LoadedPlugins.Count;
+
+    public bool HasLoadedPlugins => LoadedPluginCount > 0;
+
+    public bool IsNoPluginLoaded => !HasLoadedPlugins;
+
+    public string LoadedPluginCountLabel => LoadedPluginCount == 0
+        ? "当前没有加载插件"
+        : $"当前已加载 {LoadedPluginCount} 个插件";
 
     public string ThemeModeName => Personalization.ThemeMode switch
     {
@@ -112,6 +139,7 @@ public partial class SettingsViewModel : ViewModelBase
         }
 
         OnPropertyChanged(nameof(IsPersonalizationSelected));
+        OnPropertyChanged(nameof(IsPluginInventorySelected));
         OnPropertyChanged(nameof(IsPluginSectionSelected));
         OnPropertyChanged(nameof(IsPlaceholderSectionSelected));
     }

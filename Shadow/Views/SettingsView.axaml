@@ -162,6 +162,87 @@
                     </ui:FASettingsExpander>
                 </StackPanel>
 
+                <StackPanel IsVisible="{Binding IsPluginInventorySelected}"
+                            Spacing="12">
+                    <ui:FASettingsExpander Header="插件概览"
+                                           Description="{Binding LoadedPluginCountLabel}">
+                        <ui:FASettingsExpander.IconSource>
+                            <ui:FASymbolIconSource Symbol="AllApps"/>
+                        </ui:FASettingsExpander.IconSource>
+                        <ui:FASettingsExpanderItem Content="加载策略"
+                                                   Description="主程序只加载插件并展示通用元数据，插件功能仍由各插件独立提供。"/>
+                    </ui:FASettingsExpander>
+
+                    <ui:FASettingsExpander Header="没有加载插件"
+                                           Description="当前 Plugins 目录中没有发现可用插件，或插件加载失败。"
+                                           IsVisible="{Binding IsNoPluginLoaded}">
+                        <ui:FASettingsExpander.IconSource>
+                            <ui:FASymbolIconSource Symbol="Help"/>
+                        </ui:FASettingsExpander.IconSource>
+                    </ui:FASettingsExpander>
+
+                    <ItemsControl ItemsSource="{Binding LoadedPlugins}"
+                                  IsVisible="{Binding HasLoadedPlugins}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Spacing="12"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:PluginInfoViewModel">
+                                <ui:FASettingsExpander Header="{Binding DisplayName}"
+                                                       Description="{Binding Summary}">
+                                    <ui:FASettingsExpander.IconSource>
+                                        <ui:FASymbolIconSource Symbol="AllApps"/>
+                                    </ui:FASettingsExpander.IconSource>
+                                    <ui:FASettingsExpander.Footer>
+                                        <TextBlock Text="{Binding VersionLabel}"
+                                                   FontSize="12"
+                                                   Opacity="0.72"/>
+                                    </ui:FASettingsExpander.Footer>
+                                    <ui:FASettingsExpanderItem Content="插件名称"
+                                                               Description="{Binding DisplayName}"/>
+                                    <ui:FASettingsExpanderItem Content="版本"
+                                                               Description="{Binding VersionLabel}"/>
+                                    <ui:FASettingsExpanderItem Content="插件标识"
+                                                               Description="{Binding Id}"/>
+                                    <ui:FASettingsExpanderItem Content="扩展能力"
+                                                               Description="{Binding CapabilitySummary}"/>
+                                    <ui:FASettingsExpanderItem Content="程序集"
+                                                               Description="{Binding AssemblyName}"/>
+                                    <ui:FASettingsExpanderItem Content="插件类型">
+                                        <ui:FASettingsExpanderItem.Footer>
+                                            <TextBlock Text="{Binding PluginType}"
+                                                       FontSize="12"
+                                                       MaxWidth="460"
+                                                       Opacity="0.72"
+                                                       TextWrapping="Wrap"/>
+                                        </ui:FASettingsExpanderItem.Footer>
+                                    </ui:FASettingsExpanderItem>
+                                    <ui:FASettingsExpanderItem Content="数据目录">
+                                        <ui:FASettingsExpanderItem.Footer>
+                                            <TextBlock Text="{Binding DataDirectory}"
+                                                       FontSize="12"
+                                                       MaxWidth="460"
+                                                       Opacity="0.72"
+                                                       TextWrapping="Wrap"/>
+                                        </ui:FASettingsExpanderItem.Footer>
+                                    </ui:FASettingsExpanderItem>
+                                    <ui:FASettingsExpanderItem Content="加载位置">
+                                        <ui:FASettingsExpanderItem.Footer>
+                                            <TextBlock Text="{Binding Location}"
+                                                       FontSize="12"
+                                                       MaxWidth="460"
+                                                       Opacity="0.72"
+                                                       TextWrapping="Wrap"/>
+                                        </ui:FASettingsExpanderItem.Footer>
+                                    </ui:FASettingsExpanderItem>
+                                </ui:FASettingsExpander>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
                 <ui:FASettingsExpander Header="该分类已预留"
                                         Description="后续会在这里接入对应的工作站功能。"
                                         IsVisible="{Binding IsPlaceholderSectionSelected}">

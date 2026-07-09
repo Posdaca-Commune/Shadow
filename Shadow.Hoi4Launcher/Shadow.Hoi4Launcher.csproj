@@ -28,9 +28,26 @@
         </PropertyGroup>
 
         <ItemGroup>
-            <PluginOutput Include="$(TargetDir)**\*.*"/>
+            <PluginOutputExclusion Include="$(TargetDir)win-*\**\*.*"/>
+            <PluginOutputExclusion Include="$(TargetDir)linux-*\**\*.*"/>
+            <PluginOutputExclusion Include="$(TargetDir)osx-*\**\*.*"/>
+            <PluginOutputExclusion Include="$(TargetDir)browser-*\**\*.*"/>
+            <PluginOutputExclusion Include="$(TargetDir)Avalonia*.dll"/>
+            <PluginOutputExclusion Include="$(TargetDir)CommunityToolkit.Mvvm.dll"/>
+            <PluginOutputExclusion Include="$(TargetDir)FluentAvalonia.dll"/>
+            <PluginOutputExclusion Include="$(TargetDir)HarfBuzzSharp.dll"/>
+            <PluginOutputExclusion Include="$(TargetDir)libHarfBuzzSharp.*"/>
+            <PluginOutputExclusion Include="$(TargetDir)libSkiaSharp.*"/>
+            <PluginOutputExclusion Include="$(TargetDir)MicroCom.Runtime.dll"/>
+            <PluginOutputExclusion Include="$(TargetDir)runtimes\**\libHarfBuzzSharp.*"/>
+            <PluginOutputExclusion Include="$(TargetDir)runtimes\**\libSkiaSharp.*"/>
+            <PluginOutputExclusion Include="$(TargetDir)Shadow.Abstractions.dll"/>
+            <PluginOutputExclusion Include="$(TargetDir)SkiaSharp.dll"/>
+            <PluginOutput Include="$(TargetDir)**\*.*"
+                          Exclude="@(PluginOutputExclusion)"/>
         </ItemGroup>
 
+        <RemoveDir Directories="$(PluginHostDirectory)"/>
         <MakeDir Directories="$(PluginHostDirectory)"/>
         <Copy SourceFiles="@(PluginOutput)"
               DestinationFiles="@(PluginOutput->'$(PluginHostDirectory)\%(RecursiveDir)%(Filename)%(Extension)')"
