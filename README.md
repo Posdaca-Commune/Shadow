@@ -31,14 +31,15 @@ plugin is `Shadow.Hoi4Launcher`, a HOI4 launcher and playset manager.
 - Hearts of Iron IV installed locally.
 - For source builds: .NET SDK 10 and the workloads required by Avalonia.
 
-The Windows release asset is published as a self-contained `win-x64` zip, so it
-does not require a separate .NET runtime installation.
+The Windows release asset is published as an MSIX package. The package contains
+the host and bundled plugins, so users do not need to unpack a zip or install a
+separate .NET runtime.
 
 ## Getting Started
 
-1. Download `Shadow-1.0.0-beta.1-win-x64.zip` from the GitHub release.
-2. Extract the zip to a writable folder.
-3. Run `Shadow.exe`.
+1. Download `Shadow-1.0.0-beta.1.msix` from the GitHub release.
+2. Install the package with Windows App Installer.
+3. Start `Shadow` from the Start menu or desktop shortcut.
 4. Open `HOI4 Launcher` from the left navigation.
 5. In `Game Settings`, set:
    - the path to `hoi4.exe` or `dowser.exe`;
@@ -50,12 +51,13 @@ does not require a separate .NET runtime installation.
 ## Command-Line Launch
 
 Shadow can dispatch plugin commands before starting the desktop UI. The bundled
-HOI4 plugin currently exposes:
+HOI4 plugin currently exposes these commands. MSIX installs register the
+`shadow.exe` app execution alias, so `shadow` can be used from a terminal:
 
 ```powershell
-.\Shadow.exe --shadow-command hoi4.launch
-.\Shadow.exe --shadow-command hoi4.launch --playset-id default
-.\Shadow.exe --shadow-command hoi4.launch --playset-id default --allow-missing-mods
+shadow --shadow-command hoi4.launch
+shadow --shadow-command hoi4.launch --playset-id default
+shadow --shadow-command hoi4.launch --playset-id default --allow-missing-mods
 ```
 
 Options:
@@ -99,11 +101,21 @@ dotnet build
 dotnet run --project Shadow/Shadow.csproj
 ```
 
-To create a Windows x64 publish folder with the bundled plugin:
+To create a Windows x64 MSIX package with the bundled plugin, install the
+Windows 10/11 SDK, then run:
 
 ```powershell
-dotnet publish Shadow/Shadow.csproj -c Release -r win-x64 --self-contained true -o artifacts/publish/Shadow-1.0.0-beta.1-win-x64
-dotnet publish Shadow.Hoi4Launcher/Shadow.Hoi4Launcher.csproj -c Release -r win-x64 --self-contained false -o artifacts/publish/Shadow-1.0.0-beta.1-win-x64/Plugins/Hoi4Launcher
+.\scripts\build-msix.ps1 -Version 1.0.0-beta.1
+```
+
+The generated package is written to `artifacts/msix/Shadow-1.0.0-beta.1.msix`.
+MSIX packages must be signed before installation. Use `-CertificatePath` or
+`-CertificateThumbprint` to sign during packaging.
+
+Example with a PFX certificate:
+
+```powershell
+.\scripts\build-msix.ps1 -Version 1.0.0-beta.1 -CertificatePath .\certs\Shadow.pfx -CertificatePassword (Read-Host -AsSecureString)
 ```
 
 ## Plugin Contract

@@ -437,11 +437,6 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
     [RelayCommand]
     private void EnableAllDlcs()
     {
-        if (!EnsureSelectedPlaysetCanEdit())
-        {
-            return;
-        }
-
         foreach (var dlc in Dlcs)
         {
             dlc.IsEnabled = true;
@@ -518,9 +513,7 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
             ? SelectedPlayset.ModIds
             : SelectedPlayset.EnabledModIds;
         var enabledModIds = SelectedPlayset.EnabledModIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var knownMods = Mods
-            .GroupBy(mod => mod.Id, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+        var knownMods = Hoi4ModIdentity.BuildLookup(Mods);
 
         PlaysetMods.Clear();
         foreach (var modId in playsetModIds.Distinct(StringComparer.OrdinalIgnoreCase))
@@ -530,7 +523,7 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
                 continue;
             }
 
-            var entry = new PlaysetModEntry(mod, enabledModIds.Contains(mod.Id));
+            var entry = new PlaysetModEntry(mod, Hoi4ModIdentity.ContainsModReference(enabledModIds, mod));
             entry.PropertyChanged += (_, _) =>
             {
                 if (CanEditSelectedPlayset)
@@ -591,8 +584,10 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
         return new Playset
         {
             Name = name,
-            ModIds = PlaysetMods.Select(mod => mod.Id).ToList(),
-            EnabledModIds = PlaysetMods.Where(mod => mod.IsEnabled).Select(mod => mod.Id).ToList(),
+            ModIds = PlaysetMods.Select(mod => Hoi4ModIdentity.GetStableId(mod.Mod)).ToList(),
+            EnabledModIds = PlaysetMods.Where(mod => mod.IsEnabled)
+                .Select(mod => Hoi4ModIdentity.GetStableId(mod.Mod))
+                .ToList(),
             DisabledDlcIds = Dlcs.Where(dlc => !dlc.IsEnabled).Select(dlc => dlc.Id).ToList(),
             Source = "Shadow",
             CanEdit = true,
@@ -607,12 +602,12 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
         }
 
         SelectedPlayset.ModIds = PlaysetMods
-            .Select(mod => mod.Id)
+            .Select(mod => Hoi4ModIdentity.GetStableId(mod.Mod))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
         SelectedPlayset.EnabledModIds = PlaysetMods
             .Where(mod => mod.IsEnabled)
-            .Select(mod => mod.Id)
+            .Select(mod => Hoi4ModIdentity.GetStableId(mod.Mod))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
         SelectedPlayset.DisabledDlcIds = Dlcs

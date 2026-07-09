@@ -78,8 +78,8 @@
                 </Button>
             </Grid>
 
-            <Grid Grid.Row="1"
-                  DataContext="{Binding #Root.DataContext}">
+            <Grid x:Name="LauncherContentHost"
+                  Grid.Row="1">
                 <ScrollViewer IsVisible="{Binding IsHomeSelected}"
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled">
@@ -252,16 +252,14 @@
                                                         Orientation="Horizontal"
                                                         Spacing="8"
                                                         VerticalAlignment="Center">
-                                                <Button Classes="Subtle"
-                                                        Command="{Binding #Root.DataContext.OpenModLocationCommand}"
+                                                <Button Command="{Binding #Root.((vm:Hoi4LauncherViewModel)DataContext).OpenModLocationCommand}"
                                                         CommandParameter="{Binding}"
                                                         Width="34"
                                                         Height="34"
                                                         Padding="0">
                                                     <ui:FASymbolIcon Symbol="OpenFolder"/>
                                                 </Button>
-                                                <Button Classes="Subtle"
-                                                        Command="{Binding #Root.DataContext.OpenWorkshopPageCommand}"
+                                                <Button Command="{Binding #Root.((vm:Hoi4LauncherViewModel)DataContext).OpenWorkshopPageCommand}"
                                                         CommandParameter="{Binding}"
                                                         Width="34"
                                                         Height="34"
@@ -287,8 +285,7 @@
                             <ui:FASymbolIconSource Symbol="Shop"/>
                         </ui:FASettingsExpander.IconSource>
                         <ui:FASettingsExpander.Footer>
-                            <Button Command="{Binding EnableAllDlcsCommand}"
-                                    IsEnabled="{Binding CanEditSelectedPlayset}">
+                            <Button Command="{Binding EnableAllDlcsCommand}">
                                 <StackPanel Orientation="Horizontal"
                                             Spacing="6">
                                     <ui:FASymbolIcon Symbol="Accept"/>
@@ -314,7 +311,6 @@
                                               MinHeight="44"
                                               ColumnSpacing="12">
                                             <CheckBox IsChecked="{Binding IsEnabled}"
-                                                      IsEnabled="{Binding #Root.DataContext.CanEditSelectedPlayset}"
                                                       VerticalAlignment="Center"/>
                                             <StackPanel Grid.Column="1"
                                                         Spacing="2"
@@ -450,7 +446,7 @@
                                                                  VerticalAlignment="Center"/>
                                                 <CheckBox Grid.Column="1"
                                                           IsChecked="{Binding IsEnabled}"
-                                                          IsEnabled="{Binding #Root.DataContext.CanEditSelectedPlayset}"
+                                                          IsEnabled="{Binding #Root.((vm:Hoi4LauncherViewModel)DataContext).CanEditSelectedPlayset}"
                                                           VerticalAlignment="Center"/>
 
                                                 <Border Grid.Column="2"
@@ -504,16 +500,14 @@
                                                             Orientation="Horizontal"
                                                             Spacing="8"
                                                             VerticalAlignment="Center">
-                                                    <Button Classes="Subtle"
-                                                            Command="{Binding #Root.DataContext.OpenModLocationCommand}"
+                                                    <Button Command="{Binding #Root.((vm:Hoi4LauncherViewModel)DataContext).OpenModLocationCommand}"
                                                             CommandParameter="{Binding}"
                                                             Width="34"
                                                             Height="34"
                                                             Padding="0">
                                                         <ui:FASymbolIcon Symbol="OpenFolder"/>
                                                     </Button>
-                                                    <Button Classes="Subtle"
-                                                            Command="{Binding #Root.DataContext.OpenWorkshopPageCommand}"
+                                                    <Button Command="{Binding #Root.((vm:Hoi4LauncherViewModel)DataContext).OpenWorkshopPageCommand}"
                                                             CommandParameter="{Binding}"
                                                             Width="34"
                                                             Height="34"
@@ -521,10 +515,9 @@
                                                             IsVisible="{Binding CanOpenWorkshopPage}">
                                                         <ui:FASymbolIcon Symbol="Globe"/>
                                                     </Button>
-                                                    <Button Classes="Subtle"
-                                                            Command="{Binding #Root.DataContext.RemovePlaysetModCommand}"
+                                                    <Button Command="{Binding #Root.((vm:Hoi4LauncherViewModel)DataContext).RemovePlaysetModCommand}"
                                                             CommandParameter="{Binding}"
-                                                            IsEnabled="{Binding #Root.DataContext.CanEditSelectedPlayset}"
+                                                            IsEnabled="{Binding #Root.((vm:Hoi4LauncherViewModel)DataContext).CanEditSelectedPlayset}"
                                                             Width="34"
                                                             Height="34"
                                                             Padding="0">
@@ -551,11 +544,12 @@
                     </Grid>
                 </Grid>
 
-                <ScrollViewer DataContext="{Binding GameSettings}"
-                              IsVisible="{Binding #Root.DataContext.IsGameSettingsSelected, FallbackValue=False, TargetNullValue=False}"
-                              VerticalScrollBarVisibility="Auto"
-                              HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel Spacing="12"
+                <Grid IsVisible="{Binding IsGameSettingsSelected}">
+                    <ScrollViewer DataContext="{Binding GameSettings}"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel x:DataType="vm:Hoi4GameSettingsViewModel"
+                                    Spacing="12"
                                 MaxWidth="760">
                         <ui:FASettingsExpander Header="启动路径"
                                                Description="游戏程序、HOI4 用户目录和 Steam 创意工坊目录。">
@@ -743,8 +737,9 @@
                                 </StackPanel>
                             </Button>
                         </StackPanel>
-                    </StackPanel>
-                </ScrollViewer>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
             </Grid>
         </Grid>
     </Grid>

@@ -1,6 +1,8 @@
 <windowing:FAAppWindow xmlns="https://github.com/avaloniaui"
                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                 xmlns:ui="using:FluentAvalonia.UI.Controls"
+                xmlns:animation="using:Avalonia.Animation"
+                xmlns:easings="using:Avalonia.Animation.Easings"
                 xmlns:vm="using:Shadow.ViewModels"
                 xmlns:media="using:Avalonia.Media"
                 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -68,12 +70,37 @@
                         Background="Transparent"
                         IsHitTestVisible="False"/>
 
-                <Border Grid.Row="1"
+                <Border x:Name="ContentSurface"
+                        Grid.Row="1"
                         Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
                         BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                         BorderThickness="1,1,0,0"
-                        CornerRadius="8,0,0,0">
-                    <ContentControl Content="{Binding CurrentPage}"/>
+                        CornerRadius="8,0,0,0"
+                        ClipToBounds="True"
+                        RenderTransformOrigin="50%,50%">
+                    <TransitioningContentControl Content="{Binding CurrentPage}">
+                        <TransitioningContentControl.PageTransition>
+                            <animation:CompositePageTransition>
+                                <animation:PageSlide Duration="0:0:0.18"
+                                                     Orientation="Horizontal">
+                                    <animation:PageSlide.SlideInEasing>
+                                        <easings:CubicEaseOut/>
+                                    </animation:PageSlide.SlideInEasing>
+                                    <animation:PageSlide.SlideOutEasing>
+                                        <easings:CubicEaseOut/>
+                                    </animation:PageSlide.SlideOutEasing>
+                                </animation:PageSlide>
+                                <animation:CrossFade Duration="0:0:0.16">
+                                    <animation:CrossFade.FadeInEasing>
+                                        <easings:CubicEaseOut/>
+                                    </animation:CrossFade.FadeInEasing>
+                                    <animation:CrossFade.FadeOutEasing>
+                                        <easings:CubicEaseOut/>
+                                    </animation:CrossFade.FadeOutEasing>
+                                </animation:CrossFade>
+                            </animation:CompositePageTransition>
+                        </TransitioningContentControl.PageTransition>
+                    </TransitioningContentControl>
                 </Border>
             </Grid>
         </ui:FANavigationView>

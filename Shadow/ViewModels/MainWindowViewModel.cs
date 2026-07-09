@@ -16,13 +16,21 @@ public partial class MainWindowViewModel : ViewModelBase
 
     internal MainWindowViewModel(PluginCatalog pluginCatalog)
     {
-        NavigationItems =
-        [
-            new NavigationItemViewModel("Home", "主页", "Shadow 工作站首页", FluentAvalonia.UI.Controls.FASymbol.Home, HomePage),
-            .. pluginCatalog.NavigationItems.Select(item => new NavigationItemViewModel(item)),
-        ];
-
         SettingsPage = new SettingsViewModel(pluginCatalog.SettingsSections);
+        NavigationItems = new ObservableCollection<NavigationItemViewModel>(
+            new[]
+            {
+                new NavigationItemViewModel(
+                    "Home",
+                    "主页",
+                    "Shadow 工作站首页",
+                    FluentAvalonia.UI.Controls.FASymbol.Home,
+                    HomePage),
+            }
+            .Concat(pluginCatalog.NavigationItems.Select(item => new NavigationItemViewModel(item)))
+            .GroupBy(item => item.Key)
+            .Select(group => group.First()));
+
         _pages = NavigationItems.ToDictionary(item => item.Key, item => item.Content);
         _pages["Settings"] = SettingsPage;
 

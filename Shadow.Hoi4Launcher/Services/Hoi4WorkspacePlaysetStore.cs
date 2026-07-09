@@ -83,6 +83,7 @@ public sealed class Hoi4WorkspacePlaysetStore
                 .Select(group => group.First())
                 .OrderBy(mod => mod.Title, StringComparer.CurrentCultureIgnoreCase)
                 .Select(mod => new Hoi4WorkspaceModIndexEntry(
+                    Hoi4ModIdentity.GetStableId(mod),
                     mod.Id,
                     mod.Title,
                     mod.IsSteamWorkshopMod ? "steam" : "local",
@@ -90,7 +91,8 @@ public sealed class Hoi4WorkspacePlaysetStore
                     mod.DescriptorPath,
                     mod.LauncherPath,
                     mod.ContentPath,
-                    mod.Version))
+                    mod.Version,
+                    Hoi4ModIdentity.GetIdentityKeys(mod)))
                 .ToList());
 
         var temporaryPath = $"{ModIndexPath}.{Guid.NewGuid():N}.tmp";

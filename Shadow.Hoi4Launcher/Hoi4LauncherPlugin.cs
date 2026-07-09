@@ -109,12 +109,9 @@ public sealed class Hoi4LauncherPlugin : IShadowCommandPlugin
 
     private static IReadOnlyList<string> FindMissingEnabledModIds(Playset playset, IReadOnlyList<ModEntry> mods)
     {
-        var knownModIds = mods
-            .Select(mod => mod.Id)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
+        var knownMods = Hoi4ModIdentity.BuildLookup(mods);
         return playset.EnabledModIds
-            .Where(modId => !knownModIds.Contains(modId))
+            .Where(modId => !knownMods.ContainsKey(modId))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
     }

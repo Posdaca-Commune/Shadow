@@ -15,13 +15,14 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Avalonia" Version="12.0.4"/>
+        <PackageReference Include="Avalonia" Version="12.0.5" />
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2"/>
-        <PackageReference Include="FluentAvaloniaUI" Version="3.0.0-preview4"/>
-        <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.0"/>
+        <PackageReference Include="FluentAvaloniaUI" Version="3.0.1" />
+        <PackageReference Include="Microsoft.Data.Sqlite" Version="11.0.0-preview.5.26302.115" />
+        <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.3"/>
     </ItemGroup>
 
-    <Target Name="CopyPluginToHost" AfterTargets="Build">
+    <Target Name="CopyPluginToHost" AfterTargets="Build" Condition="'$(CopyPluginToHost)' != 'false'">
         <PropertyGroup>
             <PluginHostDirectory>$(MSBuildThisFileDirectory)..\Shadow\bin\$(Configuration)\net10.0\Plugins\Hoi4Launcher</PluginHostDirectory>
         </PropertyGroup>

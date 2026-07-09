@@ -44,14 +44,20 @@ Shadow 刷新 Mod 列表时会写入：
   "updatedAt": "2026-06-17T00:00:00+00:00",
   "mods": [
     {
-      "id": "123456789",
+      "id": "steam:123456789",
+      "shadowId": "123456789",
       "name": "Example Workshop Mod",
       "source": "steam",
       "remoteFileId": "123456789",
       "descriptorPath": "C:\\Users\\user\\Documents\\Paradox Interactive\\Hearts of Iron IV\\mod\\ugc_123456789.mod",
       "launcherPath": "mod/ugc_123456789.mod",
       "contentPath": "C:\\Program Files (x86)\\Steam\\steamapps\\workshop\\content\\394360\\123456789",
-      "version": "1.0"
+      "version": "1.0",
+      "identityKeys": [
+        "steam:123456789",
+        "shadow:123456789",
+        "local-content:9c0b..."
+      ]
     }
   ]
 }
@@ -59,18 +65,28 @@ Shadow 刷新 Mod 列表时会写入：
 
 字段说明：
 
-- `id`: Shadow 播放集必须写入的 Mod 标识。
+- `id`: 跨项目稳定 Mod 标识，外部项目应优先写入播放集。
+- `shadowId`: Shadow 旧内部 Mod 标识，仅用于兼容旧播放集和调试。
 - `remoteFileId`: Steam 创意工坊 Mod 的远程文件 ID。创意工坊 Mod 应优先用它匹配。
 - `contentPath`: Mod 实际内容目录或压缩包路径。本地 Mod 应优先用它匹配。
 - `descriptorPath`: Shadow 扫描到的 `.mod` 描述文件路径。
 - `launcherPath`: HOI4 `dlc_load.json` 使用的启动器路径。
 - `source`: 当前为 `steam` 或 `local`。
+- `identityKeys`: Shadow 为该 Mod 生成的可匹配身份集合。
+
+稳定 ID 规则：
+
+- Steam 创意工坊 Mod: `steam:<remoteFileId>`。
+- 本地目录或压缩包 Mod: `local-content:<sha256(normalized contentPath)>`。
+- 兜底本地 Mod: `local-descriptor:<sha256(normalized descriptorPath)>`。
+
+`shadowId` 保留旧规则：创意工坊 Mod 为 `remote_file_id`，本地 Mod 为 Shadow 扫描到的 `.mod` 描述文件路径大写。新集成不应主动使用 `shadowId` 作为主标识。
 
 匹配规则建议：
 
-1. 如果外部项目知道 Steam remote id，优先匹配 `mods[].remoteFileId`。
-2. 否则把外部项目的 Mod 内容目录规范化后匹配 `mods[].contentPath`。
-3. 匹配成功后，取 `mods[].id` 写入播放集的 `modIds` 和 `enabledModIds`。
+1. 如果外部项目知道 Steam remote id，优先匹配 `mods[].id == "steam:<remoteId>"` 或 `mods[].remoteFileId`。
+2. 否则把外部项目的 Mod 内容目录规范化后匹配 `mods[].contentPath`，匹配成功后使用 `mods[].id`。
+3. 也可以直接匹配 `mods[].identityKeys` 中的稳定身份。
 4. 不要把外部项目自己的内容目录直接写入 `modIds`，Shadow 不按内容目录匹配播放集。
 
 ## 播放集文件
@@ -88,12 +104,12 @@ Shadow 刷新 Mod 列表时会写入：
   "id": "oiia:my-project",
   "name": "Oiia - My Project",
   "enabledModIds": [
-    "123456789",
-    "C:\\USERS\\USER\\DOCUMENTS\\PARADOX INTERACTIVE\\HEARTS OF IRON IV\\MOD\\MY_LOCAL_MOD.MOD"
+    "steam:123456789",
+    "local-content:9c0b..."
   ],
   "modIds": [
-    "123456789",
-    "C:\\USERS\\USER\\DOCUMENTS\\PARADOX INTERACTIVE\\HEARTS OF IRON IV\\MOD\\MY_LOCAL_MOD.MOD"
+    "steam:123456789",
+    "local-content:9c0b..."
   ],
   "disabledDlcIds": [],
   "source": "Oiia",
@@ -106,8 +122,8 @@ Shadow 刷新 Mod 列表时会写入：
 
 - `id`: 播放集稳定 ID。建议外部项目使用带命名空间的 ID，例如 `oiia:<project-id>`。
 - `name`: Shadow UI 中显示的播放集名称。
-- `modIds`: 播放集内所有 Mod，顺序即加载顺序。
-- `enabledModIds`: 当前启用的 Mod。通常是 `modIds` 的子集。
+- `modIds`: 播放集内所有 Mod，顺序即加载顺序。新集成应写 `mods/index.json` 中的稳定 `id`。
+- `enabledModIds`: 当前启用的 Mod。通常是 `modIds` 的子集。新集成应写稳定 `id`。
 - `disabledDlcIds`: 禁用 DLC 的 launcher id。没有需要禁用的 DLC 时写空数组。
 - `source`: 播放集来源，例如 `Shadow`、`Oiia`、`Paradox Launcher`。
 - `isExternal`: 外部工具托管的播放集建议写 `true`。
@@ -162,6 +178,13 @@ Shadow.exe --shadow-command hoi4.launch --playset-id "oiia:my-project" --allow-m
 Shadow.exe --shadow-command hoi4.launch --playset-id "<playset-id>"
 ```
 
+对于 Oiia 这类会创建 HOI4 Mod 项目的工具：
+
+- 播放集 ID 建议使用 `oiia:<project-id>`。
+- 如果当前项目本身也是一个 Mod，应先确保它存在对应 launcher `.mod`，并且 Shadow 能在刷新时扫描到。
+- 生成播放集时，当前项目和依赖 Mod 都应从 `mods/index.json` 中取稳定 `id`。
+- 不要用 Mod 名称哈希作为主标识。名称可以变更，也可能重复。
+
 对于 IDEA / Rider / IntelliJ Platform 插件，可以创建一个运行配置：
 
 - Executable: `Shadow.exe`
@@ -173,5 +196,5 @@ Shadow.exe --shadow-command hoi4.launch --playset-id "<playset-id>"
 - `mods/index.json` 由 Shadow 生成。若外部项目刚创建了 launcher `.mod` 文件，需要先让 Shadow 刷新一次，或直接调用启动命令让 Shadow 在启动前刷新索引。
 - 创意工坊 Mod 用 `remoteFileId` 匹配最稳定。
 - 本地 Mod 用 `contentPath` 匹配最稳定。
-- 播放集里的 `modIds` 和 `enabledModIds` 必须使用 Shadow 索引里的 `id`。
+- 播放集里的 `modIds` 和 `enabledModIds` 建议使用 Shadow 索引里的稳定 `id`。Shadow 也兼容旧 `shadowId`，但外部项目不应依赖旧格式。
 - 外部托管播放集建议设置 `isExternal=true` 和 `can_edit=false`，避免 Shadow 用户编辑后被外部项目下次同步覆盖。

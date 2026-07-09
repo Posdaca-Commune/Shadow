@@ -11,6 +11,7 @@ x86/
 # .NET publish / generated files
 publish/
 Publish/
+artifacts/
 *.nupkg
 *.snupkg
 *.pdb

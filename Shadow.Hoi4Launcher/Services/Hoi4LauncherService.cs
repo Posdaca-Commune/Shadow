@@ -145,7 +145,9 @@ public sealed class Hoi4LauncherService
         var modList = mods.ToArray();
         var dlcList = dlcs.ToArray();
         var enabledModIds = playset.EnabledModIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var enabledMods = modList.Where(mod => enabledModIds.Contains(mod.Id)).ToArray();
+        var enabledMods = modList
+            .Where(mod => Hoi4ModIdentity.ContainsModReference(enabledModIds, mod))
+            .ToArray();
 
         var enabledModPaths = enabledMods
             .Select(EnsureLauncherModDescriptor)

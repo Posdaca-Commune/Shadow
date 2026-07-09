@@ -48,7 +48,8 @@
         </Grid>
 
         <ScrollViewer Grid.Column="1">
-            <StackPanel Spacing="14"
+            <StackPanel x:Name="SettingsContentPanel"
+                        Spacing="14"
                         MaxWidth="760">
                 <StackPanel Spacing="4"
                             Margin="0,2,0,10">
