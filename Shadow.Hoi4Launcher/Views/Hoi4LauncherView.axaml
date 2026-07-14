@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:Shadow.Hoi4Launcher.Localization"
              xmlns:ui="using:FluentAvalonia.UI.Controls"
              xmlns:models="using:Shadow.Hoi4Launcher.Models"
              xmlns:vm="using:Shadow.Hoi4Launcher.ViewModels"
@@ -12,10 +13,10 @@
               Margin="0,0,22,0">
             <StackPanel Spacing="6"
                         Margin="4,0,0,18">
-                <TextBlock Text="HOI4 启动器"
+                <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.Page.Title}"
                            FontSize="28"
                            FontWeight="SemiBold"/>
-                <TextBlock Text="游戏启动、播放集和内容管理"
+                <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.Page.Subtitle}"
                            FontSize="13"
                            Opacity="0.68"/>
                 <TextBlock Text="{Binding StatusText}"
@@ -73,7 +74,7 @@
                                 Spacing="8"
                                 HorizontalAlignment="Center">
                         <ui:FASymbolIcon Symbol="Play"/>
-                        <TextBlock Text="开始游戏"/>
+                        <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.Action.LaunchGame}"/>
                     </StackPanel>
                 </Button>
             </Grid>
@@ -96,7 +97,7 @@
                                     <TextBlock Text="{Binding EnabledModCount}"
                                                FontSize="30"
                                                FontWeight="SemiBold"/>
-                                    <TextBlock Text="已启用 Mod"
+                                    <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.Stat.EnabledMods}"
                                                Opacity="0.68"/>
                                 </StackPanel>
                             </Border>
@@ -110,7 +111,7 @@
                                     <TextBlock Text="{Binding PlaysetModCount}"
                                                FontSize="30"
                                                FontWeight="SemiBold"/>
-                                    <TextBlock Text="播放集内 Mod"
+                                    <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.Stat.PlaysetMods}"
                                                Opacity="0.68"/>
                                 </StackPanel>
                             </Border>
@@ -124,14 +125,14 @@
                                     <TextBlock Text="{Binding DisabledDlcCount}"
                                                FontSize="30"
                                                FontWeight="SemiBold"/>
-                                    <TextBlock Text="禁用 DLC"
+                                    <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.Stat.DisabledDlcs}"
                                                Opacity="0.68"/>
                                 </StackPanel>
                             </Border>
                         </Grid>
 
-                        <ui:FASettingsExpander Header="当前播放集"
-                                               Description="启动前会将当前播放集和 DLC 状态写入游戏加载文件。">
+                        <ui:FASettingsExpander Header="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.Home.CurrentPlayset.Header}"
+                                               Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.Home.CurrentPlayset.Description}">
                             <ui:FASettingsExpander.IconSource>
                                 <ui:FASymbolIconSource Symbol="BulletList"/>
                             </ui:FASettingsExpander.IconSource>
@@ -150,18 +151,18 @@
                             </ui:FASettingsExpander.Footer>
                         </ui:FASettingsExpander>
 
-                        <ui:FASettingsExpander Header="启动路径"
-                                               Description="游戏程序、用户目录和创意工坊目录。">
+                        <ui:FASettingsExpander Header="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.LaunchPaths.Header}"
+                                               Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.LaunchPaths.Description}">
                             <ui:FASettingsExpander.IconSource>
                                 <ui:FASymbolIconSource Symbol="Folder"/>
                             </ui:FASettingsExpander.IconSource>
-                            <ui:FASettingsExpanderItem Content="游戏程序"
+                            <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.Field.GameExecutable}"
                                                        Description="{Binding GameExecutablePath}"/>
-                            <ui:FASettingsExpanderItem Content="用户目录"
+                            <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.Field.UserDirectory}"
                                                        Description="{Binding GameUserDirectory}"/>
-                            <ui:FASettingsExpanderItem Content="创意工坊"
+                            <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.Field.Workshop}"
                                                        Description="{Binding WorkshopDirectory}"/>
-                            <ui:FASettingsExpanderItem Content="启动参数"
+                            <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.Field.LaunchArguments}"
                                                        Description="{Binding LaunchArguments}"/>
                         </ui:FASettingsExpander>
                     </StackPanel>
@@ -170,8 +171,8 @@
                 <Grid IsVisible="{Binding IsModsSelected}"
                       RowDefinitions="Auto,*"
                       RowSpacing="12">
-                    <ui:FASettingsExpander Header="Mod 内容"
-                                           Description="刷新本地和创意工坊目录，更新已发现的 Mod 列表。">
+                    <ui:FASettingsExpander Header="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.Mods.Content.Header}"
+                                           Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.Mods.Content.Description}">
                         <ui:FASettingsExpander.IconSource>
                             <ui:FASymbolIconSource Symbol="Library"/>
                         </ui:FASettingsExpander.IconSource>
@@ -180,7 +181,7 @@
                                 <StackPanel Orientation="Horizontal"
                                             Spacing="6">
                                     <ui:FASymbolIcon Symbol="Sync"/>
-                                    <TextBlock Text="刷新"/>
+                                    <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.Action.Refresh}"/>
                                 </StackPanel>
                             </Button>
                         </ui:FASettingsExpander.Footer>
@@ -279,8 +280,8 @@
                 <Grid IsVisible="{Binding IsDlcsSelected}"
                       RowDefinitions="Auto,*"
                       RowSpacing="12">
-                    <ui:FASettingsExpander Header="DLC 加载"
-                                           Description="勾选状态会随当前播放集保存，禁用项写入 dlc_load.json。">
+                    <ui:FASettingsExpander Header="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.Dlcs.Loading.Header}"
+                                           Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.Dlcs.Loading.Description}">
                         <ui:FASettingsExpander.IconSource>
                             <ui:FASymbolIconSource Symbol="Shop"/>
                         </ui:FASettingsExpander.IconSource>
@@ -289,7 +290,7 @@
                                 <StackPanel Orientation="Horizontal"
                                             Spacing="6">
                                     <ui:FASymbolIcon Symbol="Accept"/>
-                                    <TextBlock Text="启用全部"/>
+                                    <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.Action.EnableAll}"/>
                                 </StackPanel>
                             </Button>
                         </ui:FASettingsExpander.Footer>
@@ -358,7 +359,7 @@
                                 <StackPanel Orientation="Horizontal"
                                             Spacing="6">
                                     <ui:FASymbolIcon Symbol="Add"/>
-                                    <TextBlock Text="新增"/>
+                                    <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.Action.Add}"/>
                                 </StackPanel>
                             </Button>
                             <Button IsEnabled="{Binding CanEditSelectedPlayset}"
@@ -366,7 +367,7 @@
                                 <StackPanel Orientation="Horizontal"
                                             Spacing="6">
                                     <ui:FASymbolIcon Symbol="Delete"/>
-                                    <TextBlock Text="删除"/>
+                                    <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.Action.Delete}"/>
                                 </StackPanel>
                             </Button>
                             <Button IsEnabled="{Binding CanEditSelectedPlayset}"
@@ -374,14 +375,14 @@
                                 <StackPanel Orientation="Horizontal"
                                             Spacing="6">
                                     <ui:FASymbolIcon Symbol="Add"/>
-                                    <TextBlock Text="添加 Mod"/>
+                                    <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.Action.AddMod}"/>
                                 </StackPanel>
                             </Button>
                             <Button Command="{Binding ImportParadoxPlaysetsCommand}">
                                 <StackPanel Orientation="Horizontal"
                                             Spacing="6">
                                     <ui:FASymbolIcon Symbol="Download"/>
-                                    <TextBlock Text="读取 P 社"/>
+                                    <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.Action.ImportParadox}"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>
@@ -395,20 +396,15 @@
                                        FontSize="18"
                                        FontWeight="SemiBold"
                                        TextTrimming="CharacterEllipsis"/>
-                            <TextBlock FontSize="13"
-                                       Opacity="0.68">
-                                <Run Text="{Binding PlaysetModCount}"/>
-                                <Run Text=" 个 Mod，启用 "/>
-                                <Run Text="{Binding EnabledModCount}"/>
-                                <Run Text=" 个，"/>
-                                <Run Text="{Binding SelectedPlaysetEditStateText}"/>
-                            </TextBlock>
+                            <TextBlock Text="{Binding SelectedPlaysetSummaryText}"
+                                       FontSize="13"
+                                       Opacity="0.68"/>
                         </StackPanel>
                         <StackPanel Grid.Column="1"
                                     Spacing="2"
                                     VerticalAlignment="Center"
                                     HorizontalAlignment="Right">
-                            <TextBlock Text="拖拽 Mod 卡片可调整加载顺序"
+                            <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.Playsets.DragHint}"
                                        Opacity="0.68"
                                        HorizontalAlignment="Right"/>
                             <TextBlock Text="{Binding SelectedPlaysetStorageDirectory}"
@@ -551,29 +547,29 @@
                         <StackPanel x:DataType="vm:Hoi4GameSettingsViewModel"
                                     Spacing="12"
                                 MaxWidth="760">
-                        <ui:FASettingsExpander Header="启动路径"
-                                               Description="游戏程序、HOI4 用户目录和 Steam 创意工坊目录。">
+                        <ui:FASettingsExpander Header="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.LaunchPaths.Header}"
+                                               Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.LaunchPaths.Description}">
                             <ui:FASettingsExpander.IconSource>
                                 <ui:FASymbolIconSource Symbol="Folder"/>
                             </ui:FASettingsExpander.IconSource>
-                            <ui:FASettingsExpanderItem Content="游戏程序"
-                                                       Description="hoi4.exe 的完整路径。">
+                            <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.Field.GameExecutable}"
+                                                       Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.GameExecutable.Description}">
                                 <ui:FASettingsExpanderItem.Footer>
                                     <TextBox Text="{Binding GameExecutablePath}"
                                              Width="430"
                                              PlaceholderText="...\Hearts of Iron IV\hoi4.exe"/>
                                 </ui:FASettingsExpanderItem.Footer>
                             </ui:FASettingsExpanderItem>
-                            <ui:FASettingsExpanderItem Content="用户目录"
-                                                       Description="Paradox Interactive 的 Hearts of Iron IV 用户目录。">
+                            <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.Field.UserDirectory}"
+                                                       Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.UserDirectory.Description}">
                                 <ui:FASettingsExpanderItem.Footer>
                                     <TextBox Text="{Binding GameUserDirectory}"
                                              Width="430"
                                              PlaceholderText="Documents\Paradox Interactive\Hearts of Iron IV"/>
                                 </ui:FASettingsExpanderItem.Footer>
                             </ui:FASettingsExpanderItem>
-                            <ui:FASettingsExpanderItem Content="创意工坊目录"
-                                                       Description="Steam 创意工坊 394360 内容目录。">
+                            <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.Field.WorkshopDirectory}"
+                                                       Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.WorkshopDirectory.Description}">
                                 <ui:FASettingsExpanderItem.Footer>
                                     <TextBox Text="{Binding WorkshopDirectory}"
                                              Width="430"
@@ -582,48 +578,48 @@
                             </ui:FASettingsExpanderItem>
                         </ui:FASettingsExpander>
 
-                        <ui:FASettingsExpander Header="启动行为"
-                                               Description="启动参数和启动后的应用行为。">
+                        <ui:FASettingsExpander Header="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.LaunchBehavior.Header}"
+                                               Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.LaunchBehavior.Description}">
                             <ui:FASettingsExpander.IconSource>
                                 <ui:FASymbolIconSource Symbol="Play"/>
                             </ui:FASettingsExpander.IconSource>
-                            <ui:FASettingsExpanderItem Content="启动参数"
-                                                       Description="附加到 HOI4 进程的命令行参数。">
+                            <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.Field.LaunchArguments}"
+                                                       Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.LaunchArguments.Description}">
                                 <ui:FASettingsExpanderItem.Footer>
                                     <TextBox Text="{Binding LaunchArguments}"
                                              Width="300"
                                              PlaceholderText="-debug -opengl"/>
                                 </ui:FASettingsExpanderItem.Footer>
                             </ui:FASettingsExpanderItem>
-                            <ui:FASettingsExpanderItem Content="启动后关闭 Shadow"
-                                                       Description="游戏启动成功后自动退出主程序。">
+                            <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.CloseAfterLaunch.Content}"
+                                                       Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.CloseAfterLaunch.Description}">
                                 <ui:FASettingsExpanderItem.Footer>
                                     <ToggleSwitch IsChecked="{Binding CloseAfterLaunch}"/>
                                 </ui:FASettingsExpanderItem.Footer>
                             </ui:FASettingsExpanderItem>
                         </ui:FASettingsExpander>
 
-                        <ui:FASettingsExpander Header="显示"
-                                               Description="分辨率、显示模式、刷新率和垂直同步。">
+                        <ui:FASettingsExpander Header="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.Display.Header}"
+                                               Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.Display.Description}">
                             <ui:FASettingsExpander.IconSource>
                                 <ui:FASymbolIconSource Symbol="Pictures"/>
                             </ui:FASettingsExpander.IconSource>
-                            <ui:FASettingsExpanderItem Content="显示模式"
-                                                       Description="对应 settings.txt 的 fullScreen 选项。">
+                            <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.FullscreenMode.Content}"
+                                                       Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.FullscreenMode.Description}">
                                 <ui:FASettingsExpanderItem.Footer>
                                     <ComboBox ItemsSource="{Binding FullscreenModes}"
                                               SelectedIndex="{Binding SelectedFullscreenModeIndex}"
                                               Width="220"/>
                                 </ui:FASettingsExpanderItem.Footer>
                             </ui:FASettingsExpanderItem>
-                            <ui:FASettingsExpanderItem Content="垂直同步"
-                                                       Description="启用或关闭垂直同步。">
+                            <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.VSync.Content}"
+                                                       Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.VSync.Description}">
                                 <ui:FASettingsExpanderItem.Footer>
                                     <ToggleSwitch IsChecked="{Binding VSync}"/>
                                 </ui:FASettingsExpanderItem.Footer>
                             </ui:FASettingsExpanderItem>
-                            <ui:FASettingsExpanderItem Content="分辨率"
-                                                       Description="游戏窗口或全屏分辨率。">
+                            <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.Resolution.Content}"
+                                                       Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.Resolution.Description}">
                                 <ui:FASettingsExpanderItem.Footer>
                                     <StackPanel Orientation="Horizontal"
                                                 Spacing="8">
@@ -640,8 +636,8 @@
                                     </StackPanel>
                                 </ui:FASettingsExpanderItem.Footer>
                             </ui:FASettingsExpanderItem>
-                            <ui:FASettingsExpanderItem Content="刷新率"
-                                                       Description="显示器刷新率，单位 Hz。">
+                            <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.RefreshRate.Content}"
+                                                       Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.RefreshRate.Description}">
                                 <ui:FASettingsExpanderItem.Footer>
                                     <StackPanel Orientation="Horizontal"
                                                 Spacing="8">
@@ -654,8 +650,8 @@
                                     </StackPanel>
                                 </ui:FASettingsExpanderItem.Footer>
                             </ui:FASettingsExpanderItem>
-                            <ui:FASettingsExpanderItem Content="显示器"
-                                                       Description="多显示器环境下的显示器索引。">
+                            <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.DisplayIndex.Content}"
+                                                       Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.DisplayIndex.Description}">
                                 <ui:FASettingsExpanderItem.Footer>
                                     <NumericUpDown Value="{Binding DisplayIndex}"
                                                    Minimum="0"
@@ -665,21 +661,21 @@
                             </ui:FASettingsExpanderItem>
                         </ui:FASettingsExpander>
 
-                        <ui:FASettingsExpander Header="语言和音频"
-                                               Description="对应原版启动器的语言与音量设置。">
+                        <ui:FASettingsExpander Header="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.LanguageAudio.Header}"
+                                               Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.LanguageAudio.Description}">
                             <ui:FASettingsExpander.IconSource>
                                 <ui:FASymbolIconSource Symbol="Audio"/>
                             </ui:FASettingsExpander.IconSource>
-                            <ui:FASettingsExpanderItem Content="语言"
-                                                       Description="游戏界面语言。">
+                            <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.Language.Content}"
+                                                       Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.Language.Description}">
                                 <ui:FASettingsExpanderItem.Footer>
                                     <ComboBox ItemsSource="{Binding Languages}"
                                               SelectedItem="{Binding SelectedLanguage}"
                                               Width="220"/>
                                 </ui:FASettingsExpanderItem.Footer>
                             </ui:FASettingsExpanderItem>
-                            <ui:FASettingsExpanderItem Content="主音量"
-                                                       Description="整体音量。">
+                            <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.MasterVolume.Content}"
+                                                       Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.MasterVolume.Description}">
                                 <ui:FASettingsExpanderItem.Footer>
                                     <Slider Minimum="0"
                                             Maximum="1"
@@ -687,8 +683,8 @@
                                             Width="260"/>
                                 </ui:FASettingsExpanderItem.Footer>
                             </ui:FASettingsExpanderItem>
-                            <ui:FASettingsExpanderItem Content="音乐"
-                                                       Description="音乐音量。">
+                            <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.MusicVolume.Content}"
+                                                       Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.MusicVolume.Description}">
                                 <ui:FASettingsExpanderItem.Footer>
                                     <Slider Minimum="0"
                                             Maximum="1"
@@ -696,8 +692,8 @@
                                             Width="260"/>
                                 </ui:FASettingsExpanderItem.Footer>
                             </ui:FASettingsExpanderItem>
-                            <ui:FASettingsExpanderItem Content="效果"
-                                                       Description="效果音量。">
+                            <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.EffectsVolume.Content}"
+                                                       Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.EffectsVolume.Description}">
                                 <ui:FASettingsExpanderItem.Footer>
                                     <Slider Minimum="0"
                                             Maximum="1"
@@ -705,8 +701,8 @@
                                             Width="260"/>
                                 </ui:FASettingsExpanderItem.Footer>
                             </ui:FASettingsExpanderItem>
-                            <ui:FASettingsExpanderItem Content="界面"
-                                                       Description="界面音量。">
+                            <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.InterfaceVolume.Content}"
+                                                       Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.GameSettings.InterfaceVolume.Description}">
                                 <ui:FASettingsExpanderItem.Footer>
                                     <Slider Minimum="0"
                                             Maximum="1"
@@ -726,14 +722,14 @@
                                 <StackPanel Orientation="Horizontal"
                                             Spacing="6">
                                     <ui:FASymbolIcon Symbol="Sync"/>
-                                    <TextBlock Text="重新读取"/>
+                                    <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.Action.Reload}"/>
                                 </StackPanel>
                             </Button>
                             <Button Command="{Binding SaveCommand}">
                                 <StackPanel Orientation="Horizontal"
                                             Spacing="6">
                                     <ui:FASymbolIcon Symbol="Save"/>
-                                    <TextBlock Text="保存"/>
+                                    <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Hoi4.Action.Save}"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>
@@ -744,3 +740,4 @@
         </Grid>
     </Grid>
 </UserControl>
+

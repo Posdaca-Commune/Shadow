@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:Shadow.Localization"
              xmlns:ui="using:FluentAvalonia.UI.Controls"
              xmlns:vm="using:Shadow.ViewModels"
              x:Class="Shadow.Views.SettingsView"
@@ -10,10 +11,10 @@
               Margin="0,0,22,0">
             <StackPanel Spacing="6"
                         Margin="4,0,0,18">
-                <TextBlock Text="设置"
+                <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Page.Title}"
                            FontSize="28"
                            FontWeight="SemiBold"/>
-                <TextBlock Text="应用首选项和工作站配置"
+                <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Page.Subtitle}"
                            FontSize="13"
                            Opacity="0.68"/>
             </StackPanel>
@@ -63,38 +64,50 @@
 
                 <StackPanel IsVisible="{Binding IsPersonalizationSelected}"
                             Spacing="12">
-                    <ui:FASettingsExpander Header="应用主题"
-                                           Description="选择 Shadow 使用系统主题、浅色主题或深色主题。">
+                    <ui:FASettingsExpander Header="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Language.Header}"
+                                           Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Language.Description}">
+                        <ui:FASettingsExpander.IconSource>
+                            <ui:FASymbolIconSource Symbol="Globe"/>
+                        </ui:FASettingsExpander.IconSource>
+                        <ui:FASettingsExpander.Footer>
+                            <ComboBox ItemsSource="{Binding LanguageOptions}"
+                                      SelectedIndex="{Binding SelectedLanguageIndex, Mode=TwoWay}"
+                                      Width="220"/>
+                        </ui:FASettingsExpander.Footer>
+                    </ui:FASettingsExpander>
+
+                    <ui:FASettingsExpander Header="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Theme.Header}"
+                                           Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Theme.Description}">
                         <ui:FASettingsExpander.IconSource>
                             <ui:FASymbolIconSource Symbol="Setting"/>
                         </ui:FASettingsExpander.IconSource>
                         <ui:FASettingsExpander.Footer>
-                            <ComboBox SelectedIndex="{Binding SelectedThemeModeIndex}"
+                            <ComboBox SelectedIndex="{Binding SelectedThemeModeIndex, Mode=TwoWay}"
                                       Width="220">
-                                <ComboBoxItem Content="跟随系统"/>
-                                <ComboBoxItem Content="浅色"/>
-                                <ComboBoxItem Content="深色"/>
+                                <ComboBoxItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Theme.System}"/>
+                                <ComboBoxItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Theme.Light}"/>
+                                <ComboBoxItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Theme.Dark}"/>
                             </ComboBox>
                         </ui:FASettingsExpander.Footer>
                     </ui:FASettingsExpander>
 
-                    <ui:FASettingsExpander Header="窗口背景材质"
-                                           Description="控制窗口背景使用 Mica、亚克力或纯色回退。">
+                    <ui:FASettingsExpander Header="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Backdrop.Header}"
+                                           Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Backdrop.Description}">
                         <ui:FASettingsExpander.IconSource>
                             <ui:FASymbolIconSource Symbol="Pictures"/>
                         </ui:FASettingsExpander.IconSource>
                         <ui:FASettingsExpander.Footer>
-                            <ComboBox SelectedIndex="{Binding SelectedBackdropIndex}"
+                            <ComboBox SelectedIndex="{Binding SelectedBackdropIndex, Mode=TwoWay}"
                                       Width="220">
                                 <ComboBoxItem Content="Mica"/>
-                                <ComboBoxItem Content="亚克力"/>
-                                <ComboBoxItem Content="纯色"/>
+                                <ComboBoxItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Backdrop.Acrylic}"/>
+                                <ComboBoxItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Backdrop.Solid}"/>
                             </ComboBox>
                         </ui:FASettingsExpander.Footer>
                     </ui:FASettingsExpander>
 
-                    <ui:FASettingsExpander Header="强调色"
-                                           Description="用于导航选中条和关键交互控件。">
+                    <ui:FASettingsExpander Header="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Accent.Header}"
+                                           Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Accent.Description}">
                         <ui:FASettingsExpander.IconSource>
                             <ui:FASymbolIconSource Symbol="Edit"/>
                         </ui:FASettingsExpander.IconSource>
@@ -136,25 +149,25 @@
                         </ui:FASettingsExpander.Footer>
                     </ui:FASettingsExpander>
 
-                    <ui:FASettingsExpander Header="系统外观"
-                                           Description="和 Windows 当前外观保持同步。">
+                    <ui:FASettingsExpander Header="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.SystemAppearance.Header}"
+                                           Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.SystemAppearance.Description}">
                         <ui:FASettingsExpander.IconSource>
                             <ui:FASymbolIconSource Symbol="Sync"/>
                         </ui:FASettingsExpander.IconSource>
-                        <ui:FASettingsExpanderItem Content="使用系统强调色"
-                                                   Description="启用后优先跟随 Windows 当前强调色。">
+                        <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.SystemAccent.Content}"
+                                                   Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.SystemAccent.Description}">
                             <ui:FASettingsExpanderItem.Footer>
                                 <ToggleSwitch IsChecked="{Binding Personalization.UseSystemAccentColor}"/>
                             </ui:FASettingsExpanderItem.Footer>
                         </ui:FASettingsExpanderItem>
-                        <ui:FASettingsExpanderItem Content="紧凑侧边栏"
-                                                   Description="为后续插件较多时预留更紧凑的导航显示模式。">
+                        <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.CompactSidebar.Content}"
+                                                   Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.CompactSidebar.Description}">
                             <ui:FASettingsExpanderItem.Footer>
                                 <ToggleSwitch IsChecked="{Binding Personalization.ShowCompactSidebar}"/>
                             </ui:FASettingsExpanderItem.Footer>
                         </ui:FASettingsExpanderItem>
-                        <ui:FASettingsExpanderItem Content="界面动画"
-                                                   Description="允许页面过渡、控件反馈和 Fluent 动效。">
+                        <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Animations.Content}"
+                                                   Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Animations.Description}">
                             <ui:FASettingsExpanderItem.Footer>
                                 <ToggleSwitch IsChecked="{Binding Personalization.EnableAnimations}"/>
                             </ui:FASettingsExpanderItem.Footer>
@@ -164,17 +177,17 @@
 
                 <StackPanel IsVisible="{Binding IsPluginInventorySelected}"
                             Spacing="12">
-                    <ui:FASettingsExpander Header="插件概览"
+                    <ui:FASettingsExpander Header="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Plugins.Overview.Header}"
                                            Description="{Binding LoadedPluginCountLabel}">
                         <ui:FASettingsExpander.IconSource>
                             <ui:FASymbolIconSource Symbol="AllApps"/>
                         </ui:FASettingsExpander.IconSource>
-                        <ui:FASettingsExpanderItem Content="加载策略"
-                                                   Description="主程序只加载插件并展示通用元数据，插件功能仍由各插件独立提供。"/>
+                        <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Plugins.LoadingPolicy.Content}"
+                                                   Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Plugins.LoadingPolicy.Description}"/>
                     </ui:FASettingsExpander>
 
-                    <ui:FASettingsExpander Header="没有加载插件"
-                                           Description="当前 Plugins 目录中没有发现可用插件，或插件加载失败。"
+                    <ui:FASettingsExpander Header="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Plugins.Empty.Header}"
+                                           Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Plugins.Empty.Description}"
                                            IsVisible="{Binding IsNoPluginLoaded}">
                         <ui:FASettingsExpander.IconSource>
                             <ui:FASymbolIconSource Symbol="Help"/>
@@ -200,17 +213,17 @@
                                                    FontSize="12"
                                                    Opacity="0.72"/>
                                     </ui:FASettingsExpander.Footer>
-                                    <ui:FASettingsExpanderItem Content="插件名称"
+                                    <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Plugins.Name}"
                                                                Description="{Binding DisplayName}"/>
-                                    <ui:FASettingsExpanderItem Content="版本"
+                                    <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Plugins.Version}"
                                                                Description="{Binding VersionLabel}"/>
-                                    <ui:FASettingsExpanderItem Content="插件标识"
+                                    <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Plugins.Id}"
                                                                Description="{Binding Id}"/>
-                                    <ui:FASettingsExpanderItem Content="扩展能力"
+                                    <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Plugins.Capabilities}"
                                                                Description="{Binding CapabilitySummary}"/>
-                                    <ui:FASettingsExpanderItem Content="程序集"
+                                    <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Plugins.Assembly}"
                                                                Description="{Binding AssemblyName}"/>
-                                    <ui:FASettingsExpanderItem Content="插件类型">
+                                    <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Plugins.Type}">
                                         <ui:FASettingsExpanderItem.Footer>
                                             <TextBlock Text="{Binding PluginType}"
                                                        FontSize="12"
@@ -219,7 +232,7 @@
                                                        TextWrapping="Wrap"/>
                                         </ui:FASettingsExpanderItem.Footer>
                                     </ui:FASettingsExpanderItem>
-                                    <ui:FASettingsExpanderItem Content="数据目录">
+                                    <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Plugins.DataDirectory}">
                                         <ui:FASettingsExpanderItem.Footer>
                                             <TextBlock Text="{Binding DataDirectory}"
                                                        FontSize="12"
@@ -228,7 +241,7 @@
                                                        TextWrapping="Wrap"/>
                                         </ui:FASettingsExpanderItem.Footer>
                                     </ui:FASettingsExpanderItem>
-                                    <ui:FASettingsExpanderItem Content="加载位置">
+                                    <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Plugins.Location}">
                                         <ui:FASettingsExpanderItem.Footer>
                                             <TextBlock Text="{Binding Location}"
                                                        FontSize="12"
@@ -243,8 +256,8 @@
                     </ItemsControl>
                 </StackPanel>
 
-                <ui:FASettingsExpander Header="该分类已预留"
-                                        Description="后续会在这里接入对应的工作站功能。"
+                <ui:FASettingsExpander Header="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Placeholder.Header}"
+                                        Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Placeholder.Description}"
                                         IsVisible="{Binding IsPlaceholderSectionSelected}">
                     <ui:FASettingsExpander.IconSource>
                         <ui:FASymbolIconSource Symbol="Help"/>
@@ -257,3 +270,5 @@
         </ScrollViewer>
     </Grid>
 </UserControl>
+
+

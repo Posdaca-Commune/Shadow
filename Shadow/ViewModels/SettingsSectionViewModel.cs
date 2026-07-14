@@ -6,6 +6,9 @@ namespace Shadow.ViewModels;
 
 public partial class SettingsSectionViewModel : ViewModelBase
 {
+    private readonly string _title;
+    private readonly string _description;
+
     public SettingsSectionViewModel(
         string key,
         string title,
@@ -14,10 +17,15 @@ public partial class SettingsSectionViewModel : ViewModelBase
         object? content = null)
     {
         Key = key;
-        Title = title;
-        Description = description;
+        _title = title;
+        _description = description;
         Symbol = symbol;
         Content = content;
+        ShadowLocalizer.Instance.PropertyChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(Title));
+            OnPropertyChanged(nameof(Description));
+        };
     }
 
     public SettingsSectionViewModel(ShadowSettingsSection section)
@@ -32,9 +40,9 @@ public partial class SettingsSectionViewModel : ViewModelBase
 
     public string Key { get; }
 
-    public string Title { get; }
+    public string Title => LocalizedText.Resolve(_title);
 
-    public string Description { get; }
+    public string Description => LocalizedText.Resolve(_description);
 
     public FASymbol Symbol { get; }
 

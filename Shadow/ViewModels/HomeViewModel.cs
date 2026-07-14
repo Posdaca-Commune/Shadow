@@ -2,7 +2,12 @@ namespace Shadow.ViewModels;
 
 public class HomeViewModel : ViewModelBase
 {
+    public HomeViewModel()
+    {
+        Shadow.Abstractions.ShadowLocalizer.Instance.PropertyChanged += (_, _) => OnPropertyChanged(nameof(Subtitle));
+    }
+
     public string Title { get; } = "Shadow";
 
-    public string Subtitle { get; } = "HOI4 工作站主程序";
+    public string Subtitle => Localizer["Shadow.Home.Subtitle"];
 }

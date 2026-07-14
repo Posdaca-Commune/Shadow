@@ -1,3 +1,4 @@
+using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Collections.Generic;
@@ -13,30 +14,47 @@ using FluentAvalonia.UI.Controls;
 using Shadow.Models;
 using Shadow.Abstractions;
 using Shadow.Plugins;
+using Shadow.Services;
 
 namespace Shadow.ViewModels;
 
 public partial class SettingsViewModel : ViewModelBase
 {
+    private readonly ApplicationSettings _applicationSettings;
+
     public SettingsViewModel()
-        : this([], [])
+        : this([], [], ApplicationSettingsStore.Load())
     {
     }
 
     public SettingsViewModel(IReadOnlyList<ShadowSettingsSection> pluginSections)
-        : this(pluginSections, [])
+        : this(pluginSections, [], ApplicationSettingsStore.Load())
     {
     }
 
     internal SettingsViewModel(
         IReadOnlyList<ShadowSettingsSection> pluginSections,
-        IReadOnlyList<LoadedPlugin> loadedPlugins)
+        IReadOnlyList<LoadedPlugin> loadedPlugins,
+        ApplicationSettings applicationSettings)
     {
+        _applicationSettings = applicationSettings;
         Sections =
         [
-            new SettingsSectionViewModel("Personalization", "个性化", "主题、颜色和窗口材质", FASymbol.Setting),
-            new SettingsSectionViewModel("Plugins", "插件", "插件加载与扩展能力", FASymbol.AllApps),
-            new SettingsSectionViewModel("Workspace", "工作区", "HOI4 项目路径和缓存", FASymbol.Document),
+            new SettingsSectionViewModel(
+                "Personalization",
+                LocalizedText.Key("Shadow.Settings.Section.Personalization.Title"),
+                LocalizedText.Key("Shadow.Settings.Section.Personalization.Description"),
+                FASymbol.Setting),
+            new SettingsSectionViewModel(
+                "Plugins",
+                LocalizedText.Key("Shadow.Settings.Section.Plugins.Title"),
+                LocalizedText.Key("Shadow.Settings.Section.Plugins.Description"),
+                FASymbol.AllApps),
+            new SettingsSectionViewModel(
+                "Workspace",
+                LocalizedText.Key("Shadow.Settings.Section.Workspace.Title"),
+                LocalizedText.Key("Shadow.Settings.Section.Workspace.Description"),
+                FASymbol.Document),
         ];
 
         foreach (var section in pluginSections)
@@ -44,15 +62,26 @@ public partial class SettingsViewModel : ViewModelBase
             Sections.Add(new SettingsSectionViewModel(section));
         }
 
-        Sections.Add(new SettingsSectionViewModel("About", "关于", "版本和运行环境", FASymbol.Help));
+        Sections.Add(new SettingsSectionViewModel(
+            "About",
+            LocalizedText.Key("Shadow.Settings.Section.About.Title"),
+            LocalizedText.Key("Shadow.Settings.Section.About.Description"),
+            FASymbol.Help));
 
         LoadedPlugins = new ObservableCollection<PluginInfoViewModel>(
             loadedPlugins
                 .Select(plugin => new PluginInfoViewModel(plugin))
                 .OrderBy(plugin => plugin.DisplayName));
+        SelectedLanguageIndex = ResolveLanguageIndex(_applicationSettings.Language);
         SelectedSection = Sections[0];
         SelectedSection.IsSelected = true;
         Personalization.PropertyChanged += Personalization_OnPropertyChanged;
+        ShadowLocalizer.Instance.PropertyChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(LoadedPluginCountLabel));
+            OnPropertyChanged(nameof(ThemeModeName));
+            OnPropertyChanged(nameof(BackdropName));
+        };
         ApplyPersonalization();
     }
 
@@ -62,18 +91,29 @@ public partial class SettingsViewModel : ViewModelBase
 
     public PersonalizationOptions Personalization { get; } = new();
 
+    public PersonalizationOptionViewModel<string>[] LanguageOptions { get; } =
+    [
+        new(ShadowLocalizer.DefaultCultureName, "简体中文", "Chinese (Simplified)"),
+        new(ShadowLocalizer.EnglishCultureName, "English", "English"),
+    ];
+
     public PersonalizationOptionViewModel<AppThemeMode>[] ThemeModes { get; } =
     [
-        new(AppThemeMode.System, "跟随系统", "使用 Windows 当前颜色模式"),
-        new(AppThemeMode.Light, "浅色", "提高日间和高亮环境可读性"),
-        new(AppThemeMode.Dark, "深色", "降低暗光环境下的视觉负担"),
+        new(AppThemeMode.System, LocalizedText.Key("Shadow.Settings.Theme.System"),
+            LocalizedText.Key("Shadow.Settings.Theme.System.Description")),
+        new(AppThemeMode.Light, LocalizedText.Key("Shadow.Settings.Theme.Light"),
+            LocalizedText.Key("Shadow.Settings.Theme.Light.Description")),
+        new(AppThemeMode.Dark, LocalizedText.Key("Shadow.Settings.Theme.Dark"),
+            LocalizedText.Key("Shadow.Settings.Theme.Dark.Description")),
     ];
 
     public PersonalizationOptionViewModel<WindowBackdropKind>[] BackdropKinds { get; } =
     [
-        new(WindowBackdropKind.Mica, "Mica", "与 Windows 11 桌面材质保持一致"),
-        new(WindowBackdropKind.Acrylic, "亚克力", "保留更明显的透明层次"),
-        new(WindowBackdropKind.Solid, "纯色", "使用稳定背景以减少视觉干扰"),
+        new(WindowBackdropKind.Mica, "Mica", LocalizedText.Key("Shadow.Settings.Backdrop.Mica.Description")),
+        new(WindowBackdropKind.Acrylic, LocalizedText.Key("Shadow.Settings.Backdrop.Acrylic"),
+            LocalizedText.Key("Shadow.Settings.Backdrop.Acrylic.Description")),
+        new(WindowBackdropKind.Solid, LocalizedText.Key("Shadow.Settings.Backdrop.Solid"),
+            LocalizedText.Key("Shadow.Settings.Backdrop.Solid.Description")),
     ];
 
     [ObservableProperty]
@@ -84,6 +124,9 @@ public partial class SettingsViewModel : ViewModelBase
 
     [ObservableProperty]
     private int _selectedBackdropIndex;
+
+    [ObservableProperty]
+    private int _selectedLanguageIndex;
 
     public bool IsPersonalizationSelected => SelectedSection.Key == "Personalization";
 
@@ -101,20 +144,20 @@ public partial class SettingsViewModel : ViewModelBase
     public bool IsNoPluginLoaded => !HasLoadedPlugins;
 
     public string LoadedPluginCountLabel => LoadedPluginCount == 0
-        ? "当前没有加载插件"
-        : $"当前已加载 {LoadedPluginCount} 个插件";
+        ? Localizer["Shadow.Settings.Plugins.Loaded.Zero"]
+        : Localizer.Format("Shadow.Settings.Plugins.Loaded.Many", LoadedPluginCount);
 
     public string ThemeModeName => Personalization.ThemeMode switch
     {
-        AppThemeMode.Light => "浅色",
-        AppThemeMode.Dark => "深色",
-        _ => "跟随系统",
+        AppThemeMode.Light => Localizer["Shadow.Settings.Theme.Light"],
+        AppThemeMode.Dark => Localizer["Shadow.Settings.Theme.Dark"],
+        _ => Localizer["Shadow.Settings.Theme.System"],
     };
 
     public string BackdropName => Personalization.Backdrop switch
     {
-        WindowBackdropKind.Acrylic => "亚克力",
-        WindowBackdropKind.Solid => "纯色",
+        WindowBackdropKind.Acrylic => Localizer["Shadow.Settings.Backdrop.Acrylic"],
+        WindowBackdropKind.Solid => Localizer["Shadow.Settings.Backdrop.Solid"],
         _ => "Mica",
     };
 
@@ -128,6 +171,27 @@ public partial class SettingsViewModel : ViewModelBase
     partial void OnSelectedBackdropIndexChanged(int value)
     {
         Personalization.Backdrop = BackdropKinds[value].Value;
+        OnPropertyChanged(nameof(BackdropName));
+    }
+
+    partial void OnSelectedLanguageIndexChanged(int value)
+    {
+        if (value < 0 || value >= LanguageOptions.Length)
+        {
+            return;
+        }
+
+        ApplyLanguage(LanguageOptions[value].Value);
+    }
+
+    private void ApplyLanguage(string language)
+    {
+        var normalized = ShadowLocalizer.NormalizeCultureName(language);
+        ShadowLocalizer.Instance.CultureName = normalized;
+        _applicationSettings.Language = normalized;
+        ApplicationSettingsStore.Save(_applicationSettings);
+        OnPropertyChanged(nameof(LoadedPluginCountLabel));
+        OnPropertyChanged(nameof(ThemeModeName));
         OnPropertyChanged(nameof(BackdropName));
     }
 
@@ -228,4 +292,15 @@ public partial class SettingsViewModel : ViewModelBase
     {
         return application.Styles.OfType<FluentAvaloniaTheme>().FirstOrDefault();
     }
+
+    private int ResolveLanguageIndex(string language)
+    {
+        var normalizedLanguage = ShadowLocalizer.NormalizeCultureName(language);
+        var index = Array.FindIndex(
+            LanguageOptions,
+            option => string.Equals(option.Value, normalizedLanguage, StringComparison.OrdinalIgnoreCase));
+        return index < 0 ? 0 : index;
+    }
 }
+
+

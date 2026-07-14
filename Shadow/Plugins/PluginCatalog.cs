@@ -67,7 +67,8 @@ internal sealed class PluginCatalog
             }
         }
 
-        return ShadowCommandResult.Failure($"未知 Shadow 命令：{commandLine.Command}");
+        return ShadowCommandResult.Failure(
+            ShadowLocalizer.Instance.Format("Shadow.Command.Unknown", commandLine.Command));
     }
 
     private static IEnumerable<string> EnumeratePluginAssemblies(string pluginsDirectory)

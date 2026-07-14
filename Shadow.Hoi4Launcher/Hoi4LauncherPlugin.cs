@@ -1,5 +1,6 @@
 using Shadow.Hoi4Launcher.Models;
 using Shadow.Abstractions;
+using Shadow.Hoi4Launcher.Localization;
 using Shadow.Hoi4Launcher.Services;
 using Shadow.Hoi4Launcher.ViewModels;
 
@@ -9,12 +10,18 @@ public sealed class Hoi4LauncherPlugin : IShadowCommandPlugin
 {
     private const string LaunchCommand = "hoi4.launch";
 
+    public Hoi4LauncherPlugin()
+    {
+        Hoi4LauncherStrings.Register();
+    }
+
     public string Id => "Shadow.Hoi4Launcher";
 
-    public string DisplayName => "HOI4 启动器";
+    public string DisplayName => LocalizedText.Key("Hoi4.Plugin.DisplayName");
 
     public IReadOnlyList<ShadowNavigationItem> CreateNavigationItems(IShadowHostContext context)
     {
+        Hoi4LauncherStrings.Register();
         var configuration = Hoi4LauncherConfiguration.Load(context.PluginDataDirectory);
         var service = new Hoi4LauncherService(configuration);
         var viewModel = new Hoi4LauncherViewModel(configuration, service, context);
@@ -23,8 +30,8 @@ public sealed class Hoi4LauncherPlugin : IShadowCommandPlugin
         [
             new ShadowNavigationItem(
                 $"{Id}.Launcher",
-                "HOI4 启动器",
-                "游戏、模组、DLC 和播放集",
+                LocalizedText.Key("Hoi4.Nav.Title"),
+                LocalizedText.Key("Hoi4.Nav.Description"),
                 "Play",
                 viewModel),
         ];
@@ -44,6 +51,7 @@ public sealed class Hoi4LauncherPlugin : IShadowCommandPlugin
 
         try
         {
+            Hoi4LauncherStrings.Register();
             var configuration = Hoi4LauncherConfiguration.Load(context.HostContext.PluginDataDirectory);
             var service = new Hoi4LauncherService(configuration);
             var mods = service.DiscoverMods();
@@ -53,14 +61,14 @@ public sealed class Hoi4LauncherPlugin : IShadowCommandPlugin
             var playset = ResolvePlayset(context.Options, configuration, playsets);
             if (playset is null)
             {
-                return ShadowCommandResult.Failure("未找到可用播放集。");
+                return ShadowCommandResult.Failure(Hoi4LauncherStrings.Get("Hoi4.Command.NoPlayset"));
             }
 
             var missingModIds = FindMissingEnabledModIds(playset, mods);
             if (missingModIds.Count > 0 && !HasFlag(context.Options, "allow-missing-mods"))
             {
                 return ShadowCommandResult.Failure(
-                    $"播放集包含 Shadow 当前未发现的启用 Mod：{string.Join(", ", missingModIds.Take(8))}");
+                    Hoi4LauncherStrings.Format("Hoi4.Command.MissingMods", string.Join(", ", missingModIds.Take(8))));
             }
 
             var dlcs = service.DiscoverDlcs();
@@ -69,7 +77,8 @@ public sealed class Hoi4LauncherPlugin : IShadowCommandPlugin
             configuration.State.SelectedPlaysetId = playset.Id;
             configuration.Save();
 
-            return ShadowCommandResult.Success($"已通过播放集启动 HOI4：{playset.Name} (PID {process.Id})");
+            return ShadowCommandResult.Success(
+                Hoi4LauncherStrings.Format("Hoi4.Command.Launched", playset.Name, process.Id));
         }
         catch (Exception ex)
         {

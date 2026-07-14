@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using Avalonia.Media.Imaging;
 using Microsoft.Data.Sqlite;
+using Shadow.Hoi4Launcher.Localization;
 using Shadow.Hoi4Launcher.Models;
 
 namespace Shadow.Hoi4Launcher.Services;
@@ -176,7 +177,7 @@ public sealed class Hoi4LauncherService
     {
         if (!File.Exists(_configuration.State.GameExecutablePath))
         {
-            throw new InvalidOperationException("请先选择 hoi4.exe 或 dowser.exe。");
+            throw new InvalidOperationException(Hoi4LauncherStrings.Get("Hoi4.Service.SelectExecutable"));
         }
 
         var executablePath = _configuration.State.GameExecutablePath;
@@ -196,7 +197,7 @@ public sealed class Hoi4LauncherService
         }
 
         return Process.Start(startInfo)
-               ?? throw new InvalidOperationException("启动游戏进程失败。");
+               ?? throw new InvalidOperationException(Hoi4LauncherStrings.Get("Hoi4.Service.ProcessFailed"));
     }
 
     public void SaveConfiguration()
@@ -219,7 +220,7 @@ public sealed class Hoi4LauncherService
 
         if (string.IsNullOrWhiteSpace(targetPath) || !Directory.Exists(targetPath))
         {
-            throw new InvalidOperationException("未找到该 Mod 的本地文件位置。");
+            throw new InvalidOperationException(Hoi4LauncherStrings.Get("Hoi4.Service.ModLocationMissing"));
         }
 
         Process.Start(new ProcessStartInfo

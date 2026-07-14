@@ -8,42 +8,58 @@ namespace Shadow.ViewModels;
 
 public sealed class PluginInfoViewModel : ViewModelBase
 {
+    private readonly IShadowPlugin _plugin;
+    private readonly string _assemblyName;
+    private readonly string _location;
+    private readonly string _versionLabel;
+
     internal PluginInfoViewModel(LoadedPlugin loadedPlugin)
     {
         var plugin = loadedPlugin.Plugin;
+        _plugin = plugin;
         var pluginType = plugin.GetType();
         var assembly = pluginType.Assembly;
         var assemblyName = assembly.GetName();
 
         Id = plugin.Id;
-        DisplayName = string.IsNullOrWhiteSpace(plugin.DisplayName)
-            ? plugin.Id
-            : plugin.DisplayName;
-        VersionLabel = ResolveVersion(assembly, assemblyName);
-        AssemblyName = assemblyName.Name ?? "未知程序集";
+        _versionLabel = ResolveVersion(assembly, assemblyName);
+        _assemblyName = assemblyName.Name ?? string.Empty;
         PluginType = pluginType.FullName ?? pluginType.Name;
-        Location = string.IsNullOrWhiteSpace(assembly.Location)
-            ? "未提供加载位置"
-            : assembly.Location;
+        _location = assembly.Location;
         DataDirectory = loadedPlugin.Context.PluginDataDirectory;
         NavigationItemCount = loadedPlugin.NavigationItems.Count;
         SettingsSectionCount = loadedPlugin.SettingsSections.Count;
         SupportsCommandLine = plugin is IShadowCommandPlugin;
-        CapabilitySummary = CreateCapabilitySummary();
-        Summary = $"{Id} · {CapabilitySummary}";
+        ShadowLocalizer.Instance.PropertyChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(DisplayName));
+            OnPropertyChanged(nameof(VersionLabel));
+            OnPropertyChanged(nameof(AssemblyName));
+            OnPropertyChanged(nameof(Location));
+            OnPropertyChanged(nameof(CapabilitySummary));
+            OnPropertyChanged(nameof(Summary));
+        };
     }
 
     public string Id { get; }
 
-    public string DisplayName { get; }
+    public string DisplayName => string.IsNullOrWhiteSpace(_plugin.DisplayName)
+        ? _plugin.Id
+        : LocalizedText.Resolve(_plugin.DisplayName);
 
-    public string VersionLabel { get; }
+    public string VersionLabel => string.IsNullOrWhiteSpace(_versionLabel)
+        ? Localizer["Shadow.Plugins.UnknownVersion"]
+        : LocalizedText.Resolve(_versionLabel);
 
-    public string AssemblyName { get; }
+    public string AssemblyName => string.IsNullOrWhiteSpace(_assemblyName)
+        ? Localizer["Shadow.Plugins.UnknownAssembly"]
+        : _assemblyName;
 
     public string PluginType { get; }
 
-    public string Location { get; }
+    public string Location => string.IsNullOrWhiteSpace(_location)
+        ? Localizer["Shadow.Plugins.MissingLocation"]
+        : _location;
 
     public string DataDirectory { get; }
 
@@ -53,30 +69,30 @@ public sealed class PluginInfoViewModel : ViewModelBase
 
     public bool SupportsCommandLine { get; }
 
-    public string CapabilitySummary { get; }
+    public string CapabilitySummary => CreateCapabilitySummary();
 
-    public string Summary { get; }
+    public string Summary => $"{Id} · {CapabilitySummary}";
 
     private string CreateCapabilitySummary()
     {
         var capabilities = new List<string>();
         if (NavigationItemCount > 0)
         {
-            capabilities.Add($"{NavigationItemCount} 个导航入口");
+            capabilities.Add(Localizer.Format("Shadow.Plugins.NavigationEntryCount", NavigationItemCount));
         }
 
         if (SettingsSectionCount > 0)
         {
-            capabilities.Add($"{SettingsSectionCount} 个设置页");
+            capabilities.Add(Localizer.Format("Shadow.Plugins.SettingsSectionCount", SettingsSectionCount));
         }
 
         if (SupportsCommandLine)
         {
-            capabilities.Add("命令行");
+            capabilities.Add(Localizer["Shadow.Plugins.CommandLine"]);
         }
 
         return capabilities.Count == 0
-            ? "未声明扩展入口"
+            ? Localizer["Shadow.Plugins.NoDeclaredEntrypoints"]
             : string.Join(" / ", capabilities);
     }
 
@@ -104,6 +120,7 @@ public sealed class PluginInfoViewModel : ViewModelBase
             }
         }
 
-        return assemblyName.Version?.ToString() ?? "版本未知";
+        return assemblyName.Version?.ToString() ?? string.Empty;
     }
 }
+

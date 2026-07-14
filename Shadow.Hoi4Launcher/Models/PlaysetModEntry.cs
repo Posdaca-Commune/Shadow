@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Avalonia.Media.Imaging;
+using Shadow.Abstractions;
 
 namespace Shadow.Hoi4Launcher.Models;
 
@@ -9,6 +10,11 @@ public sealed partial class PlaysetModEntry : ObservableObject
     {
         Mod = mod;
         IsEnabled = isEnabled;
+        ShadowLocalizer.Instance.PropertyChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(SourceLabel));
+            OnPropertyChanged(nameof(VersionLabel));
+        };
     }
 
     public ModEntry Mod { get; }

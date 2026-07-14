@@ -4,7 +4,9 @@ using Avalonia.Data.Core;
 using Avalonia.Data.Core.Plugins;
 using System.Linq;
 using Avalonia.Markup.Xaml;
+using Shadow.Localization;
 using Shadow.Plugins;
+using Shadow.Services;
 using Shadow.ViewModels;
 using Shadow.Views;
 
@@ -14,6 +16,7 @@ public partial class App : Application
 {
     public override void Initialize()
     {
+        ShadowStringResources.Register();
         AvaloniaXamlLoader.Load(this);
     }
 
@@ -21,10 +24,11 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            var settings = Program.InitializeLocalization();
             var pluginCatalog = PluginCatalog.LoadDefault();
             desktop.MainWindow = new MainWindow
             {
-                DataContext = new MainWindowViewModel(pluginCatalog),
+                DataContext = new MainWindowViewModel(pluginCatalog, settings),
             };
         }
 

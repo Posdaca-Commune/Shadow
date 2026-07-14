@@ -8,7 +8,9 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 using FluentAvalonia.UI.Controls;
+using Shadow.Hoi4Launcher.Localization;
 using Shadow.Hoi4Launcher.Models;
+using Shadow.Abstractions;
 using Shadow.Hoi4Launcher.ViewModels;
 
 namespace Shadow.Hoi4Launcher.Views;
@@ -39,6 +41,7 @@ public partial class Hoi4LauncherView : UserControl
 
     public Hoi4LauncherView()
     {
+        ShadowLocalizer.Instance.PropertyChanged += Localizer_OnPropertyChanged;
         InitializeComponent();
         ConfigureSectionTransitions();
         AttachedToVisualTree += (_, _) =>
@@ -166,16 +169,16 @@ public partial class Hoi4LauncherView : UserControl
 
         var nameBox = new TextBox
         {
-            PlaceholderText = "播放集名称",
+            PlaceholderText = Hoi4LauncherStrings.Get("Hoi4.Dialog.PlaysetName"),
             MinWidth = 320,
         };
 
         var dialog = new FAContentDialog
         {
-            Title = "新增播放集",
+            Title = Hoi4LauncherStrings.Get("Hoi4.Dialog.NewPlaysetTitle"),
             Content = nameBox,
-            PrimaryButtonText = "创建",
-            CloseButtonText = "取消",
+            PrimaryButtonText = Hoi4LauncherStrings.Get("Hoi4.Dialog.Create"),
+            CloseButtonText = Hoi4LauncherStrings.Get("Hoi4.Dialog.Cancel"),
             DefaultButton = FAContentDialogButton.Primary,
             IsPrimaryButtonEnabled = false,
         };
@@ -210,10 +213,10 @@ public partial class Hoi4LauncherView : UserControl
 
         var dialog = new FAContentDialog
         {
-            Title = "添加 Mod 到播放集",
+            Title = Hoi4LauncherStrings.Get("Hoi4.Dialog.AddModTitle"),
             Content = modList,
-            PrimaryButtonText = "添加",
-            CloseButtonText = "取消",
+            PrimaryButtonText = Hoi4LauncherStrings.Get("Hoi4.Dialog.Add"),
+            CloseButtonText = Hoi4LauncherStrings.Get("Hoi4.Dialog.Cancel"),
             DefaultButton = FAContentDialogButton.Primary,
             IsPrimaryButtonEnabled = false,
         };
@@ -665,6 +668,7 @@ public partial class Hoi4LauncherView : UserControl
         _dragStartCards.Clear();
     }
 
+    
     private static bool IsInteractiveSource(StyledElement? element)
     {
         while (element is not null)
@@ -679,4 +683,24 @@ public partial class Hoi4LauncherView : UserControl
 
         return false;
     }
+
+    private void Localizer_OnPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is not (nameof(ShadowLocalizer.CultureName)
+            or nameof(ShadowLocalizer.Version)
+            or "Item[]"
+            or null
+            or ""))
+        {
+            return;
+        }
+
+        // Compiled bindings for nested text do not always refresh with the plugin page.
+        // Re-assigning DataContext forces the whole plugin view tree to rebind.
+        var dataContext = DataContext;
+        DataContext = null;
+        DataContext = dataContext;
+    }
 }
+
+

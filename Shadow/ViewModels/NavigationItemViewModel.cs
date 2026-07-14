@@ -3,15 +3,23 @@ using Shadow.Abstractions;
 
 namespace Shadow.ViewModels;
 
-public sealed class NavigationItemViewModel
+public sealed class NavigationItemViewModel : ViewModelBase
 {
+    private readonly string _title;
+    private readonly string _description;
+
     public NavigationItemViewModel(string key, string title, string description, FASymbol symbol, object content)
     {
         Key = key;
-        Title = title;
-        Description = description;
+        _title = title;
+        _description = description;
         Symbol = symbol;
         Content = content;
+        ShadowLocalizer.Instance.PropertyChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(Title));
+            OnPropertyChanged(nameof(Description));
+        };
     }
 
     public NavigationItemViewModel(ShadowNavigationItem item)
@@ -26,9 +34,9 @@ public sealed class NavigationItemViewModel
 
     public string Key { get; }
 
-    public string Title { get; }
+    public string Title => LocalizedText.Resolve(_title);
 
-    public string Description { get; }
+    public string Description => LocalizedText.Resolve(_description);
 
     public FASymbol Symbol { get; }
 

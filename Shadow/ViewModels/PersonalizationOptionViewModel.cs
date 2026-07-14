@@ -1,3 +1,5 @@
+using Shadow.Abstractions;
+
 namespace Shadow.ViewModels;
 
 public sealed class PersonalizationOptionViewModel<T>
@@ -15,8 +17,12 @@ public sealed class PersonalizationOptionViewModel<T>
 
     public string Description { get; }
 
+    public string DisplayTitle => LocalizedText.Resolve(Title);
+
+    public string DisplayDescription => LocalizedText.Resolve(Description);
+
     public override string ToString()
     {
-        return Title;
+        return DisplayTitle;
     }
 }

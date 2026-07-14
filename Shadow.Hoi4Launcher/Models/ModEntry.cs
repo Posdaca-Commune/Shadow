@@ -1,4 +1,6 @@
 using Avalonia.Media.Imaging;
+using Shadow.Abstractions;
+using Shadow.Hoi4Launcher.Localization;
 
 namespace Shadow.Hoi4Launcher.Models;
 
@@ -25,6 +27,11 @@ public sealed partial class ModEntry : SelectableItem
         Version = version;
         CoverImagePath = coverImagePath;
         CoverImage = coverImage ?? TryLoadCoverImage(coverImagePath);
+        ShadowLocalizer.Instance.PropertyChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(SourceLabel));
+            OnPropertyChanged(nameof(VersionLabel));
+        };
     }
 
     public string DescriptorPath { get; }
@@ -51,9 +58,13 @@ public sealed partial class ModEntry : SelectableItem
 
     public bool CanOpenWorkshopPage => IsSteamWorkshopMod;
 
-    public string SourceLabel => IsSteamWorkshopMod ? "Steam 创意工坊" : "本地 Mod";
+    public string SourceLabel => IsSteamWorkshopMod
+        ? Hoi4LauncherStrings.Get("Hoi4.Mod.Source.SteamWorkshop")
+        : Hoi4LauncherStrings.Get("Hoi4.Mod.Source.Local");
 
-    public string VersionLabel => string.IsNullOrWhiteSpace(Version) ? "版本未知" : Version;
+    public string VersionLabel => string.IsNullOrWhiteSpace(Version)
+        ? Hoi4LauncherStrings.Get("Hoi4.Mod.VersionUnknown")
+        : Version;
 
     public string WorkshopUrl => IsSteamWorkshopMod
         ? $"https://steamcommunity.com/sharedfiles/filedetails/?id={RemoteFileId}"

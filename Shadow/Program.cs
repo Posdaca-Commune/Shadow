@@ -1,6 +1,10 @@
 using System;
 using Avalonia;
+using Avalonia.Media;
+using Shadow.Abstractions;
+using Shadow.Localization;
 using Shadow.Plugins;
+using Shadow.Services;
 
 namespace Shadow;
 
@@ -12,6 +16,7 @@ sealed class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        InitializeLocalization();
         var commandLine = ShadowCommandLine.Parse(args);
         if (!string.IsNullOrWhiteSpace(commandLine.Command))
         {
@@ -30,6 +35,14 @@ sealed class Program
         return 0;
     }
 
+    internal static ApplicationSettings InitializeLocalization()
+    {
+        ShadowStringResources.Register();
+        var settings = ApplicationSettingsStore.Load();
+        ShadowLocalizer.Instance.CultureName = settings.Language;
+        return settings;
+    }
+
     // Avalonia configuration, don't remove; also used by visual designer.
     public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
@@ -38,5 +51,7 @@ sealed class Program
             .WithDeveloperTools()
 #endif
             .WithInterFont()
+            .With(ShadowFontOptions.Create())
             .LogToTrace();
 }
+

@@ -1,11 +1,12 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:Shadow.Localization"
              xmlns:vm="using:Shadow.ViewModels"
              x:Class="Shadow.Views.HomeView"
              x:DataType="vm:HomeViewModel">
     <Grid RowDefinitions="Auto,*"
           Margin="40,34">
-        <StackPanel Spacing="8">
+        <StackPanel Grid.Row="0" Spacing="8">
             <TextBlock Text="{Binding Title}"
                        FontSize="32"
                        FontWeight="SemiBold"/>
@@ -18,23 +19,23 @@
               ColumnDefinitions="*,*"
               RowDefinitions="Auto,Auto"
               Margin="0,34,0,0">
-            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+            <Border Grid.Row="0" Grid.Column="0" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
                     CornerRadius="8"
                     Padding="22"
                     Margin="0,0,10,10">
                 <StackPanel Spacing="10">
-                    <TextBlock Text="插件系统"
+                    <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Home.PluginSystem.Title}"
                                FontSize="18"
                                FontWeight="SemiBold"/>
-                    <TextBlock Text="主程序将负责加载同目录下的独立插件项目。"
+                    <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Home.PluginSystem.Description}"
                                TextWrapping="Wrap"
                                Opacity="0.72"/>
                 </StackPanel>
             </Border>
 
-            <Border Grid.Column="1"
+            <Border Grid.Row="0" Grid.Column="1"
                     Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
@@ -42,10 +43,10 @@
                     Padding="22"
                     Margin="10,0,0,10">
                 <StackPanel Spacing="10">
-                    <TextBlock Text="基础工作站"
+                    <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Home.Workstation.Title}"
                                FontSize="18"
                                FontWeight="SemiBold"/>
-                    <TextBlock Text="后续可在这里承载 HOI4 项目管理、工具入口和插件面板。"
+                    <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Home.Workstation.Description}"
                                TextWrapping="Wrap"
                                Opacity="0.72"/>
                 </StackPanel>
@@ -53,3 +54,4 @@
         </Grid>
     </Grid>
 </UserControl>
+

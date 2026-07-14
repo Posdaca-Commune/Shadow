@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FluentAvalonia.UI.Controls;
 using Shadow.Abstractions;
+using Shadow.Hoi4Launcher.Localization;
 using Shadow.Hoi4Launcher.Models;
 using Shadow.Hoi4Launcher.Services;
 
@@ -13,12 +14,15 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
     private readonly Hoi4LauncherConfiguration _configuration;
     private readonly Hoi4LauncherService _service;
     private readonly IShadowHostContext _hostContext;
+    private string _statusTextKey = "Hoi4.Status.Default";
+    private object[] _statusTextArgs = [];
 
     public Hoi4LauncherViewModel(
         Hoi4LauncherConfiguration configuration,
         Hoi4LauncherService service,
         IShadowHostContext hostContext)
     {
+        Hoi4LauncherStrings.Register();
         _configuration = configuration;
         _service = service;
         _hostContext = hostContext;
@@ -37,17 +41,46 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
 
         ReloadStoredPlaysets();
         SelectedSection = Sections[0];
+        ShadowLocalizer.Instance.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName is not (nameof(ShadowLocalizer.CultureName)
+                or nameof(ShadowLocalizer.Version)
+                or "Item[]"
+                or null
+                or ""))
+            {
+                return;
+            }
+
+            Localizer = new ShadowLocalizationScope();
+            if (!string.IsNullOrEmpty(_statusTextKey))
+            {
+                StatusText = Hoi4LauncherStrings.Format(_statusTextKey, _statusTextArgs);
+            }
+
+            OnPropertyChanged(nameof(ActivePlaysetName));
+            OnPropertyChanged(nameof(SelectedPlaysetEditStateText));
+            OnPropertyChanged(nameof(SelectedPlaysetSummaryText));
+        };
 
         Refresh();
     }
 
+    [ObservableProperty]
+    private ShadowLocalizationScope _localizer = new();
+
     public IReadOnlyList<LauncherSection> Sections { get; } =
     [
-        new("Home", "启动首页", "当前播放集、路径和启动状态", FASymbol.Home),
-        new("Mods", "Mod 列表", "已发现的本地和创意工坊 Mod", FASymbol.Library),
-        new("Dlcs", "DLC 列表", "DLC 启用状态和加载文件", FASymbol.Shop),
-        new("Playsets", "播放集列表", "播放集选择、Mod 调整和排序", FASymbol.BulletList),
-        new("GameSettings", "游戏设置", "启动路径、显示、语言和音频", FASymbol.Setting),
+        new("Home", LocalizedText.Key("Hoi4.Section.Home.Title"),
+            LocalizedText.Key("Hoi4.Section.Home.Description"), FASymbol.Home),
+        new("Mods", LocalizedText.Key("Hoi4.Section.Mods.Title"),
+            LocalizedText.Key("Hoi4.Section.Mods.Description"), FASymbol.Library),
+        new("Dlcs", LocalizedText.Key("Hoi4.Section.Dlcs.Title"),
+            LocalizedText.Key("Hoi4.Section.Dlcs.Description"), FASymbol.Shop),
+        new("Playsets", LocalizedText.Key("Hoi4.Section.Playsets.Title"),
+            LocalizedText.Key("Hoi4.Section.Playsets.Description"), FASymbol.BulletList),
+        new("GameSettings", LocalizedText.Key("Hoi4.Section.GameSettings.Title"),
+            LocalizedText.Key("Hoi4.Section.GameSettings.Description"), FASymbol.Setting),
     ];
 
     public ObservableCollection<ModEntry> Mods { get; } = [];
@@ -80,7 +113,7 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
 
     [ObservableProperty] private string _newPlaysetName = string.Empty;
 
-    [ObservableProperty] private string _statusText = "选择游戏路径后刷新，可直接启动游戏。";
+    [ObservableProperty] private string _statusText = Hoi4LauncherStrings.Get("Hoi4.Status.Default");
 
     public int EnabledModCount => PlaysetMods.Count(mod => mod.IsEnabled);
 
@@ -92,11 +125,19 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
 
     public int PlaysetCount => Playsets.Count;
 
-    public string ActivePlaysetName => SelectedPlayset?.Name ?? "未选择播放集";
+    public string ActivePlaysetName => SelectedPlayset?.Name ?? Hoi4LauncherStrings.Get("Hoi4.Playsets.NoSelection");
 
     public bool CanEditSelectedPlayset => SelectedPlayset?.CanEdit == true;
 
-    public string SelectedPlaysetEditStateText => SelectedPlayset?.CanEdit == false ? "只读播放集" : "可编辑播放集";
+    public string SelectedPlaysetEditStateText => SelectedPlayset?.CanEdit == false
+        ? Hoi4LauncherStrings.Get("Hoi4.Playsets.ReadOnly")
+        : Hoi4LauncherStrings.Get("Hoi4.Playsets.Editable");
+
+    public string SelectedPlaysetSummaryText => Hoi4LauncherStrings.Format(
+        "Hoi4.Playsets.Summary",
+        PlaysetModCount,
+        EnabledModCount,
+        SelectedPlaysetEditStateText);
 
     public string SelectedPlaysetStorageDirectory =>
         Path.Combine(_configuration.PlaysetStore.WorkspaceDirectory, "playsets");
@@ -162,7 +203,7 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusText = $"Mod 索引写入失败：{ex.Message}";
+            SetLocalizedStatusText("Hoi4.Status.ModIndexFailed", ex.Message);
         }
 
         Dlcs.Clear();
@@ -175,18 +216,18 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
         ApplySelectedPlaysetState();
         RebuildAvailableMods();
         NotifyLauncherOptionProperties();
-        StatusText = $"已发现 {Mods.Count} 个 mod，{Dlcs.Count} 个 DLC。";
+        SetLocalizedStatusText("Hoi4.Status.Refreshed", Mods.Count, Dlcs.Count);
     }
 
     [RelayCommand]
     private void AddPlayset()
     {
         var name = string.IsNullOrWhiteSpace(NewPlaysetName)
-            ? "新播放集"
+            ? Hoi4LauncherStrings.Get("Hoi4.Playset.New")
             : NewPlaysetName.Trim();
 
         var playsetName = SelectedPlayset?.CanEdit == false
-            ? $"{SelectedPlayset.Name} 副本"
+            ? Hoi4LauncherStrings.Format("Hoi4.Playset.CopySuffix", SelectedPlayset.Name)
             : name;
         var playset = CreateLocalPlayset(playsetName);
 
@@ -196,7 +237,7 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
         NewPlaysetName = string.Empty;
         _configuration.Save();
         OnPlaysetCollectionChanged();
-        StatusText = $"已创建播放集：{playset.Name}";
+        SetLocalizedStatusText("Hoi4.Status.CreatedPlayset", playset.Name);
     }
 
     public void AddPlayset(string name)
@@ -216,13 +257,13 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
         var playset = SelectedPlayset;
         if (!playset.CanEdit)
         {
-            StatusText = $"播放集不可删除：{playset.Name}";
+            SetLocalizedStatusText("Hoi4.Status.CannotDeletePlayset", playset.Name);
             return;
         }
 
         if (Playsets.Count <= 1)
         {
-            StatusText = "至少需要保留一个播放集。";
+            SetLocalizedStatusText("Hoi4.Status.NeedOnePlayset");
             return;
         }
 
@@ -234,7 +275,7 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
                           ?? Playsets.FirstOrDefault();
         _configuration.Save();
         OnPlaysetCollectionChanged();
-        StatusText = $"已删除播放集：{playset.Name}";
+        SetLocalizedStatusText("Hoi4.Status.DeletedPlayset", playset.Name);
     }
 
     [RelayCommand]
@@ -248,7 +289,7 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
         if (!CanEditSelectedPlayset)
         {
             _service.ApplyPlayset(SelectedPlayset, PlaysetMods.Select(mod => mod.Mod), Dlcs);
-            StatusText = $"已应用只读播放集：{SelectedPlayset.Name}";
+            SetLocalizedStatusText("Hoi4.Status.AppliedReadOnlyPlayset", SelectedPlayset.Name);
             return;
         }
 
@@ -257,7 +298,7 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
         OnPropertyChanged(nameof(EnabledModCount));
         OnPropertyChanged(nameof(PlaysetModCount));
         OnPropertyChanged(nameof(DisabledDlcCount));
-        StatusText = $"已保存并应用播放集：{SelectedPlayset.Name}";
+        SetLocalizedStatusText("Hoi4.Status.SavedAppliedPlayset", SelectedPlayset.Name);
     }
 
     [RelayCommand]
@@ -267,7 +308,7 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
         var importedPlaysets = _service.ImportParadoxPlaysets(Mods);
         if (importedPlaysets.Count == 0)
         {
-            StatusText = "未发现 Paradox 启动器播放集。";
+            SetLocalizedStatusText("Hoi4.Status.NoParadoxPlaysets");
             return;
         }
 
@@ -296,7 +337,7 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
         SelectedPlayset = Playsets.FirstOrDefault(playset => playset.Id == _configuration.State.SelectedPlaysetId)
                           ?? Playsets.FirstOrDefault(playset => playset.IsExternal)
                           ?? SelectedPlayset;
-        StatusText = $"已读取 {importedPlaysets.Count} 个 Paradox 播放集。";
+        SetLocalizedStatusText("Hoi4.Status.ImportedParadoxPlaysets", importedPlaysets.Count);
         OnPlaysetCollectionChanged();
     }
 
@@ -337,7 +378,7 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
         PersistCurrentPlaysetState();
         RebuildAvailableMods();
         OnSelectionChanged();
-        StatusText = $"已添加到播放集：{entry.Title}";
+        SetLocalizedStatusText("Hoi4.Status.AddedToPlayset", entry.Title);
     }
 
     public void AddModToPlayset(ModEntry mod)
@@ -360,7 +401,7 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
         PersistCurrentPlaysetState();
         RebuildAvailableMods();
         OnSelectionChanged();
-        StatusText = $"已从播放集移除：{removed.Title}";
+        SetLocalizedStatusText("Hoi4.Status.RemovedFromPlayset", removed.Title);
     }
 
     public void RemoveModFromPlayset(PlaysetModEntry mod)
@@ -397,7 +438,7 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
         PlaysetMods.Move(oldIndex, boundedTargetIndex);
         SelectedPlaysetMod = mod;
         PersistCurrentPlaysetState();
-        StatusText = $"已调整加载顺序：{mod.Title}";
+        SetLocalizedStatusText("Hoi4.Status.ReorderedMod", mod.Title);
     }
 
     [RelayCommand]
@@ -452,7 +493,7 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
         {
             SavePlayset();
             _service.StartGame();
-            StatusText = "HOI4 已启动。";
+            SetLocalizedStatusText("Hoi4.Status.Launched");
             if (_configuration.State.CloseAfterLaunch)
             {
                 _hostContext.ShutdownApplication();
@@ -460,7 +501,7 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusText = ex.Message;
+            SetRawStatusText(ex.Message);
         }
     }
 
@@ -478,7 +519,7 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusText = ex.Message;
+            SetRawStatusText(ex.Message);
         }
     }
 
@@ -496,7 +537,7 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusText = ex.Message;
+            SetRawStatusText(ex.Message);
         }
     }
 
@@ -551,6 +592,20 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
         _configuration.Save();
     }
 
+    private void SetLocalizedStatusText(string key, params object[] args)
+    {
+        _statusTextKey = key;
+        _statusTextArgs = args;
+        StatusText = Hoi4LauncherStrings.Format(key, args);
+    }
+
+    private void SetRawStatusText(string text)
+    {
+        _statusTextKey = string.Empty;
+        _statusTextArgs = [];
+        StatusText = text;
+    }
+
     private void OnSelectionChanged()
     {
         OnPropertyChanged(nameof(EnabledModCount));
@@ -559,6 +614,7 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
         OnPropertyChanged(nameof(ExternalPlaysetCount));
         OnPropertyChanged(nameof(CanEditSelectedPlayset));
         OnPropertyChanged(nameof(SelectedPlaysetEditStateText));
+        OnPropertyChanged(nameof(SelectedPlaysetSummaryText));
         DeletePlaysetCommand.NotifyCanExecuteChanged();
         AddSelectedModToPlaysetCommand.NotifyCanExecuteChanged();
         RemoveSelectedModFromPlaysetCommand.NotifyCanExecuteChanged();
@@ -577,6 +633,7 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
         OnPropertyChanged(nameof(ActivePlaysetName));
         OnPropertyChanged(nameof(CanEditSelectedPlayset));
         OnPropertyChanged(nameof(SelectedPlaysetEditStateText));
+        OnPropertyChanged(nameof(SelectedPlaysetSummaryText));
     }
 
     private Playset CreateLocalPlayset(string name)
@@ -697,7 +754,7 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
 
         if (SelectedPlayset is not null)
         {
-            StatusText = $"播放集不可编辑：{SelectedPlayset.Name}";
+            SetLocalizedStatusText("Hoi4.Status.CannotEditPlayset", SelectedPlayset.Name);
         }
 
         return false;
@@ -713,3 +770,8 @@ public sealed partial class Hoi4LauncherViewModel : ObservableObject
         };
     }
 }
+
+
+
+
+

@@ -32,9 +32,10 @@
                               AlwaysShowHeader="False"
                               IsBackButtonVisible="False"
                               IsPaneToggleButtonVisible="False"
-                              IsSettingsVisible="True"
+                              IsSettingsVisible="False"
                               IsPaneOpen="True"
                               MenuItemsSource="{Binding NavigationItems}"
+                              FooterMenuItemsSource="{Binding FooterNavigationItems}"
                               OpenPaneLength="260"
                               PaneDisplayMode="Left"
                               SelectionChanged="NavigationView_OnSelectionChanged">
@@ -136,3 +137,5 @@
         </Grid>
     </Grid>
 </windowing:FAAppWindow>
+
+

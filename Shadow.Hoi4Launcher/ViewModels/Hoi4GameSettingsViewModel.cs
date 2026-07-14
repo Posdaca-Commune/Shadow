@@ -1,5 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Shadow.Abstractions;
+using Shadow.Hoi4Launcher.Localization;
 using Shadow.Hoi4Launcher.Models;
 using Shadow.Hoi4Launcher.Services;
 
@@ -7,15 +9,37 @@ namespace Shadow.Hoi4Launcher.ViewModels;
 
 public sealed partial class Hoi4GameSettingsViewModel : ObservableObject
 {
+    private const int FullscreenModeCount = 3;
     private readonly Hoi4LauncherConfiguration _configuration;
     private readonly Hoi4LauncherService _service;
+    private string _statusTextKey = "Hoi4.GameSettings.Status.Default";
+    private object[] _statusTextArgs = [];
 
     public Hoi4GameSettingsViewModel(Hoi4LauncherConfiguration configuration, Hoi4LauncherService service)
     {
+        Hoi4LauncherStrings.Register();
         _configuration = configuration;
         _service = service;
         LoadFromSettings(_service.LoadGameSettings());
+        ShadowLocalizer.Instance.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName is not (nameof(ShadowLocalizer.CultureName)
+                or nameof(ShadowLocalizer.Version)
+                or "Item[]"
+                or null
+                or ""))
+            {
+                return;
+            }
+
+            Localizer = new ShadowLocalizationScope();
+            OnPropertyChanged(nameof(FullscreenModes));
+            StatusText = Hoi4LauncherStrings.Format(_statusTextKey, _statusTextArgs);
+        };
     }
+
+    [ObservableProperty]
+    private ShadowLocalizationScope _localizer = new();
 
     public string[] Languages { get; } =
     [
@@ -30,11 +54,11 @@ public sealed partial class Hoi4GameSettingsViewModel : ObservableObject
         "l_japanese",
     ];
 
-    public string[] FullscreenModes { get; } =
+    public IReadOnlyList<string> FullscreenModes =>
     [
-        "窗口",
-        "全屏",
-        "无边框窗口",
+        Hoi4LauncherStrings.Get("Hoi4.Fullscreen.Window"),
+        Hoi4LauncherStrings.Get("Hoi4.Fullscreen.Fullscreen"),
+        Hoi4LauncherStrings.Get("Hoi4.Fullscreen.Borderless"),
     ];
 
     [ObservableProperty]
@@ -86,13 +110,13 @@ public sealed partial class Hoi4GameSettingsViewModel : ObservableObject
     private double _interfaceVolume = 0.75;
 
     [ObservableProperty]
-    private string _statusText = "游戏选项会写入 HOI4 用户目录的 settings.txt。";
+    private string _statusText = Hoi4LauncherStrings.Get("Hoi4.GameSettings.Status.Default");
 
     [RelayCommand]
     private void Reload()
     {
         LoadFromSettings(_service.LoadGameSettings());
-        StatusText = "已重新读取 settings.txt。";
+        SetStatusText("Hoi4.GameSettings.Status.Reloaded");
     }
 
     [RelayCommand]
@@ -100,7 +124,7 @@ public sealed partial class Hoi4GameSettingsViewModel : ObservableObject
     {
         SaveLauncherOptions();
         _service.SaveGameSettings(CreateSettings());
-        StatusText = "已保存 HOI4 游戏选项。";
+        SetStatusText("Hoi4.GameSettings.Status.Saved");
     }
 
     public void SaveLauncherOptions()
@@ -152,7 +176,7 @@ public sealed partial class Hoi4GameSettingsViewModel : ObservableObject
         CloseAfterLaunch = _configuration.State.CloseAfterLaunch;
         SelectedLanguage = settings.Language;
         DisplayIndex = settings.DisplayIndex;
-        SelectedFullscreenModeIndex = Math.Clamp(settings.FullscreenMode, 0, FullscreenModes.Length - 1);
+        SelectedFullscreenModeIndex = Math.Clamp(settings.FullscreenMode, 0, FullscreenModeCount - 1);
         ResolutionWidth = settings.ResolutionWidth;
         ResolutionHeight = settings.ResolutionHeight;
         RefreshRate = settings.RefreshRate;
@@ -169,7 +193,7 @@ public sealed partial class Hoi4GameSettingsViewModel : ObservableObject
         {
             Language = SelectedLanguage,
             DisplayIndex = Math.Max(0, DisplayIndex),
-            FullscreenMode = Math.Clamp(SelectedFullscreenModeIndex, 0, FullscreenModes.Length - 1),
+            FullscreenMode = Math.Clamp(SelectedFullscreenModeIndex, 0, FullscreenModeCount - 1),
             ResolutionWidth = Math.Max(640, ResolutionWidth),
             ResolutionHeight = Math.Max(480, ResolutionHeight),
             RefreshRate = Math.Max(24, RefreshRate),
@@ -180,4 +204,15 @@ public sealed partial class Hoi4GameSettingsViewModel : ObservableObject
             InterfaceVolume = (float)Math.Clamp(InterfaceVolume, 0, 1),
         };
     }
+
+    private void SetStatusText(string key, params object[] args)
+    {
+        _statusTextKey = key;
+        _statusTextArgs = args;
+        StatusText = Hoi4LauncherStrings.Format(key, args);
+    }
 }
+
+
+
+

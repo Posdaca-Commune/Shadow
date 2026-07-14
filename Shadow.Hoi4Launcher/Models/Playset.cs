@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Text.Json.Serialization;
+using Shadow.Hoi4Launcher.Localization;
 
 namespace Shadow.Hoi4Launcher.Models;
 
@@ -7,7 +8,7 @@ public sealed partial class Playset : ObservableObject
 {
     [ObservableProperty] private string _id = Guid.NewGuid().ToString("N");
 
-    [ObservableProperty] private string _name = "新播放集";
+    [ObservableProperty] private string _name = Hoi4LauncherStrings.Get("Hoi4.Playset.New");
 
     [ObservableProperty] private List<string> _enabledModIds = [];
 
@@ -29,7 +30,7 @@ public sealed partial class Playset : ObservableObject
         return new Playset
         {
             Id = "default",
-            Name = "默认播放集",
+            Name = Hoi4LauncherStrings.Get("Hoi4.Playset.Default"),
         };
     }
 }
