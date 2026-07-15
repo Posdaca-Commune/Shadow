@@ -36,9 +36,12 @@
                         </Style>
                     </Button.Styles>
                     <Button.Flyout>
-                        <Flyout Placement="BottomEdgeAlignedLeft">
+                        <Flyout Placement="BottomEdgeAlignedLeft"
+                                OverlayDismissEventPassThrough="False">
+                            <!-- Keep Fluent's default FlyoutPresenter template/animations, only strip the outer plate. -->
                             <Flyout.FlyoutPresenterTheme>
-                                <ControlTheme TargetType="FlyoutPresenter">
+                                <ControlTheme TargetType="FlyoutPresenter"
+                                              BasedOn="{StaticResource {x:Type FlyoutPresenter}}">
                                     <Setter Property="Background" Value="Transparent"/>
                                     <Setter Property="BorderBrush" Value="Transparent"/>
                                     <Setter Property="BorderThickness" Value="0"/>
@@ -50,7 +53,7 @@
                                     BorderBrush="{DynamicResource ComboBoxDropDownBorderBrush}"
                                     BorderThickness="1"
                                     CornerRadius="{DynamicResource OverlayCornerRadius}"
-                                    Padding="1">
+                                    Padding="4">
                                 <ListBox ItemsSource="{Binding AvailableGames}"
                                          SelectedItem="{Binding SelectedGame}"
                                          MinWidth="240"
@@ -60,8 +63,8 @@
                                     <ListBox.ItemTemplate>
                                         <DataTemplate x:DataType="models:ParadoxGameDefinition">
                                             <TextBlock Text="{Binding DisplayName}"
-                                                       Margin="4,6"
-                                                       FontSize="14"/>
+                                                       Margin="-4,6"
+                                                       FontSize="16"/>
                                         </DataTemplate>
                                     </ListBox.ItemTemplate>
                                 </ListBox>
