@@ -1,0 +1,74 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Content Include="Localization\*.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <EmbeddedResource Include="Localization\*.json" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Shadow.Abstractions\Shadow.Abstractions.csproj">
+            <Private>false</Private>
+            <ExcludeAssets>runtime</ExcludeAssets>
+        </ProjectReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Avalonia" Version="12.1.0" />
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2"/>
+        <PackageReference Include="FluentAvaloniaUI" Version="3.0.1" />
+        <PackageReference Include="Microsoft.Data.Sqlite" Version="11.0.0-preview.5.26302.115" />
+        <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.3"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Update="Views\ParadoxGameSettingsSectionView.axaml.cs">
+        <DependentUpon>ParadoxGameSettingsSectionView.axaml</DependentUpon>
+      </Compile>
+    </ItemGroup>
+
+    <Target Name="CopyPluginToHost" AfterTargets="Build" Condition="'$(CopyPluginToHost)' != 'false'">
+        <ItemGroup>
+            <PluginHostDirectory Include="$(MSBuildThisFileDirectory)..\Shadow\bin\Debug\net10.0\Plugins\ParadoxGameLauncher"
+                                 Condition="Exists('$(MSBuildThisFileDirectory)..\Shadow\bin\Debug\net10.0')"/>
+            <PluginHostDirectory Include="$(MSBuildThisFileDirectory)..\Shadow\bin\Release\net10.0\Plugins\ParadoxGameLauncher"
+                                 Condition="Exists('$(MSBuildThisFileDirectory)..\Shadow\bin\Release\net10.0')"/>
+            <PluginOutputExclusion Include="$(TargetDir)win-*\**\*.*"/>
+            <PluginOutputExclusion Include="$(TargetDir)linux-*\**\*.*"/>
+            <PluginOutputExclusion Include="$(TargetDir)osx-*\**\*.*"/>
+            <PluginOutputExclusion Include="$(TargetDir)browser-*\**\*.*"/>
+            <PluginOutputExclusion Include="$(TargetDir)Avalonia*.dll"/>
+            <PluginOutputExclusion Include="$(TargetDir)CommunityToolkit.Mvvm.dll"/>
+            <PluginOutputExclusion Include="$(TargetDir)FluentAvalonia.dll"/>
+            <PluginOutputExclusion Include="$(TargetDir)HarfBuzzSharp.dll"/>
+            <PluginOutputExclusion Include="$(TargetDir)libHarfBuzzSharp.*"/>
+            <PluginOutputExclusion Include="$(TargetDir)libSkiaSharp.*"/>
+            <PluginOutputExclusion Include="$(TargetDir)MicroCom.Runtime.dll"/>
+            <PluginOutputExclusion Include="$(TargetDir)runtimes\**\libHarfBuzzSharp.*"/>
+            <PluginOutputExclusion Include="$(TargetDir)runtimes\**\libSkiaSharp.*"/>
+            <PluginOutputExclusion Include="$(TargetDir)Shadow.Abstractions.dll"/>
+            <PluginOutputExclusion Include="$(TargetDir)SkiaSharp.dll"/>
+            <PluginOutput Include="$(TargetDir)**\*.*" Exclude="@(PluginOutputExclusion)"/>
+        </ItemGroup>
+
+        <RemoveDir Directories="@(PluginHostDirectory)"/>
+        <MakeDir Directories="@(PluginHostDirectory)"/>
+
+        <Copy SourceFiles="@(PluginOutput)"
+              DestinationFiles="@(PluginOutput->'$(MSBuildThisFileDirectory)..\Shadow\bin\Debug\net10.0\Plugins\ParadoxGameLauncher\%(RecursiveDir)%(Filename)%(Extension)')"
+              SkipUnchangedFiles="true"
+              Condition="Exists('$(MSBuildThisFileDirectory)..\Shadow\bin\Debug\net10.0')"/>
+        <Copy SourceFiles="@(PluginOutput)"
+              DestinationFiles="@(PluginOutput->'$(MSBuildThisFileDirectory)..\Shadow\bin\Release\net10.0\Plugins\ParadoxGameLauncher\%(RecursiveDir)%(Filename)%(Extension)')"
+              SkipUnchangedFiles="true"
+              Condition="Exists('$(MSBuildThisFileDirectory)..\Shadow\bin\Release\net10.0')"/>
+    </Target>
+</Project>

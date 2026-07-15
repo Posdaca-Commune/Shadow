@@ -6,14 +6,14 @@
 
 - Initial Avalonia/Fluent workstation shell.
 - Runtime plugin loading through `Shadow.Abstractions`.
-- Built-in `Shadow.Hoi4Launcher` plugin.
+- Built-in `Shadow.ParadoxGameLauncher` multi-game plugin.
 - HOI4 mod discovery for local descriptors and Steam Workshop descriptors.
-- Editable Shadow playsets stored in `%APPDATA%\Posdaca\Hoi4Workspace`.
+- Editable Shadow playsets stored in `%APPDATA%\Posdaca\<Game Name>`.
 - Read-only import of Paradox Launcher playsets from `launcher-v2.sqlite`.
 - DLC selection support through HOI4 `dlc_load.json`.
 - Game settings editor for selected `settings.txt` fields.
-- Mod index export to `%APPDATA%\Posdaca\Hoi4Workspace\mods\index.json`.
-- Plugin command interface and `hoi4.launch` command.
+- Mod index export to `%APPDATA%\Posdaca\<Game Name>\mods\index.json`.
+- Plugin command interface and `paradox.launch` command.
 - Repository newline policy through `.gitattributes`.
 
 ### Notes

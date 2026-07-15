@@ -23,7 +23,13 @@ $ErrorActionPreference = "Stop"
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 $artifactRoot = Join-Path $repoRoot "artifacts\msix"
 $packageRoot = Join-Path $artifactRoot "package"
-$pluginPublishRoot = Join-Path $packageRoot "Plugins\Hoi4Launcher"
+$pluginProjects = @(
+    @{
+        Name = "ParadoxGameLauncher"
+        Project = "Shadow.ParadoxGameLauncher\Shadow.ParadoxGameLauncher.csproj"
+        Output = Join-Path $packageRoot "Plugins\ParadoxGameLauncher"
+    }
+)
 $manifestTemplate = Join-Path $repoRoot "packaging\msix\AppxManifest.xml"
 
 function Get-ProjectVersion {
@@ -105,57 +111,33 @@ function Remove-SharedPluginFiles {
         Remove-Item -Force
 }
 
-function New-PackageLogo {
-    param(
-        [string]$Path,
-        [int]$Width,
-        [int]$Height
-    )
-
-    Add-Type -AssemblyName System.Drawing
-
-    $directory = Split-Path -Parent $Path
-    New-Item -ItemType Directory -Path $directory -Force | Out-Null
-
-    $bitmap = New-Object System.Drawing.Bitmap -ArgumentList $Width, $Height
-    $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
-    $brush = New-Object System.Drawing.SolidBrush -ArgumentList ([System.Drawing.Color]::FromArgb(91, 124, 250))
-    $textBrush = New-Object System.Drawing.SolidBrush -ArgumentList ([System.Drawing.Color]::White)
-    $fontSize = [Math]::Max(16, [Math]::Min($Width, $Height) * 0.48)
-    $font = New-Object System.Drawing.Font -ArgumentList "Segoe UI", $fontSize, ([System.Drawing.FontStyle]::Bold), ([System.Drawing.GraphicsUnit]::Pixel)
-    $format = New-Object System.Drawing.StringFormat
-
-    try {
-        $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
-        $graphics.Clear([System.Drawing.Color]::Transparent)
-        $graphics.FillRectangle($brush, 0, 0, $Width, $Height)
-
-        $format.Alignment = [System.Drawing.StringAlignment]::Center
-        $format.LineAlignment = [System.Drawing.StringAlignment]::Center
-        $rect = New-Object System.Drawing.RectangleF -ArgumentList 0, 0, $Width, $Height
-        $graphics.DrawString("S", $font, $textBrush, $rect, $format)
-
-        $bitmap.Save($Path, [System.Drawing.Imaging.ImageFormat]::Png)
-    }
-    finally {
-        $format.Dispose()
-        $font.Dispose()
-        $textBrush.Dispose()
-        $brush.Dispose()
-        $graphics.Dispose()
-        $bitmap.Dispose()
-    }
-}
-
 function New-PackageAssets {
     param([string]$AssetsDirectory)
 
-    New-PackageLogo -Path (Join-Path $AssetsDirectory "StoreLogo.png") -Width 50 -Height 50
-    New-PackageLogo -Path (Join-Path $AssetsDirectory "Square44x44Logo.png") -Width 44 -Height 44
-    New-PackageLogo -Path (Join-Path $AssetsDirectory "Square71x71Logo.png") -Width 71 -Height 71
-    New-PackageLogo -Path (Join-Path $AssetsDirectory "Square150x150Logo.png") -Width 150 -Height 150
-    New-PackageLogo -Path (Join-Path $AssetsDirectory "Square310x310Logo.png") -Width 310 -Height 310
-    New-PackageLogo -Path (Join-Path $AssetsDirectory "Wide310x150Logo.png") -Width 310 -Height 150
+    $sourceAssetsDirectory = Join-Path $repoRoot "packaging\msix\Assets"
+    if (-not (Test-Path -LiteralPath $sourceAssetsDirectory)) {
+        throw "未找到 MSIX 图标资源目录：$sourceAssetsDirectory"
+    }
+
+    New-Item -ItemType Directory -Path $AssetsDirectory -Force | Out-Null
+
+    $requiredAssets = @(
+        "StoreLogo.png",
+        "Square44x44Logo.png",
+        "Square71x71Logo.png",
+        "Square150x150Logo.png",
+        "Square310x310Logo.png",
+        "Wide310x150Logo.png"
+    )
+
+    foreach ($assetName in $requiredAssets) {
+        $sourcePath = Join-Path $sourceAssetsDirectory $assetName
+        if (-not (Test-Path -LiteralPath $sourcePath)) {
+            throw "缺少 MSIX 图标资源：$sourcePath"
+        }
+
+        Copy-Item -LiteralPath $sourcePath -Destination (Join-Path $AssetsDirectory $assetName) -Force
+    }
 }
 
 function Write-PackageManifest {
@@ -203,7 +185,9 @@ if (Test-Path -LiteralPath $artifactRoot) {
 }
 
 New-Item -ItemType Directory -Path $packageRoot -Force | Out-Null
-New-Item -ItemType Directory -Path $pluginPublishRoot -Force | Out-Null
+foreach ($plugin in $pluginProjects) {
+    New-Item -ItemType Directory -Path $plugin.Output -Force | Out-Null
+}
 
 if (-not $SkipBuild) {
     $selfContainedValue = $SelfContained.ToString().ToLowerInvariant()
@@ -217,23 +201,28 @@ if (-not $SkipBuild) {
         -p:DebugSymbols=false `
         -o $packageRoot
 
-    dotnet publish (Join-Path $repoRoot "Shadow.Hoi4Launcher\Shadow.Hoi4Launcher.csproj") `
-        --configuration $Configuration `
-        --runtime $Runtime `
-        --self-contained:false `
-        -p:Version=$Version `
-        -p:CopyPluginToHost=false `
-        -p:DebugType=None `
-        -p:DebugSymbols=false `
-        -o $pluginPublishRoot
+    foreach ($plugin in $pluginProjects) {
+        $pluginProjectPath = Join-Path $repoRoot $plugin.Project
+        dotnet publish $pluginProjectPath `
+            --configuration $Configuration `
+            --runtime $Runtime `
+            --self-contained:false `
+            -p:Version=$Version `
+            -p:CopyPluginToHost=false `
+            -p:DebugType=None `
+            -p:DebugSymbols=false `
+            -o $plugin.Output
+    }
 }
 
-$abstractionsInPlugin = Join-Path $pluginPublishRoot "Shadow.Abstractions.dll"
-if (Test-Path -LiteralPath $abstractionsInPlugin) {
-    Remove-Item -LiteralPath $abstractionsInPlugin -Force
-}
+foreach ($plugin in $pluginProjects) {
+    $abstractionsInPlugin = Join-Path $plugin.Output "Shadow.Abstractions.dll"
+    if (Test-Path -LiteralPath $abstractionsInPlugin) {
+        Remove-Item -LiteralPath $abstractionsInPlugin -Force
+    }
 
-Remove-SharedPluginFiles -PluginDirectory $pluginPublishRoot
+    Remove-SharedPluginFiles -PluginDirectory $plugin.Output
+}
 New-PackageAssets -AssetsDirectory (Join-Path $packageRoot "Assets")
 Write-PackageManifest `
     -TemplatePath $manifestTemplate `
@@ -288,3 +277,4 @@ $signArgs += $msixPath
 & $signTool @signArgs
 
 Write-Host "已生成并签名 MSIX：$msixPath"
+

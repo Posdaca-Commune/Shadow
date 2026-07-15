@@ -1,5 +1,5 @@
 <Solution>
   <Project Path="Shadow.Abstractions/Shadow.Abstractions.csproj" />
-  <Project Path="Shadow.Hoi4Launcher/Shadow.Hoi4Launcher.csproj" />
+  <Project Path="Shadow.ParadoxGameLauncher/Shadow.ParadoxGameLauncher.csproj" />
   <Project Path="Shadow/Shadow.csproj" />
 </Solution>

@@ -1,6 +1,5 @@
 using System;
 using Avalonia;
-using Avalonia.Media;
 using Shadow.Abstractions;
 using Shadow.Localization;
 using Shadow.Plugins;

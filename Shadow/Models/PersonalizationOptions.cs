@@ -18,7 +18,7 @@ public partial class PersonalizationOptions : ObservableObject
     private bool _useSystemAccentColor = true;
 
     [ObservableProperty]
-    private bool _showCompactSidebar = false;
+    private bool _showCompactSidebar;
 
     [ObservableProperty]
     private bool _enableAnimations = true;

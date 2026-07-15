@@ -118,7 +118,7 @@ public static class ShadowLocalizationResources
         return Directory.EnumerateFiles(localizationDirectory, "*.json", SearchOption.TopDirectoryOnly)
             .Select(path => Path.GetFileNameWithoutExtension(path))
             .Where(name => !string.IsNullOrWhiteSpace(name))
-            .Select(name => ShadowLocalizer.NormalizeCultureName(name!))
+            .Select(name => ShadowLocalizer.NormalizeCultureName(name))
             .Distinct(StringComparer.OrdinalIgnoreCase);
     }
 
@@ -148,7 +148,7 @@ public static class ShadowLocalizationResources
         }
 
         Consider(Path.Combine(AppContext.BaseDirectory, relativeDirectory));
-        Consider(Path.Combine(AppContext.BaseDirectory, "Plugins", "Hoi4Launcher", relativeDirectory));
+        Consider(Path.Combine(AppContext.BaseDirectory, "Plugins", "ParadoxGameLauncher", relativeDirectory));
         return candidates;
     }
 }

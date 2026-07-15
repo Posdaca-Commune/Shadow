@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Shadow.App"
              xmlns:local="using:Shadow"
+             xmlns:controls="using:Shadow.Controls"
              xmlns:styling="using:FluentAvalonia.Styling"
              RequestedThemeVariant="Default">
     <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
@@ -13,5 +14,8 @@
     <Application.Styles>
         <styling:FluentAvaloniaTheme PreferSystemTheme="True"
                                      PreferUserAccentColor="True" />
+        <Style Selector="ScrollViewer">
+            <Setter Property="controls:SmoothScroll.IsEnabled" Value="True" />
+        </Style>
     </Application.Styles>
 </Application>

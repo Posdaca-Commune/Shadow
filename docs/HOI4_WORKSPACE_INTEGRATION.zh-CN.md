@@ -1,5 +1,10 @@
 # HOI4 工作区播放集集成
 
+> 注意：旧版 `Shadow.Hoi4Launcher` 与 `hoi4.launch` 已移除。
+> 请改用 `Shadow.ParadoxGameLauncher` 与 `paradox.launch --game hoi4`。
+> HOI4 工作区默认路径现为：`%AppData%\Posdaca\Hearts of Iron IV\`。
+> 旧路径 `%AppData%\Posdaca\Hoi4Workspace\` 仅作为迁移来源保留兼容。
+
 本文档说明外部项目如何通过 Shadow 的共享 HOI4 工作区读写播放集，并通过 Shadow 启动当前播放集。
 
 ## 共享目录
@@ -7,7 +12,7 @@
 Shadow 使用以下目录作为 HOI4 工作区：
 
 ```text
-%AppData%\Posdaca\Hoi4Workspace\
+%AppData%\Posdaca\Hearts of Iron IV\
 ```
 
 在 Windows 上通常展开为：
@@ -31,7 +36,7 @@ Hoi4Workspace\
 Shadow 刷新 Mod 列表时会写入：
 
 ```text
-%AppData%\Posdaca\Hoi4Workspace\mods\index.json
+%AppData%\Posdaca\Hearts of Iron IV\mods\index.json
 ```
 
 外部项目应使用这个索引把自己的 Mod 依赖映射成 Shadow 播放集需要的 `modIds`。
@@ -94,7 +99,7 @@ Shadow 刷新 Mod 列表时会写入：
 播放集写入：
 
 ```text
-%AppData%\Posdaca\Hoi4Workspace\playsets\<playset-id>.json
+%AppData%\Posdaca\Hearts of Iron IV\playsets\<playset-id>.json
 ```
 
 示例：
@@ -138,20 +143,20 @@ Shadow 刷新 Mod 列表时会写入：
 Shadow 提供命令行接口，外部项目可以通过它应用播放集并启动 HOI4。
 
 ```powershell
-Shadow.exe --shadow-command hoi4.launch --playset-id "oiia:my-project"
+Shadow.exe --shadow-command paradox.launch --game hoi4 --playset-id "oiia:my-project"
 ```
 
 如果不传 `--playset-id`，Shadow 会使用当前选中的播放集：
 
 ```powershell
-Shadow.exe --shadow-command hoi4.launch
+Shadow.exe --shadow-command paradox.launch --game hoi4
 ```
 
 命令执行流程：
 
 1. 加载 HOI4 启动器插件配置。
 2. 重新发现本机 Mod。
-3. 更新 `%AppData%\Posdaca\Hoi4Workspace\mods\index.json`。
+3. 更新 `%AppData%\Posdaca\Hearts of Iron IV\mods\index.json`。
 4. 读取共享播放集目录。
 5. 查找指定播放集。
 6. 校验 `enabledModIds` 是否都能匹配到当前本机 Mod。
@@ -161,21 +166,21 @@ Shadow.exe --shadow-command hoi4.launch
 如果播放集里有 Shadow 当前未发现的启用 Mod，命令默认失败并返回非 0 exit code。调试时可以临时允许缺失 Mod：
 
 ```powershell
-Shadow.exe --shadow-command hoi4.launch --playset-id "oiia:my-project" --allow-missing-mods true
+Shadow.exe --shadow-command paradox.launch --game hoi4 --playset-id "oiia:my-project" --allow-missing-mods true
 ```
 
 ## 外部项目接入流程
 
 推荐流程：
 
-1. 读取 `%AppData%\Posdaca\Hoi4Workspace\mods\index.json`。
+1. 读取 `%AppData%\Posdaca\Hearts of Iron IV\mods\index.json`。
 2. 根据外部项目当前 Mod 和依赖列表匹配 Shadow Mod 索引。
 3. 用匹配到的 `mods[].id` 生成播放集。
-4. 写入 `%AppData%\Posdaca\Hoi4Workspace\playsets\<playset-id>.json`。
+4. 写入 `%AppData%\Posdaca\Hearts of Iron IV\playsets\<playset-id>.json`。
 5. 调用 Shadow 命令行启动：
 
 ```powershell
-Shadow.exe --shadow-command hoi4.launch --playset-id "<playset-id>"
+Shadow.exe --shadow-command paradox.launch --game hoi4 --playset-id "<playset-id>"
 ```
 
 对于 Oiia 这类会创建 HOI4 Mod 项目的工具：
@@ -188,7 +193,7 @@ Shadow.exe --shadow-command hoi4.launch --playset-id "<playset-id>"
 对于 IDEA / Rider / IntelliJ Platform 插件，可以创建一个运行配置：
 
 - Executable: `Shadow.exe`
-- Arguments: `--shadow-command hoi4.launch --playset-id "oiia:<project-id>"`
+- Arguments: `--shadow-command paradox.launch --game hoi4 --playset-id "oiia:<project-id>"`
 - Working directory: Shadow 输出目录，或任意可访问目录
 
 ## 注意事项

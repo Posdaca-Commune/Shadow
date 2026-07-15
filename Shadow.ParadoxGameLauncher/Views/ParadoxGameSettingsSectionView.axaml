@@ -1,0 +1,205 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:Shadow.ParadoxGameLauncher.Localization"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:vm="using:Shadow.ParadoxGameLauncher.ViewModels"
+             x:Class="Shadow.ParadoxGameLauncher.Views.ParadoxGameSettingsSectionView"
+             x:DataType="vm:ParadoxGameLauncherViewModel">
+    <Grid>
+        <ScrollViewer DataContext="{Binding GameSettings}"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+            <StackPanel x:DataType="vm:ParadoxGameSettingsViewModel"
+                        Spacing="12"
+                    MaxWidth="760">
+            <ui:FASettingsExpander Header="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.LaunchPaths.Header}"
+                                   Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.LaunchPaths.Description}">
+                <ui:FASettingsExpander.IconSource>
+                    <ui:FASymbolIconSource Symbol="Folder"/>
+                </ui:FASettingsExpander.IconSource>
+                <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Field.GameExecutable}"
+                                           Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.GameExecutable.Description}">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <TextBox Text="{Binding GameExecutablePath}"
+                                 Width="430"
+                                 PlaceholderText="...\steamapps\common\GameName\game.exe"/>
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Field.UserDirectory}"
+                                           Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.UserDirectory.Description}">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <TextBox Text="{Binding GameUserDirectory}"
+                                 Width="430"
+                                 PlaceholderText="Documents\Paradox Interactive\GameName"/>
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Field.WorkshopDirectory}"
+                                           Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.WorkshopDirectory.Description}">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <TextBox Text="{Binding WorkshopDirectory}"
+                                 Width="430"
+                                 PlaceholderText="...\steamapps\workshop\content\AppId"/>
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+            </ui:FASettingsExpander>
+    
+            <ui:FASettingsExpander Header="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.LaunchBehavior.Header}"
+                                   Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.LaunchBehavior.Description}">
+                <ui:FASettingsExpander.IconSource>
+                    <ui:FASymbolIconSource Symbol="Play"/>
+                </ui:FASettingsExpander.IconSource>
+                <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Field.LaunchArguments}"
+                                           Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.LaunchArguments.Description}">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <TextBox Text="{Binding LaunchArguments}"
+                                 Width="300"
+                                 PlaceholderText="-debug -opengl"/>
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.CloseAfterLaunch.Content}"
+                                           Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.CloseAfterLaunch.Description}">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ToggleSwitch IsChecked="{Binding CloseAfterLaunch}"/>
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+            </ui:FASettingsExpander>
+    
+            <ui:FASettingsExpander Header="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.Display.Header}"
+                                   Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.Display.Description}">
+                <ui:FASettingsExpander.IconSource>
+                    <ui:FASymbolIconSource Symbol="Pictures"/>
+                </ui:FASettingsExpander.IconSource>
+                <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.FullscreenMode.Content}"
+                                           Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.FullscreenMode.Description}">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ComboBox ItemsSource="{Binding FullscreenModes}"
+                                  SelectedIndex="{Binding SelectedFullscreenModeIndex}"
+                                  Width="220"/>
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.VSync.Content}"
+                                           Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.VSync.Description}">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ToggleSwitch IsChecked="{Binding VSync}"/>
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.Resolution.Content}"
+                                           Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.Resolution.Description}">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <StackPanel Orientation="Horizontal"
+                                    Spacing="8">
+                            <NumericUpDown Value="{Binding ResolutionWidth}"
+                                           Minimum="640"
+                                           Maximum="7680"
+                                           Width="120"/>
+                            <TextBlock Text="x"
+                                       VerticalAlignment="Center"/>
+                            <NumericUpDown Value="{Binding ResolutionHeight}"
+                                           Minimum="480"
+                                           Maximum="4320"
+                                           Width="120"/>
+                        </StackPanel>
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.RefreshRate.Content}"
+                                           Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.RefreshRate.Description}">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <StackPanel Orientation="Horizontal"
+                                    Spacing="8">
+                            <NumericUpDown Value="{Binding RefreshRate}"
+                                           Minimum="24"
+                                           Maximum="360"
+                                           Width="120"/>
+                            <TextBlock Text="Hz"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.DisplayIndex.Content}"
+                                           Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.DisplayIndex.Description}">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <NumericUpDown Value="{Binding DisplayIndex}"
+                                       Minimum="0"
+                                       Maximum="8"
+                                       Width="120"/>
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+            </ui:FASettingsExpander>
+    
+            <ui:FASettingsExpander Header="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.LanguageAudio.Header}"
+                                   Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.LanguageAudio.Description}">
+                <ui:FASettingsExpander.IconSource>
+                    <ui:FASymbolIconSource Symbol="Audio"/>
+                </ui:FASettingsExpander.IconSource>
+                <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.Language.Content}"
+                                           Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.Language.Description}">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <ComboBox ItemsSource="{Binding Languages}"
+                                  SelectedItem="{Binding SelectedLanguage}"
+                                  Width="220"/>
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.MasterVolume.Content}"
+                                           Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.MasterVolume.Description}">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <Slider Minimum="0"
+                                Maximum="1"
+                                Value="{Binding MasterVolume}"
+                                Width="260"/>
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.MusicVolume.Content}"
+                                           Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.MusicVolume.Description}">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <Slider Minimum="0"
+                                Maximum="1"
+                                Value="{Binding MusicVolume}"
+                                Width="260"/>
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.EffectsVolume.Content}"
+                                           Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.EffectsVolume.Description}">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <Slider Minimum="0"
+                                Maximum="1"
+                                Value="{Binding EffectsVolume}"
+                                Width="260"/>
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+                <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.InterfaceVolume.Content}"
+                                           Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.InterfaceVolume.Description}">
+                    <ui:FASettingsExpanderItem.Footer>
+                        <Slider Minimum="0"
+                                Maximum="1"
+                                Value="{Binding InterfaceVolume}"
+                                Width="260"/>
+                    </ui:FASettingsExpanderItem.Footer>
+                </ui:FASettingsExpanderItem>
+            </ui:FASettingsExpander>
+    
+            <StackPanel Orientation="Horizontal"
+                        Spacing="10"
+                        HorizontalAlignment="Right">
+                <TextBlock Text="{Binding StatusText}"
+                           VerticalAlignment="Center"
+                           Opacity="0.68"/>
+                <Button Command="{Binding ReloadCommand}">
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="6">
+                        <ui:FASymbolIcon Symbol="Sync"/>
+                        <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Action.Reload}"/>
+                    </StackPanel>
+                </Button>
+                <Button Command="{Binding SaveCommand}">
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="6">
+                        <ui:FASymbolIcon Symbol="Save"/>
+                        <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Action.Save}"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>
+

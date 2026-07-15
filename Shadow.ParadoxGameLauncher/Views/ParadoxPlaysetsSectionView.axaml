@@ -1,0 +1,218 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:Shadow.ParadoxGameLauncher.Localization"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:models="using:Shadow.ParadoxGameLauncher.Models"
+             xmlns:vm="using:Shadow.ParadoxGameLauncher.ViewModels"
+             x:Class="Shadow.ParadoxGameLauncher.Views.ParadoxPlaysetsSectionView"
+             x:Name="PlaysetsSectionRoot"
+             x:DataType="vm:ParadoxGameLauncherViewModel">
+    <Grid
+          RowDefinitions="Auto,Auto,*"
+          RowSpacing="12">
+        <Grid ColumnDefinitions="Auto,*,Auto"
+              ColumnSpacing="8"
+              MinHeight="40">
+            <ComboBox ItemsSource="{Binding Playsets}"
+                      SelectedItem="{Binding SelectedPlayset}"
+                      Width="260"
+                      VerticalAlignment="Center"
+                      VerticalContentAlignment="Center">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="models:Playset">
+                        <TextBlock Text="{Binding Name}"
+                                   VerticalAlignment="Center"/>
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+    
+            <StackPanel Grid.Column="2"
+                        Orientation="Horizontal"
+                        Spacing="8"
+                        VerticalAlignment="Center">
+                <Button Click="CreatePlaysetButton_OnClick">
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="6">
+                        <ui:FASymbolIcon Symbol="Add"/>
+                        <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Action.Add}"/>
+                    </StackPanel>
+                </Button>
+                <Button IsEnabled="{Binding CanEditSelectedPlayset}"
+                        Command="{Binding DeletePlaysetCommand}">
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="6">
+                        <ui:FASymbolIcon Symbol="Delete"/>
+                        <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Action.Delete}"/>
+                    </StackPanel>
+                </Button>
+                <Button IsEnabled="{Binding CanEditSelectedPlayset}"
+                        Click="AddModButton_OnClick">
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="6">
+                        <ui:FASymbolIcon Symbol="Add"/>
+                        <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Action.AddMod}"/>
+                    </StackPanel>
+                </Button>
+                <Button Command="{Binding ImportParadoxPlaysetsCommand}">
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="6">
+                        <ui:FASymbolIcon Symbol="Download"/>
+                        <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Action.ImportParadox}"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
+    
+        <Grid Grid.Row="1"
+              ColumnDefinitions="*,Auto"
+              ColumnSpacing="12">
+            <StackPanel Spacing="4">
+                <TextBlock Text="{Binding ActivePlaysetName}"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           TextTrimming="CharacterEllipsis"/>
+                <TextBlock Text="{Binding SelectedPlaysetSummaryText}"
+                           FontSize="13"
+                           Opacity="0.68"/>
+            </StackPanel>
+            <StackPanel Grid.Column="1"
+                        Spacing="2"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Right">
+                <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Playsets.DragHint}"
+                           Opacity="0.68"
+                           HorizontalAlignment="Right"/>
+                <TextBlock Text="{Binding SelectedPlaysetStorageDirectory}"
+                           FontSize="11"
+                           Opacity="0.52"
+                           TextTrimming="CharacterEllipsis"
+                           HorizontalAlignment="Right"/>
+            </StackPanel>
+        </Grid>
+    
+        <Grid Grid.Row="2"
+              x:Name="PlaysetDragSurface"
+              ClipToBounds="False">
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
+                <ItemsControl x:Name="PlaysetModsList"
+                              ItemsSource="{Binding PlaysetMods}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:PlaysetModEntry">
+                            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="8"
+                                    Margin="0,0,0,8"
+                                    Tag="{Binding}"
+                                    PointerMoved="PlaysetModCard_OnPointerMoved"
+                                    PointerPressed="PlaysetModCard_OnPointerPressed"
+                                    PointerReleased="PlaysetModCard_OnPointerReleased">
+                                <Grid ColumnDefinitions="Auto,Auto,92,*,Auto"
+                                      MinHeight="70"
+                                      ColumnSpacing="12">
+                                    <ui:FASymbolIcon Symbol="Sort"
+                                                     Opacity="0.54"
+                                                     VerticalAlignment="Center"/>
+                                    <CheckBox Grid.Column="1"
+                                              IsChecked="{Binding IsEnabled}"
+                                              IsEnabled="{Binding #PlaysetsSectionRoot.((vm:ParadoxGameLauncherViewModel)DataContext).CanEditSelectedPlayset}"
+                                              VerticalAlignment="Center"/>
+    
+                                    <Border Grid.Column="2"
+                                            Width="92"
+                                            Height="58"
+                                            CornerRadius="6"
+                                            Background="{DynamicResource ControlFillColorTertiaryBrush}"
+                                            ClipToBounds="True"
+                                            VerticalAlignment="Center">
+                                        <Grid>
+                                            <Image Source="{Binding CoverImage}"
+                                                   Stretch="UniformToFill"
+                                                   IsVisible="{Binding HasCoverImage}"/>
+                                            <ui:FASymbolIcon Symbol="Image"
+                                                             FontSize="24"
+                                                             Opacity="0.54"
+                                                             HorizontalAlignment="Center"
+                                                             VerticalAlignment="Center"
+                                                             IsVisible="{Binding IsCoverPlaceholderVisible}"/>
+                                        </Grid>
+                                    </Border>
+    
+                                    <StackPanel Grid.Column="3"
+                                                Spacing="4"
+                                                VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Title}"
+                                                   FontSize="14"
+                                                   FontWeight="SemiBold"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <StackPanel Orientation="Horizontal"
+                                                    Spacing="6">
+                                            <Border Background="{DynamicResource ControlFillColorTertiaryBrush}"
+                                                    CornerRadius="4"
+                                                    Padding="5,1">
+                                                <TextBlock Text="{Binding SourceLabel}"
+                                                           FontSize="11"/>
+                                            </Border>
+                                            <Border Background="{DynamicResource ControlFillColorTertiaryBrush}"
+                                                    CornerRadius="4"
+                                                    Padding="5,1">
+                                                <TextBlock Text="{Binding VersionLabel}"
+                                                           FontSize="11"/>
+                                            </Border>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Subtitle}"
+                                                   FontSize="11"
+                                                   Opacity="0.62"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="4"
+                                                Orientation="Horizontal"
+                                                Spacing="8"
+                                                VerticalAlignment="Center">
+                                        <Button Command="{Binding #PlaysetsSectionRoot.((vm:ParadoxGameLauncherViewModel)DataContext).OpenModLocationCommand}"
+                                                CommandParameter="{Binding}"
+                                                Width="34"
+                                                Height="34"
+                                                Padding="0">
+                                            <ui:FASymbolIcon Symbol="OpenFolder"/>
+                                        </Button>
+                                        <Button Command="{Binding #PlaysetsSectionRoot.((vm:ParadoxGameLauncherViewModel)DataContext).OpenWorkshopPageCommand}"
+                                                CommandParameter="{Binding}"
+                                                Width="34"
+                                                Height="34"
+                                                Padding="0"
+                                                IsVisible="{Binding CanOpenWorkshopPage}">
+                                            <ui:FASymbolIcon Symbol="Globe"/>
+                                        </Button>
+                                        <Button Command="{Binding #PlaysetsSectionRoot.((vm:ParadoxGameLauncherViewModel)DataContext).RemovePlaysetModCommand}"
+                                                CommandParameter="{Binding}"
+                                                IsEnabled="{Binding #PlaysetsSectionRoot.((vm:ParadoxGameLauncherViewModel)DataContext).CanEditSelectedPlayset}"
+                                                Width="34"
+                                                Height="34"
+                                                Padding="0">
+                                            <ui:FASymbolIcon Symbol="Delete"/>
+                                        </Button>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+    
+            <Border x:Name="PlaysetInsertIndicator"
+                    Height="3"
+                    Margin="8,0"
+                    CornerRadius="2"
+                    Background="{DynamicResource SystemAccentColor}"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Top"
+                    IsHitTestVisible="False"
+                    IsVisible="False"
+                    ZIndex="200"/>
+        </Grid>
+    </Grid>
+</UserControl>
+

@@ -1,0 +1,64 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:Shadow.ParadoxGameLauncher.Localization"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:models="using:Shadow.ParadoxGameLauncher.Models"
+             xmlns:vm="using:Shadow.ParadoxGameLauncher.ViewModels"
+             x:Class="Shadow.ParadoxGameLauncher.Views.ParadoxDlcsSectionView"
+             x:DataType="vm:ParadoxGameLauncherViewModel">
+    <Grid
+          RowDefinitions="Auto,*"
+          RowSpacing="12">
+        <ui:FASettingsExpander Header="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Dlcs.Loading.Header}"
+                               Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Dlcs.Loading.Description}">
+            <ui:FASettingsExpander.IconSource>
+                <ui:FASymbolIconSource Symbol="Shop"/>
+            </ui:FASettingsExpander.IconSource>
+            <ui:FASettingsExpander.Footer>
+                <Button Command="{Binding EnableAllDlcsCommand}">
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="6">
+                        <ui:FASymbolIcon Symbol="Accept"/>
+                        <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Action.EnableAll}"/>
+                    </StackPanel>
+                </Button>
+            </ui:FASettingsExpander.Footer>
+        </ui:FASettingsExpander>
+    
+        <ScrollViewer Grid.Row="1"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl ItemsSource="{Binding Dlcs}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:DlcEntry">
+                        <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="14"
+                                Margin="0,0,0,8">
+                            <Grid ColumnDefinitions="Auto,*"
+                                  MinHeight="44"
+                                  ColumnSpacing="12">
+                                <CheckBox IsChecked="{Binding IsEnabled}"
+                                          VerticalAlignment="Center"/>
+                                <StackPanel Grid.Column="1"
+                                            Spacing="2"
+                                            VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Title}"
+                                               FontWeight="SemiBold"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{Binding Path}"
+                                               FontSize="11"
+                                               Opacity="0.62"
+                                               TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </Grid>
+</UserControl>
+

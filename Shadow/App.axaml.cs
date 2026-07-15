@@ -1,12 +1,8 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Data.Core;
-using Avalonia.Data.Core.Plugins;
-using System.Linq;
 using Avalonia.Markup.Xaml;
 using Shadow.Localization;
 using Shadow.Plugins;
-using Shadow.Services;
 using Shadow.ViewModels;
 using Shadow.Views;
 

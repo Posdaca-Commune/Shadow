@@ -1,0 +1,95 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:Shadow.ParadoxGameLauncher.Localization"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:models="using:Shadow.ParadoxGameLauncher.Models"
+             xmlns:vm="using:Shadow.ParadoxGameLauncher.ViewModels"
+             x:Class="Shadow.ParadoxGameLauncher.Views.ParadoxHomeSectionView"
+             x:DataType="vm:ParadoxGameLauncherViewModel">
+    <ScrollViewer
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Spacing="14"
+                    MaxWidth="760">
+            <Grid ColumnDefinitions="*,*,*"
+                  ColumnSpacing="12">
+                <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="16">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{Binding EnabledModCount}"
+                                   FontSize="30"
+                                   FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Stat.EnabledMods}"
+                                   Opacity="0.68"/>
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="1"
+                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="16">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{Binding PlaysetModCount}"
+                                   FontSize="30"
+                                   FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Stat.PlaysetMods}"
+                                   Opacity="0.68"/>
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="2"
+                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="16">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{Binding DisabledDlcCount}"
+                                   FontSize="30"
+                                   FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Stat.DisabledDlcs}"
+                                   Opacity="0.68"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+    
+            <ui:FASettingsExpander Header="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Home.CurrentPlayset.Header}"
+                                   Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Home.CurrentPlayset.Description}">
+                <ui:FASettingsExpander.IconSource>
+                    <ui:FASymbolIconSource Symbol="BulletList"/>
+                </ui:FASettingsExpander.IconSource>
+                <ui:FASettingsExpander.Footer>
+                    <ComboBox ItemsSource="{Binding Playsets}"
+                              SelectedItem="{Binding SelectedPlayset}"
+                              Width="280"
+                              VerticalContentAlignment="Center">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:Playset">
+                                <TextBlock Text="{Binding Name}"
+                                           VerticalAlignment="Center"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </ui:FASettingsExpander.Footer>
+            </ui:FASettingsExpander>
+    
+            <ui:FASettingsExpander Header="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.LaunchPaths.Header}"
+                                   Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.LaunchPaths.Description}">
+                <ui:FASettingsExpander.IconSource>
+                    <ui:FASymbolIconSource Symbol="Folder"/>
+                </ui:FASettingsExpander.IconSource>
+                <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Field.GameExecutable}"
+                                           Description="{Binding GameExecutablePath}"/>
+                <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Field.UserDirectory}"
+                                           Description="{Binding GameUserDirectory}"/>
+                <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Field.Workshop}"
+                                           Description="{Binding WorkshopDirectory}"/>
+                <ui:FASettingsExpanderItem Content="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Field.LaunchArguments}"
+                                           Description="{Binding LaunchArguments}"/>
+            </ui:FASettingsExpander>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
