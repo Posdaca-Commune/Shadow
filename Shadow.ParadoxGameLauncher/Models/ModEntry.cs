@@ -70,6 +70,8 @@ public sealed class ModEntry : SelectableItem
         ? $"https://steamcommunity.com/sharedfiles/filedetails/?id={RemoteFileId}"
         : string.Empty;
 
+    private const int CoverDecodeWidth = 184;
+
     private static Bitmap? TryLoadCoverImage(string coverImagePath)
     {
         if (string.IsNullOrWhiteSpace(coverImagePath) || !File.Exists(coverImagePath))
@@ -79,7 +81,8 @@ public sealed class ModEntry : SelectableItem
 
         try
         {
-            return new Bitmap(coverImagePath);
+            // Decode a small thumbnail for list cards instead of full-resolution workshop art.
+            return Bitmap.DecodeToWidth(File.OpenRead(coverImagePath), CoverDecodeWidth);
         }
         catch
         {

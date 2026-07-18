@@ -16,6 +16,8 @@ public sealed class ParadoxGameLauncherService
         WriteIndented = true,
     };
 
+    private const int CoverDecodeWidth = 184;
+
     private static readonly string[] CoverImageFileNames =
     [
         "thumbnail.png",
@@ -591,7 +593,8 @@ public sealed class ParadoxGameLauncherService
         {
             try
             {
-                return new Bitmap(coverImagePath);
+                using var stream = File.OpenRead(coverImagePath);
+                return Bitmap.DecodeToWidth(stream, CoverDecodeWidth);
             }
             catch
             {
@@ -625,7 +628,7 @@ public sealed class ParadoxGameLauncherService
             using var memoryStream = new MemoryStream();
             sourceStream.CopyTo(memoryStream);
             memoryStream.Position = 0;
-            return new Bitmap(memoryStream);
+            return Bitmap.DecodeToWidth(memoryStream, CoverDecodeWidth);
         }
         catch
         {

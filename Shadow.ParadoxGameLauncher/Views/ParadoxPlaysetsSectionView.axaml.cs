@@ -2,6 +2,8 @@ using Avalonia;
 using Avalonia.Animation;
 using Avalonia.Animation.Easings;
 using Avalonia.Controls;
+using Avalonia.Styling;
+using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
 using Avalonia.Data;
@@ -100,22 +102,21 @@ public partial class ParadoxPlaysetsSectionView : UserControl
                 Mode = BindingMode.TwoWay,
             });
 
-        var modsList = new ItemsControl
+        var modsList = new ListBox
         {
             ItemsSource = viewModel.FilteredAvailableMods,
             ItemTemplate = CreateAvailableModCardTemplate(viewModel),
+            ItemContainerTheme = (ControlTheme)Resources["PlainModCardListItemTheme"],
             HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
-        };
-
-        var scrollViewer = new ScrollViewer
-        {
-            Content = modsList,
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            Background = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            Padding = new Thickness(0),
             MinHeight = 420,
             MaxHeight = 520,
-            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
+            [ScrollViewer.HorizontalScrollBarVisibilityProperty] = ScrollBarVisibility.Disabled,
+            [ScrollViewer.VerticalScrollBarVisibilityProperty] = ScrollBarVisibility.Auto,
         };
+        modsList.ItemsPanel = new FuncTemplate<Panel?>(() => new VirtualizingStackPanel());
 
         // Keep content within a normal FAContentDialog width so the dialog overlay/smoke
         // layer stays full-window and the dialog frame matches "New playset".
@@ -128,9 +129,9 @@ public partial class ParadoxPlaysetsSectionView : UserControl
             MaxWidth = 720,
         };
         Grid.SetRow(searchBox, 0);
-        Grid.SetRow(scrollViewer, 1);
+        Grid.SetRow(modsList, 1);
         content.Children.Add(searchBox);
-        content.Children.Add(scrollViewer);
+        content.Children.Add(modsList);
 
         var dialog = new FAContentDialog
         {
@@ -152,7 +153,7 @@ public partial class ParadoxPlaysetsSectionView : UserControl
         {
             selectedMod = mod;
             dialog.IsPrimaryButtonEnabled = true;
-            HighlightSelectedAvailableModCard(scrollViewer, card);
+            HighlightSelectedAvailableModCard(modsList, card);
         }
 
         modsList.AddHandler(
@@ -188,6 +189,17 @@ public partial class ParadoxPlaysetsSectionView : UserControl
     {
         return new FuncDataTemplate<ModEntry>((mod, _) =>
         {
+            // VirtualizingStackPanel temporarily clears a recycled container's content.
+            // FuncDataTemplate can therefore be invoked with null despite its generic type.
+            if (mod is null)
+            {
+                return new Border
+                {
+                    Height = 0,
+                    IsVisible = false,
+                };
+            }
+
             var root = new Border
             {
                 Background = new SolidColorBrush(Color.Parse("#0DFFFFFF")),
@@ -195,7 +207,7 @@ public partial class ParadoxPlaysetsSectionView : UserControl
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(8),
                 Padding = new Thickness(10),
-                Margin = new Thickness(0, 0, 0, 8),
+                Margin = new Thickness(0),
                 Cursor = new Cursor(StandardCursorType.Hand),
                 DataContext = mod,
                 HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
@@ -350,9 +362,9 @@ public partial class ParadoxPlaysetsSectionView : UserControl
         return null;
     }
 
-    private static void HighlightSelectedAvailableModCard(ScrollViewer scrollViewer, Border selectedCard)
+    private static void HighlightSelectedAvailableModCard(Control listHost, Border selectedCard)
     {
-        foreach (var border in scrollViewer.GetVisualDescendants().OfType<Border>())
+        foreach (var border in listHost.GetVisualDescendants().OfType<Border>())
         {
             if (border.DataContext is not ModEntry)
             {
