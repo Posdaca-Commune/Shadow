@@ -26,18 +26,22 @@ internal sealed class PluginCatalog
     {
         var hostDirectory = Path.GetDirectoryName(typeof(PluginCatalog).Assembly.Location)
                             ?? AppContext.BaseDirectory;
-        var pluginsDirectory = Path.Combine(hostDirectory, "Plugins");
         var applicationDataDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "Shadow");
+        var bundledPluginsDirectory = Path.Combine(hostDirectory, "Plugins");
+        var userPluginsDirectory = Path.Combine(applicationDataDirectory, "Plugins");
 
         Directory.CreateDirectory(applicationDataDirectory);
-        Directory.CreateDirectory(pluginsDirectory);
+        Directory.CreateDirectory(bundledPluginsDirectory);
+        Directory.CreateDirectory(userPluginsDirectory);
 
         var loadedPlugins = new List<LoadedPlugin>();
-        foreach (var assemblyPath in EnumeratePluginAssemblies(pluginsDirectory))
+        var seenPluginIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var assemblyPath in EnumeratePluginAssemblies(EnumeratePluginRoots(hostDirectory, userPluginsDirectory)))
         {
-            TryLoadPluginAssembly(assemblyPath, applicationDataDirectory, loadedPlugins);
+            TryLoadPluginAssembly(assemblyPath, applicationDataDirectory, loadedPlugins, seenPluginIds);
         }
 
         return new PluginCatalog(loadedPlugins);
@@ -71,21 +75,71 @@ internal sealed class PluginCatalog
             ShadowLocalizer.Instance.Format("Shadow.Command.Unknown", commandLine.Command));
     }
 
-    private static IEnumerable<string> EnumeratePluginAssemblies(string pluginsDirectory)
+    private static IEnumerable<string> EnumeratePluginRoots(string hostDirectory, string userPluginsDirectory)
     {
-        return Directory.EnumerateFiles(pluginsDirectory, "*.dll", SearchOption.AllDirectories)
+        var roots = new List<string>
+        {
+            Path.Combine(hostDirectory, "Plugins"),
+            userPluginsDirectory,
+        };
+
+        var configuredPaths = Environment.GetEnvironmentVariable("SHADOW_PLUGIN_PATHS");
+        if (!string.IsNullOrWhiteSpace(configuredPaths))
+        {
+            roots.AddRange(configuredPaths.Split(
+                [';', Path.PathSeparator],
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        }
+
+        return roots
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Select(path =>
+            {
+                try
+                {
+                    return Path.GetFullPath(path);
+                }
+                catch
+                {
+                    return path;
+                }
+            })
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Where(Directory.Exists);
+    }
+
+    private static IEnumerable<string> EnumeratePluginAssemblies(IEnumerable<string> pluginRoots)
+    {
+        return pluginRoots
+            .SelectMany(root => Directory.EnumerateFiles(root, "*.dll", SearchOption.AllDirectories))
             .Where(path => !string.Equals(Path.GetFileName(path), "Shadow.Abstractions.dll",
                 StringComparison.OrdinalIgnoreCase))
             .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}runtimes{Path.DirectorySeparatorChar}",
                 StringComparison.OrdinalIgnoreCase))
             .Where(path => Path.GetFileName(path).StartsWith("Shadow.", StringComparison.OrdinalIgnoreCase))
+            .Where(path => !IsLikelySharedDependency(Path.GetFileNameWithoutExtension(path)))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
             .Order(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static bool IsLikelySharedDependency(string assemblyName)
+    {
+        return assemblyName.StartsWith("Avalonia", StringComparison.OrdinalIgnoreCase)
+               || assemblyName.StartsWith("FluentAvalonia", StringComparison.OrdinalIgnoreCase)
+               || assemblyName.StartsWith("CommunityToolkit", StringComparison.OrdinalIgnoreCase)
+               || assemblyName.StartsWith("Microsoft.", StringComparison.OrdinalIgnoreCase)
+               || assemblyName.StartsWith("System.", StringComparison.OrdinalIgnoreCase)
+               || assemblyName.StartsWith("SQLitePCLRaw", StringComparison.OrdinalIgnoreCase)
+               || assemblyName.Equals("SkiaSharp", StringComparison.OrdinalIgnoreCase)
+               || assemblyName.Equals("HarfBuzzSharp", StringComparison.OrdinalIgnoreCase)
+               || assemblyName.Equals("MicroCom.Runtime", StringComparison.OrdinalIgnoreCase);
     }
 
     private static void TryLoadPluginAssembly(
         string assemblyPath,
         string applicationDataDirectory,
-        ICollection<LoadedPlugin> loadedPlugins)
+        ICollection<LoadedPlugin> loadedPlugins,
+        ISet<string> seenPluginIds)
     {
         try
         {
@@ -94,6 +148,11 @@ internal sealed class PluginCatalog
             foreach (var pluginType in FindPluginTypes(assembly))
             {
                 if (Activator.CreateInstance(pluginType) is not IShadowPlugin plugin)
+                {
+                    continue;
+                }
+
+                if (!seenPluginIds.Add(plugin.Id))
                 {
                     continue;
                 }

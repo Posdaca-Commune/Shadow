@@ -53,19 +53,32 @@ Shadow 可在启动桌面 UI 前分发插件命令。内置 Paradox 启动器插
 MSIX 安装会注册 `shadow.exe` 应用执行别名，因此可以在终端里直接使用 `shadow`：
 
 ```powershell
-shadow --shadow-command paradox.launch
-shadow --shadow-command paradox.launch --game hoi4
+shadow PDXGameLauncher hoi4
+shadow PDXGameLauncher hoi4 -playset default
+shadow PDXGameLauncher "Hearts of Iron IV" -p oiia:my-project
+shadow PDXGameLauncher hoi4 -playset default -debug
+```
+
+旧的长参数写法仍然兼容：
+
+```powershell
 shadow --shadow-command paradox.launch --game hoi4 --playset-id default
-shadow --shadow-command paradox.launch --game hoi4 --playset-id default --allow-missing-mods
+```
+
+语法：
+
+```text
+shadow PDXGameLauncher <游戏> [-playset <播放集id>] [-debug] [-allow-missing-mods]
 ```
 
 参数：
 
-- `--shadow-command` 或 `--command`：命令名。
-- `--game`、`--game-id` 或 `--gameId`：目标游戏 id（`hoi4`、`ck3`、`eu4`、
-  `stellaris`、`vic3`、`imperator`）。
-- `--playset-id`、`--playsetId` 或 `--playset`：要启动的播放集 id。
-- `--allow-missing-mods`：即使启用的 mod id 当前扫描不到，也允许启动。
+- `PDXGameLauncher`：调用 Paradox 启动器插件命令。
+- `<游戏>`：目标游戏 id 或显示名（`hoi4`、`ck3`、`eu4`、`stellaris`、
+  `vic3`、`imperator`，或 `Hearts of Iron IV` 这类名称）。
+- `-playset`、`-p`、`--playset-id`：要启动的播放集 id。
+- `-debug`：以游戏 debug 模式启动，会把 `-debug` 传给游戏进程。
+- `-allow-missing-mods`：即使启用的 mod id 当前扫描不到，也允许启动。
 
 如果未指定播放集，Shadow 会使用已保存启动器状态中的选中播放集，再回退到第一个可用播放集。
 
@@ -114,3 +127,5 @@ MSIX 包在安装前需要签名。可使用 `-CertificatePath` 或 `-Certificat
 ```powershell
 .\scripts\build-msix.ps1 -Version 1.0.0-beta.1 -CertificatePath .\certs\Shadow.pfx -CertificatePassword (Read-Host -AsSecureString)
 ```
+
+

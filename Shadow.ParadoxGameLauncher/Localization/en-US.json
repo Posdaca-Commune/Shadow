@@ -120,6 +120,15 @@
   "Paradox.Status.SavedAppliedPlayset": "Saved and applied playset: {0}",
   "Paradox.Status.SwitchedGame": "Switched to {0}.",
   "Paradox.GameSwitcher.Hint": "Switch game",
-  "Paradox.Page.TitleSuffix": " Launcher"
+  "Paradox.Page.TitleSuffix": " Launcher",
+  "Paradox.Action.ImportMod": "Import mod",
+  "Paradox.Dialog.ImportModTitle": "Import mod archive",
+  "Paradox.Dialog.ImportModZipFilter": "Zip archives",
+  "Paradox.Status.ImportedMod": "Imported mod: {0}",
+  "Paradox.Service.ImportArchiveMissing": "The selected archive was not found.",
+  "Paradox.Service.ImportArchiveUnsupported": "Only archive files can be imported.",
+  "Paradox.Service.ImportArchiveZipOnly": "Currently only .zip archives are supported.",
+  "Paradox.Service.ImportArchiveEmpty": "The selected archive is empty.",
+  "Paradox.Service.UserDirectoryMissing": "Set the Paradox user directory before importing mods.",
+  "Paradox.Mods.Search.Placeholder": "Search mods"
 }
-

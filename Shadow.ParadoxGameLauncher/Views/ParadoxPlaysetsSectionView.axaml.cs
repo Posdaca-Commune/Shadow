@@ -2,6 +2,8 @@ using Avalonia;
 using Avalonia.Animation;
 using Avalonia.Animation.Easings;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Templates;
 using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -39,6 +41,7 @@ public partial class ParadoxPlaysetsSectionView : UserControl
     {
         InitializeComponent();
     }
+
     private async void CreatePlaysetButton_OnClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not ParadoxGameLauncherViewModel viewModel)
@@ -51,7 +54,6 @@ public partial class ParadoxPlaysetsSectionView : UserControl
             PlaceholderText = ParadoxGameLauncherStrings.Get("Paradox.Dialog.PlaysetName"),
             MinWidth = 320,
         };
-
         var dialog = new FAContentDialog
         {
             Title = ParadoxGameLauncherStrings.Get("Paradox.Dialog.NewPlaysetTitle"),
@@ -82,36 +84,287 @@ public partial class ParadoxPlaysetsSectionView : UserControl
             return;
         }
 
-        var modList = new ListBox
+        viewModel.AvailableModSearchText = string.Empty;
+        viewModel.RefreshAvailableModFilters();
+
+        var searchBox = new TextBox
         {
-            ItemsSource = viewModel.AvailableMods,
-            DisplayMemberBinding = new Binding("Title"),
-            MinWidth = 460,
-            MinHeight = 360,
-            MaxHeight = 520,
+            PlaceholderText = ParadoxGameLauncherStrings.Get("Paradox.Mods.Search.Placeholder"),
+            MinHeight = 36,
         };
+        searchBox.Bind(
+            TextBox.TextProperty,
+            new Binding(nameof(ParadoxGameLauncherViewModel.AvailableModSearchText))
+            {
+                Source = viewModel,
+                Mode = BindingMode.TwoWay,
+            });
+
+        var modsList = new ItemsControl
+        {
+            ItemsSource = viewModel.FilteredAvailableMods,
+            ItemTemplate = CreateAvailableModCardTemplate(viewModel),
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
+        };
+
+        var scrollViewer = new ScrollViewer
+        {
+            Content = modsList,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            MinHeight = 420,
+            MaxHeight = 520,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
+        };
+
+        // Keep content within a normal FAContentDialog width so the dialog overlay/smoke
+        // layer stays full-window and the dialog frame matches "New playset".
+        var content = new Grid
+        {
+            RowDefinitions = new RowDefinitions("Auto,*"),
+            RowSpacing = 10,
+            MinWidth = 640,
+            Width = 680,
+            MaxWidth = 720,
+        };
+        Grid.SetRow(searchBox, 0);
+        Grid.SetRow(scrollViewer, 1);
+        content.Children.Add(searchBox);
+        content.Children.Add(scrollViewer);
 
         var dialog = new FAContentDialog
         {
             Title = ParadoxGameLauncherStrings.Get("Paradox.Dialog.AddModTitle"),
-            Content = modList,
+            Content = content,
             PrimaryButtonText = ParadoxGameLauncherStrings.Get("Paradox.Dialog.Add"),
             CloseButtonText = ParadoxGameLauncherStrings.Get("Paradox.Dialog.Cancel"),
             DefaultButton = FAContentDialogButton.Primary,
             IsPrimaryButtonEnabled = false,
         };
 
-        modList.SelectionChanged += (_, _) =>
+        // Slightly wider than default (~548) for mod cards, but not full-window.
+        dialog.Resources["ContentDialogMaxWidth"] = 720d;
+        dialog.Resources["ContentDialogMinWidth"] = 640d;
+        dialog.Resources["ContentDialogMaxHeight"] = 760d;
+
+        ModEntry? selectedMod = null;
+        void SelectMod(ModEntry mod, Border card)
         {
-            dialog.IsPrimaryButtonEnabled = modList.SelectedItem is ModEntry;
-        };
+            selectedMod = mod;
+            dialog.IsPrimaryButtonEnabled = true;
+            HighlightSelectedAvailableModCard(scrollViewer, card);
+        }
+
+        modsList.AddHandler(
+            InputElement.PointerPressedEvent,
+            (_, args) =>
+            {
+                if (args.Source is not Control source || IsInteractiveSource(source))
+                {
+                    return;
+                }
+
+                var card = FindAncestorModCard(source);
+                if (card?.DataContext is not ModEntry mod)
+                {
+                    return;
+                }
+
+                SelectMod(mod, card);
+                args.Handled = args.ClickCount >= 2;
+            },
+            RoutingStrategies.Tunnel);
 
         if (await dialog.ShowAsync(TopLevel.GetTopLevel(this)) == FAContentDialogResult.Primary
-            && modList.SelectedItem is ModEntry mod)
+            && selectedMod is not null)
         {
-            viewModel.AddModToPlayset(mod);
+            viewModel.AddModToPlayset(selectedMod);
+        }
+
+        viewModel.AvailableModSearchText = string.Empty;
+    }
+
+    private static IDataTemplate CreateAvailableModCardTemplate(ParadoxGameLauncherViewModel viewModel)
+    {
+        return new FuncDataTemplate<ModEntry>((mod, _) =>
+        {
+            var root = new Border
+            {
+                Background = new SolidColorBrush(Color.Parse("#0DFFFFFF")),
+                BorderBrush = new SolidColorBrush(Color.Parse("#1AFFFFFF")),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(10),
+                Margin = new Thickness(0, 0, 0, 8),
+                Cursor = new Cursor(StandardCursorType.Hand),
+                DataContext = mod,
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
+            };
+
+            var grid = new Grid
+            {
+                ColumnDefinitions = new ColumnDefinitions("92,*,Auto"),
+                ColumnSpacing = 12,
+                MinHeight = 76,
+            };
+
+            var coverBorder = new Border
+            {
+                Width = 92,
+                Height = 58,
+                CornerRadius = new CornerRadius(6),
+                Background = new SolidColorBrush(Color.Parse("#14FFFFFF")),
+                ClipToBounds = true,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+            };
+
+            var coverGrid = new Grid();
+            coverGrid.Children.Add(new Image
+            {
+                Stretch = Stretch.UniformToFill,
+                IsVisible = mod.HasCoverImage,
+                Source = mod.CoverImage,
+            });
+            coverGrid.Children.Add(new FASymbolIcon
+            {
+                Symbol = FASymbol.Image,
+                FontSize = 24,
+                Opacity = 0.54,
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                IsVisible = mod.IsCoverPlaceholderVisible,
+            });
+            coverBorder.Child = coverGrid;
+
+            var textPanel = new StackPanel
+            {
+                Spacing = 4,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
+            };
+            textPanel.Children.Add(new TextBlock
+            {
+                Text = mod.Title,
+                FontSize = 14,
+                FontWeight = FontWeight.SemiBold,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                TextWrapping = TextWrapping.NoWrap,
+            });
+
+            var metaPanel = new StackPanel
+            {
+                Orientation = Avalonia.Layout.Orientation.Horizontal,
+                Spacing = 6,
+            };
+            metaPanel.Children.Add(CreateMetaBadge(mod.SourceLabel));
+            metaPanel.Children.Add(CreateMetaBadge(mod.VersionLabel));
+            textPanel.Children.Add(metaPanel);
+            textPanel.Children.Add(new TextBlock
+            {
+                Text = string.IsNullOrWhiteSpace(mod.ContentPath) ? mod.Subtitle : mod.ContentPath,
+                FontSize = 11,
+                Opacity = 0.62,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                TextWrapping = TextWrapping.NoWrap,
+            });
+
+            var actions = new StackPanel
+            {
+                Orientation = Avalonia.Layout.Orientation.Horizontal,
+                Spacing = 8,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                MinWidth = 84,
+            };
+
+            var openLocationButton = new Button
+            {
+                Width = 34,
+                Height = 34,
+                Padding = new Thickness(0),
+                Content = new FASymbolIcon { Symbol = FASymbol.OpenFolder },
+            };
+            openLocationButton.Click += (_, args) =>
+            {
+                viewModel.OpenModLocationCommand.Execute(mod);
+                args.Handled = true;
+            };
+            actions.Children.Add(openLocationButton);
+
+            if (mod.CanOpenWorkshopPage)
+            {
+                var workshopButton = new Button
+                {
+                    Width = 34,
+                    Height = 34,
+                    Padding = new Thickness(0),
+                    Content = new FASymbolIcon { Symbol = FASymbol.Globe },
+                };
+                workshopButton.Click += (_, args) =>
+                {
+                    viewModel.OpenWorkshopPageCommand.Execute(mod);
+                    args.Handled = true;
+                };
+                actions.Children.Add(workshopButton);
+            }
+
+            Grid.SetColumn(textPanel, 1);
+            Grid.SetColumn(actions, 2);
+            // Keep text in the flexible middle column so long titles/paths don't crush the action buttons.
+            textPanel.SetValue(Grid.IsSharedSizeScopeProperty, false);
+            grid.Children.Add(coverBorder);
+            grid.Children.Add(textPanel);
+            grid.Children.Add(actions);
+            root.Child = grid;
+            return root;
+        }, supportsRecycling: false);
+    }
+
+    private static Border CreateMetaBadge(string text)
+    {
+        return new Border
+        {
+            Background = new SolidColorBrush(Color.Parse("#14FFFFFF")),
+            CornerRadius = new CornerRadius(4),
+            Padding = new Thickness(5, 1, 5, 1),
+            Child = new TextBlock
+            {
+                Text = text,
+                FontSize = 11,
+            },
+        };
+    }
+
+    private static Border? FindAncestorModCard(Control? control)
+    {
+        StyledElement? current = control;
+        while (current is not null)
+        {
+            if (current is Border border && border.DataContext is ModEntry)
+            {
+                return border;
+            }
+
+            current = current.GetLogicalParent() as StyledElement;
+        }
+
+        return null;
+    }
+
+    private static void HighlightSelectedAvailableModCard(ScrollViewer scrollViewer, Border selectedCard)
+    {
+        foreach (var border in scrollViewer.GetVisualDescendants().OfType<Border>())
+        {
+            if (border.DataContext is not ModEntry)
+            {
+                continue;
+            }
+
+            var isSelected = ReferenceEquals(border, selectedCard);
+            border.BorderBrush = new SolidColorBrush(Color.Parse(isSelected ? "#FF60A5FA" : "#1AFFFFFF"));
+            border.BorderThickness = new Thickness(isSelected ? 2 : 1);
         }
     }
+
 
     private void PlaysetModCard_OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
@@ -176,13 +429,12 @@ public partial class ParadoxPlaysetsSectionView : UserControl
             ResetDragState();
             return;
         }
-
         PlaysetModEntry draggedMod = _draggedMod;
         int targetIndex = _previewInsertIndex;
         e.Handled = true;
         await ResetDragStateWithAnimationAsync(() =>
         {
-            viewModel.MovePlaysetMod(draggedMod, targetIndex);
+            viewModel.MovePlaysetMod(draggedMod, ResolvePlaysetMoveTargetIndex(viewModel, draggedMod, targetIndex));
         });
     }
 
@@ -318,13 +570,11 @@ public partial class ParadoxPlaysetsSectionView : UserControl
                 {
                     return (PlaysetModCardInfo?)null;
                 }
-
                 double top = card.TranslatePoint(new Point(0.0, 0.0), this)?.Y ?? double.NaN;
                 if (double.IsNaN(top))
                 {
                     return null;
                 }
-
                 return new PlaysetModCardInfo(card, mod, top);
             })
             .Where(item => item is not null)
@@ -335,12 +585,24 @@ public partial class ParadoxPlaysetsSectionView : UserControl
 
     private int GetCurrentPlaysetIndex(PlaysetModEntry mod)
     {
-        return (DataContext is ParadoxGameLauncherViewModel viewModel) ? viewModel.PlaysetMods.IndexOf(mod) : (-1);
+        if (DataContext is not ParadoxGameLauncherViewModel viewModel)
+        {
+            return -1;
+        }
+        // Prefer the visible filtered list so drag previews stay consistent with on-screen cards.
+        var filteredIndex = viewModel.FilteredPlaysetMods.IndexOf(mod);
+        return filteredIndex >= 0 ? filteredIndex : viewModel.PlaysetMods.IndexOf(mod);
     }
 
     private int GetCurrentPlaysetCount()
     {
-        return (DataContext is ParadoxGameLauncherViewModel viewModel) ? viewModel.PlaysetMods.Count : 0;
+        if (DataContext is not ParadoxGameLauncherViewModel viewModel)
+        {
+            return 0;
+        }
+        return viewModel.FilteredPlaysetMods.Count > 0 || !string.IsNullOrWhiteSpace(viewModel.PlaysetModSearchText)
+            ? viewModel.FilteredPlaysetMods.Count
+            : viewModel.PlaysetMods.Count;
     }
 
     private static Transitions CreateYAxisTransformTransitions()
@@ -533,6 +795,34 @@ public partial class ParadoxPlaysetsSectionView : UserControl
         _dragStartCards.Clear();
     }
 
+    private static int ResolvePlaysetMoveTargetIndex(
+        ParadoxGameLauncherViewModel viewModel,
+        PlaysetModEntry draggedMod,
+        int filteredTargetIndex)
+    {
+        if (string.IsNullOrWhiteSpace(viewModel.PlaysetModSearchText)
+            || viewModel.FilteredPlaysetMods.Count == viewModel.PlaysetMods.Count)
+        {
+            return filteredTargetIndex;
+        }
+        if (filteredTargetIndex < 0 || viewModel.FilteredPlaysetMods.Count == 0)
+        {
+            return viewModel.PlaysetMods.IndexOf(draggedMod);
+        }
+        if (filteredTargetIndex >= viewModel.FilteredPlaysetMods.Count)
+        {
+            var lastVisible = viewModel.FilteredPlaysetMods[^1];
+            var lastIndex = viewModel.PlaysetMods.IndexOf(lastVisible);
+            return lastIndex < 0 ? viewModel.PlaysetMods.Count - 1 : lastIndex;
+        }
+        var targetMod = viewModel.FilteredPlaysetMods[filteredTargetIndex];
+        if (ReferenceEquals(targetMod, draggedMod))
+        {
+            return viewModel.PlaysetMods.IndexOf(draggedMod);
+        }
+        return viewModel.PlaysetMods.IndexOf(targetMod);
+    }
+
     private static bool IsInteractiveSource(StyledElement? element)
     {
         while (element != null)
@@ -545,5 +835,4 @@ public partial class ParadoxPlaysetsSectionView : UserControl
         }
         return false;
     }
-
 }

@@ -16,6 +16,19 @@ public sealed class ParadoxGameLauncherService
         WriteIndented = true,
     };
 
+    private static readonly string[] CoverImageFileNames =
+    [
+        "thumbnail.png",
+        "thumbnail.jpg",
+        "thumbnail.jpeg",
+        "thumbnail.webp",
+        "thumbnail.gif",
+        "thumbnail.bmp",
+        "thumb.png",
+        "preview.png",
+        "icon.png",
+    ];
+
     private readonly ParadoxGameLauncherConfiguration _configuration;
 
     public ParadoxGameLauncherService(ParadoxGameLauncherConfiguration configuration)
@@ -46,11 +59,13 @@ public sealed class ParadoxGameLauncherService
                 SearchOption.AllDirectories));
         }
 
-        return descriptors
+        var mods = descriptors
+            .Select(ParadoxModIdentity.NormalizePath)
+            .Where(path => !string.IsNullOrWhiteSpace(path))
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Select(ParseModDescriptor)
-            .OrderBy(mod => mod.Title, StringComparer.CurrentCultureIgnoreCase)
-            .ToArray();
+            .Select(ParseModDescriptor);
+
+        return ParadoxModIdentity.Deduplicate(mods);
     }
 
     public IReadOnlyList<DlcEntry> DiscoverDlcs()
@@ -173,7 +188,100 @@ public sealed class ParadoxGameLauncherService
         _configuration.Save();
     }
 
-    public Process StartGame()
+    public ModEntry ImportModFromArchive(string archivePath)
+    {
+        if (string.IsNullOrWhiteSpace(archivePath) || !File.Exists(archivePath))
+        {
+            throw new FileNotFoundException(ParadoxGameLauncherStrings.Get("Paradox.Service.ImportArchiveMissing"), archivePath);
+        }
+
+        var extension = Path.GetExtension(archivePath);
+        if (!string.Equals(extension, ".zip", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(extension, ".7z", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(extension, ".rar", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(ParadoxGameLauncherStrings.Get("Paradox.Service.ImportArchiveUnsupported"));
+        }
+
+        if (!string.Equals(extension, ".zip", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(ParadoxGameLauncherStrings.Get("Paradox.Service.ImportArchiveZipOnly"));
+        }
+
+        if (string.IsNullOrWhiteSpace(GameUserDirectory))
+        {
+            throw new InvalidOperationException(ParadoxGameLauncherStrings.Get("Paradox.Service.UserDirectoryMissing"));
+        }
+
+        var localModDirectory = Path.Combine(GameUserDirectory, "mod");
+        Directory.CreateDirectory(localModDirectory);
+
+        using var archive = ZipFile.OpenRead(archivePath);
+        if (archive.Entries.Count == 0)
+        {
+            throw new InvalidOperationException(ParadoxGameLauncherStrings.Get("Paradox.Service.ImportArchiveEmpty"));
+        }
+
+        var descriptorEntry = FindImportDescriptorEntry(archive);
+        var values = descriptorEntry is null
+            ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            : ReadClausewitzKeyValues(descriptorEntry);
+
+        if (!values.TryGetValue("name", out var title) || string.IsNullOrWhiteSpace(title))
+        {
+            title = Path.GetFileNameWithoutExtension(archivePath);
+        }
+
+        values.TryGetValue("remote_file_id", out var remoteFileId);
+        values.TryGetValue("version", out var version);
+        if (string.IsNullOrWhiteSpace(version))
+        {
+            values.TryGetValue("supported_version", out version);
+        }
+
+        var folderName = BuildImportedModFolderName(title, remoteFileId, archivePath);
+        var contentDirectory = Path.Combine(localModDirectory, folderName);
+        if (Directory.Exists(contentDirectory))
+        {
+            folderName = $"{folderName}_{DateTime.Now:yyyyMMddHHmmss}";
+            contentDirectory = Path.Combine(localModDirectory, folderName);
+        }
+
+        Directory.CreateDirectory(contentDirectory);
+        ExtractZipArchive(archive, contentDirectory, stripRoot: ShouldStripZipRoot(archive, descriptorEntry));
+
+        var extractedDescriptorPath = FindExtractedDescriptorPath(contentDirectory);
+        if (!string.IsNullOrWhiteSpace(extractedDescriptorPath)
+            && File.Exists(extractedDescriptorPath)
+            && string.Equals(Path.GetDirectoryName(extractedDescriptorPath), contentDirectory, StringComparison.OrdinalIgnoreCase))
+        {
+            // Keep extracted descriptor.mod inside the content folder; create a launcher path descriptor next to it.
+        }
+
+        var launcherDescriptorName = !string.IsNullOrWhiteSpace(remoteFileId)
+            ? $"ugc_{remoteFileId.Trim()}.mod"
+            : $"{SanitizeFileName(folderName)}.mod";
+        var launcherDescriptorPath = Path.Combine(localModDirectory, launcherDescriptorName);
+        if (File.Exists(launcherDescriptorPath)
+            && !string.Equals(Path.GetFullPath(launcherDescriptorPath), Path.GetFullPath(extractedDescriptorPath ?? string.Empty),
+                StringComparison.OrdinalIgnoreCase))
+        {
+            launcherDescriptorName = $"{Path.GetFileNameWithoutExtension(launcherDescriptorName)}_{DateTime.Now:yyyyMMddHHmmss}.mod";
+            launcherDescriptorPath = Path.Combine(localModDirectory, launcherDescriptorName);
+        }
+
+        WriteImportedPathDescriptor(
+            launcherDescriptorPath,
+            title,
+            contentDirectory,
+            remoteFileId,
+            version,
+            values);
+
+        return ParseModDescriptor(launcherDescriptorPath);
+    }
+
+    public Process StartGame(IEnumerable<string>? extraArguments = null)
     {
         if (!File.Exists(_configuration.GameExecutablePath))
         {
@@ -188,12 +296,20 @@ public sealed class ParadoxGameLauncherService
             UseShellExecute = false,
         };
 
+        var arguments = new List<string>();
         if (!string.IsNullOrWhiteSpace(_configuration.LaunchArguments))
         {
-            foreach (var argument in SplitArguments(_configuration.LaunchArguments))
-            {
-                startInfo.ArgumentList.Add(argument);
-            }
+            arguments.AddRange(SplitArguments(_configuration.LaunchArguments));
+        }
+
+        if (extraArguments is not null)
+        {
+            arguments.AddRange(extraArguments.Where(argument => !string.IsNullOrWhiteSpace(argument)));
+        }
+
+        foreach (var argument in arguments.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            startInfo.ArgumentList.Add(argument);
         }
 
         return Process.Start(startInfo)
@@ -276,26 +392,41 @@ public sealed class ParadoxGameLauncherService
             values.TryGetValue("supported_version", out version);
         }
 
-        values.TryGetValue("picture", out var picture);
-
         var resolvedArchivePath = !string.IsNullOrWhiteSpace(archivePath) ? archivePath : archive;
-        var id = !string.IsNullOrWhiteSpace(remoteFileId)
-            ? remoteFileId
-            : descriptorPath.ToUpperInvariant();
-        var launcherPath = GetLauncherModPath(descriptorPath, remoteFileId);
+        var normalizedDescriptorPath = ParadoxModIdentity.NormalizePath(descriptorPath);
+        var launcherPath = ParadoxModIdentity.NormalizeLauncherPath(
+            GetLauncherModPath(normalizedDescriptorPath, remoteFileId));
         var contentPath = !string.IsNullOrWhiteSpace(resolvedArchivePath)
             ? resolvedArchivePath
-            : Path.GetDirectoryName(descriptorPath) ?? string.Empty;
-        var resolvedContentPath = ResolveContentPath(descriptorPath, contentPath, GameUserDirectory);
-        var coverImagePath = ResolveCoverImagePath(descriptorPath, resolvedContentPath, picture);
-        var coverImage = TryLoadCoverImage(resolvedContentPath, picture);
+            : Path.GetDirectoryName(normalizedDescriptorPath) ?? string.Empty;
+        var resolvedContentPath = ParadoxModIdentity.NormalizePath(
+            ResolveContentPath(normalizedDescriptorPath, contentPath, GameUserDirectory));
+        var coverImagePath = ResolveCoverImagePath(normalizedDescriptorPath, resolvedContentPath);
+        var coverImage = TryLoadCoverImage(coverImagePath, resolvedContentPath);
+
+        // Build a temporary entry first so non-Steam ids can key off normalized content/descriptor paths.
+        var provisional = new ModEntry(
+            !string.IsNullOrWhiteSpace(remoteFileId) ? remoteFileId.Trim() : "pending",
+            title,
+            normalizedDescriptorPath,
+            resolvedArchivePath ?? string.Empty,
+            remoteFileId?.Trim() ?? string.Empty,
+            launcherPath,
+            resolvedContentPath,
+            version ?? string.Empty,
+            coverImagePath,
+            coverImage);
+
+        var id = !string.IsNullOrWhiteSpace(remoteFileId)
+            ? remoteFileId.Trim()
+            : ParadoxModIdentity.GetStableId(provisional);
 
         return new ModEntry(
             id,
             title,
-            descriptorPath,
+            normalizedDescriptorPath,
             resolvedArchivePath ?? string.Empty,
-            remoteFileId ?? string.Empty,
+            remoteFileId?.Trim() ?? string.Empty,
             launcherPath,
             resolvedContentPath,
             version ?? string.Empty,
@@ -396,17 +527,42 @@ public sealed class ParadoxGameLauncherService
 
     private static string ResolveContentPath(string descriptorPath, string contentPath, string? gameUserDirectory)
     {
-        if (Path.IsPathRooted(contentPath) || string.IsNullOrWhiteSpace(contentPath))
+        if (string.IsNullOrWhiteSpace(contentPath))
         {
-            return contentPath;
+            return string.Empty;
+        }
+
+        // Normalize mixed / and \ before any existence checks or path combining.
+        contentPath = contentPath
+            .Trim()
+            .Replace('/', Path.DirectorySeparatorChar)
+            .Replace('\\', Path.DirectorySeparatorChar);
+
+        if (Path.IsPathRooted(contentPath))
+        {
+            try
+            {
+                return Path.GetFullPath(contentPath);
+            }
+            catch
+            {
+                return contentPath;
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(gameUserDirectory))
         {
-            var userDirectoryCandidate = Path.GetFullPath(Path.Combine(gameUserDirectory, contentPath));
-            if (File.Exists(userDirectoryCandidate) || Directory.Exists(userDirectoryCandidate))
+            try
             {
-                return userDirectoryCandidate;
+                var userDirectoryCandidate = Path.GetFullPath(Path.Combine(gameUserDirectory, contentPath));
+                if (File.Exists(userDirectoryCandidate) || Directory.Exists(userDirectoryCandidate))
+                {
+                    return userDirectoryCandidate;
+                }
+            }
+            catch
+            {
+                // Continue with descriptor-relative resolution.
             }
         }
 
@@ -415,17 +571,35 @@ public sealed class ParadoxGameLauncherService
             var descriptorDirectory = Path.GetDirectoryName(descriptorPath);
             if (!string.IsNullOrWhiteSpace(descriptorDirectory))
             {
-                contentPath = Path.GetFullPath(Path.Combine(descriptorDirectory, contentPath));
+                try
+                {
+                    return Path.GetFullPath(Path.Combine(descriptorDirectory, contentPath));
+                }
+                catch
+                {
+                    return Path.Combine(descriptorDirectory, contentPath);
+                }
             }
         }
 
         return contentPath;
     }
 
-    private static Bitmap? TryLoadCoverImage(string contentPath, string? picture)
+    private static Bitmap? TryLoadCoverImage(string coverImagePath, string contentPath)
     {
-        if (string.IsNullOrWhiteSpace(picture)
-            || string.IsNullOrWhiteSpace(contentPath)
+        if (!string.IsNullOrWhiteSpace(coverImagePath) && File.Exists(coverImagePath))
+        {
+            try
+            {
+                return new Bitmap(coverImagePath);
+            }
+            catch
+            {
+                // Fall through to zip content lookup when the resolved path is unreadable.
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(contentPath)
             || !File.Exists(contentPath)
             || !string.Equals(Path.GetExtension(contentPath), ".zip", StringComparison.OrdinalIgnoreCase))
         {
@@ -436,10 +610,11 @@ public sealed class ParadoxGameLauncherService
         {
             using var archive = ZipFile.OpenRead(contentPath);
             var entry = archive.Entries.FirstOrDefault(item =>
-                string.Equals(item.FullName.Replace('\\', '/'), picture.Replace('\\', '/'),
-                    StringComparison.OrdinalIgnoreCase)
-                || string.Equals(Path.GetFileName(item.FullName), Path.GetFileName(picture),
-                    StringComparison.OrdinalIgnoreCase));
+            {
+                var fileName = Path.GetFileName(item.FullName);
+                return CoverImageFileNames.Any(name =>
+                    string.Equals(fileName, name, StringComparison.OrdinalIgnoreCase));
+            });
 
             if (entry is null)
             {
@@ -458,33 +633,277 @@ public sealed class ParadoxGameLauncherService
         }
     }
 
-    private static string ResolveCoverImagePath(string descriptorPath, string contentPath, string? picture)
+    private static string ResolveCoverImagePath(string descriptorPath, string contentPath)
     {
-        if (string.IsNullOrWhiteSpace(picture))
+        foreach (var directory in EnumerateCoverImageDirectories(descriptorPath, contentPath))
         {
-            return string.Empty;
+            foreach (var fileName in CoverImageFileNames)
+            {
+                var candidate = Path.Combine(directory, fileName);
+                if (File.Exists(candidate))
+                {
+                    return candidate;
+                }
+            }
         }
 
+        return string.Empty;
+    }
+
+    private static IEnumerable<string> EnumerateCoverImageDirectories(string descriptorPath, string contentPath)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var candidates = new List<string>();
-        if (Path.IsPathRooted(picture))
+
+        void Add(string? path)
         {
-            candidates.Add(picture);
-        }
-        else
-        {
-            if (Directory.Exists(contentPath))
+            if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
             {
-                candidates.Add(Path.Combine(contentPath, picture));
+                return;
             }
 
-            var descriptorDirectory = Path.GetDirectoryName(descriptorPath);
-            if (!string.IsNullOrWhiteSpace(descriptorDirectory))
+            try
             {
-                candidates.Add(Path.Combine(descriptorDirectory, picture));
+                path = Path.GetFullPath(path);
+            }
+            catch
+            {
+                // Keep the original path when GetFullPath fails.
+            }
+
+            if (seen.Add(path))
+            {
+                candidates.Add(path);
             }
         }
 
-        return candidates.FirstOrDefault(File.Exists) ?? string.Empty;
+        Add(contentPath);
+
+        var descriptorDirectory = Path.GetDirectoryName(descriptorPath);
+        Add(descriptorDirectory);
+
+        if (!string.IsNullOrWhiteSpace(contentPath))
+        {
+            Add(Path.Combine(contentPath, "src"));
+        }
+
+        if (!string.IsNullOrWhiteSpace(descriptorDirectory))
+        {
+            Add(Path.Combine(descriptorDirectory, "src"));
+        }
+
+        return candidates;
+    }
+
+    private static ZipArchiveEntry? FindImportDescriptorEntry(ZipArchive archive)
+    {
+        var entries = archive.Entries
+            .Where(entry => !string.IsNullOrWhiteSpace(entry.Name))
+            .ToArray();
+
+        return entries.FirstOrDefault(entry =>
+                   string.Equals(entry.Name, "descriptor.mod", StringComparison.OrdinalIgnoreCase))
+               ?? entries.FirstOrDefault(entry =>
+                   string.Equals(Path.GetExtension(entry.Name), ".mod", StringComparison.OrdinalIgnoreCase)
+                   && entry.FullName.Count(character => character is '/' or '\\') <= 1);
+    }
+
+    private static Dictionary<string, string> ReadClausewitzKeyValues(ZipArchiveEntry entry)
+    {
+        using var stream = entry.Open();
+        using var reader = new StreamReader(stream);
+        var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        while (reader.ReadLine() is { } rawLine)
+        {
+            var line = rawLine.Trim();
+            if (line.Length == 0 || line.StartsWith('#'))
+            {
+                continue;
+            }
+
+            var equalsIndex = line.IndexOf('=');
+            if (equalsIndex <= 0)
+            {
+                continue;
+            }
+
+            var key = line[..equalsIndex].Trim();
+            var value = line[(equalsIndex + 1)..].Trim().Trim('"');
+            values[key] = value;
+        }
+
+        return values;
+    }
+
+    private static bool ShouldStripZipRoot(ZipArchive archive, ZipArchiveEntry? descriptorEntry)
+    {
+        var topLevelNames = archive.Entries
+            .Select(GetZipTopLevelName)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        if (topLevelNames.Length != 1)
+        {
+            return false;
+        }
+
+        var rootName = topLevelNames[0];
+        var hasRootDirectory = archive.Entries.Any(entry =>
+            entry.FullName.Replace('\\', '/').StartsWith(rootName + "/", StringComparison.OrdinalIgnoreCase));
+
+        if (!hasRootDirectory)
+        {
+            return false;
+        }
+
+        if (descriptorEntry is null)
+        {
+            return true;
+        }
+
+        var descriptorPath = descriptorEntry.FullName.Replace('\\', '/');
+        return descriptorPath.StartsWith(rootName + "/", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(Path.GetFileName(descriptorPath), descriptorPath, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string? GetZipTopLevelName(ZipArchiveEntry entry)
+    {
+        var fullName = entry.FullName.Replace('\\', '/').Trim('/');
+        if (string.IsNullOrWhiteSpace(fullName))
+        {
+            return null;
+        }
+
+        var separatorIndex = fullName.IndexOf('/');
+        return separatorIndex < 0 ? fullName : fullName[..separatorIndex];
+    }
+
+    private static void ExtractZipArchive(ZipArchive archive, string destinationDirectory, bool stripRoot)
+    {
+        foreach (var entry in archive.Entries)
+        {
+            var relativePath = entry.FullName.Replace('\\', '/');
+            if (string.IsNullOrWhiteSpace(relativePath))
+            {
+                continue;
+            }
+
+            if (stripRoot)
+            {
+                var separatorIndex = relativePath.IndexOf('/');
+                if (separatorIndex < 0)
+                {
+                    // Single top-level file should still extract.
+                    if (string.IsNullOrWhiteSpace(entry.Name))
+                    {
+                        continue;
+                    }
+                }
+                else
+                {
+                    relativePath = relativePath[(separatorIndex + 1)..];
+                }
+            }
+
+            relativePath = relativePath.Trim('/');
+            if (string.IsNullOrWhiteSpace(relativePath))
+            {
+                continue;
+            }
+
+            var destinationPath = Path.GetFullPath(Path.Combine(destinationDirectory, relativePath));
+            var destinationRoot = Path.GetFullPath(destinationDirectory);
+            if (!destinationPath.StartsWith(destinationRoot, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(entry.Name) || relativePath.EndsWith('/'))
+            {
+                Directory.CreateDirectory(destinationPath);
+                continue;
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
+            entry.ExtractToFile(destinationPath, overwrite: true);
+        }
+    }
+
+    private static string? FindExtractedDescriptorPath(string contentDirectory)
+    {
+        var nestedDescriptor = Directory.EnumerateFiles(contentDirectory, "descriptor.mod", SearchOption.AllDirectories)
+            .OrderBy(path => path.Length)
+            .FirstOrDefault();
+        if (!string.IsNullOrWhiteSpace(nestedDescriptor))
+        {
+            return nestedDescriptor;
+        }
+
+        return Directory.EnumerateFiles(contentDirectory, "*.mod", SearchOption.AllDirectories)
+            .OrderBy(path => path.Length)
+            .FirstOrDefault();
+    }
+
+    private static string BuildImportedModFolderName(string title, string? remoteFileId, string archivePath)
+    {
+        if (!string.IsNullOrWhiteSpace(remoteFileId))
+        {
+            return SanitizeFileName(remoteFileId.Trim());
+        }
+
+        var fromTitle = SanitizeFileName(title);
+        if (!string.IsNullOrWhiteSpace(fromTitle) && !string.Equals(fromTitle, "shadow_mod", StringComparison.OrdinalIgnoreCase))
+        {
+            return fromTitle;
+        }
+
+        return SanitizeFileName(Path.GetFileNameWithoutExtension(archivePath));
+    }
+
+    private static void WriteImportedPathDescriptor(
+        string descriptorPath,
+        string title,
+        string contentDirectory,
+        string? remoteFileId,
+        string? version,
+        IReadOnlyDictionary<string, string> sourceValues)
+    {
+        var lines = new List<string>
+        {
+            $"name=\"{EscapeClausewitzString(title)}\"",
+            $"path=\"{EscapeClausewitzString(contentDirectory.Replace('\\', '/'))}\"",
+        };
+
+        if (!string.IsNullOrWhiteSpace(version))
+        {
+            if (sourceValues.ContainsKey("supported_version") && !sourceValues.ContainsKey("version"))
+            {
+                lines.Add($"supported_version=\"{EscapeClausewitzString(version)}\"");
+            }
+            else
+            {
+                lines.Add($"version=\"{EscapeClausewitzString(version)}\"");
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(remoteFileId))
+        {
+            lines.Add($"remote_file_id=\"{EscapeClausewitzString(remoteFileId.Trim())}\"");
+        }
+
+        if (sourceValues.TryGetValue("picture", out var picture) && !string.IsNullOrWhiteSpace(picture))
+        {
+            lines.Add($"picture=\"{EscapeClausewitzString(picture)}\"");
+        }
+
+        if (sourceValues.TryGetValue("tags", out var tags) && !string.IsNullOrWhiteSpace(tags))
+        {
+            // tags are usually multi-line blocks; skip incomplete single-line captures.
+        }
+
+        File.WriteAllText(descriptorPath, string.Join(Environment.NewLine, lines.Concat([string.Empty])));
     }
 
     private static string EscapeClausewitzString(string value)
@@ -653,13 +1072,27 @@ public sealed class ParadoxGameLauncherService
         var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var mod in knownMods)
         {
-            map[mod.Id] = mod.Id;
-            map[mod.LauncherPath] = mod.Id;
-            map[mod.DescriptorPath] = mod.Id;
+            void Add(string? key)
+            {
+                if (!string.IsNullOrWhiteSpace(key))
+                {
+                    map.TryAdd(key, mod.Id);
+                }
+            }
+
+            Add(mod.Id);
+            Add(ParadoxModIdentity.GetStableId(mod));
+            Add(mod.LauncherPath);
+            Add(ParadoxModIdentity.NormalizeLauncherPath(mod.LauncherPath));
+            Add(mod.DescriptorPath);
+            Add(ParadoxModIdentity.NormalizePath(mod.DescriptorPath));
+            Add(mod.ContentPath);
+            Add(ParadoxModIdentity.NormalizePath(mod.ContentPath));
 
             if (!string.IsNullOrWhiteSpace(mod.RemoteFileId))
             {
-                map[mod.RemoteFileId] = mod.Id;
+                Add(mod.RemoteFileId);
+                Add($"steam:{mod.RemoteFileId.Trim()}");
             }
         }
 
@@ -778,3 +1211,4 @@ public sealed class ParadoxGameLauncherService
         }
     }
 }
+

@@ -120,6 +120,15 @@
   "Paradox.Status.SavedAppliedPlayset": "已保存并应用播放集：{0}",
   "Paradox.Status.SwitchedGame": "已切换到 {0}。",
   "Paradox.GameSwitcher.Hint": "切换游戏",
-  "Paradox.Page.TitleSuffix": " 启动器"
+  "Paradox.Page.TitleSuffix": " 启动器",
+  "Paradox.Action.ImportMod": "导入 Mod",
+  "Paradox.Dialog.ImportModTitle": "导入 Mod 压缩包",
+  "Paradox.Dialog.ImportModZipFilter": "Zip 压缩包",
+  "Paradox.Status.ImportedMod": "已导入 Mod：{0}",
+  "Paradox.Service.ImportArchiveMissing": "未找到所选压缩包。",
+  "Paradox.Service.ImportArchiveUnsupported": "只能导入压缩包文件。",
+  "Paradox.Service.ImportArchiveZipOnly": "目前仅支持 .zip 压缩包。",
+  "Paradox.Service.ImportArchiveEmpty": "所选压缩包为空。",
+  "Paradox.Service.UserDirectoryMissing": "导入 Mod 前请先设置 Paradox 用户目录。",
+  "Paradox.Mods.Search.Placeholder": "搜索 Mod"
 }
-

@@ -8,7 +8,7 @@
              x:Name="PlaysetsSectionRoot"
              x:DataType="vm:ParadoxGameLauncherViewModel">
     <Grid
-          RowDefinitions="Auto,Auto,*"
+          RowDefinitions="Auto,Auto,Auto,*"
           RowSpacing="12">
         <Grid ColumnDefinitions="Auto,*,Auto"
               ColumnSpacing="8"
@@ -25,7 +25,6 @@
                     </DataTemplate>
                 </ComboBox.ItemTemplate>
             </ComboBox>
-    
             <StackPanel Grid.Column="2"
                         Orientation="Horizontal"
                         Spacing="8"
@@ -62,7 +61,6 @@
                 </Button>
             </StackPanel>
         </Grid>
-    
         <Grid Grid.Row="1"
               ColumnDefinitions="*,Auto"
               ColumnSpacing="12">
@@ -89,14 +87,17 @@
                            HorizontalAlignment="Right"/>
             </StackPanel>
         </Grid>
-    
-        <Grid Grid.Row="2"
+        <TextBox Grid.Row="2"
+                 PlaceholderText="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Mods.Search.Placeholder}"
+                 Text="{Binding PlaysetModSearchText}"
+                 MinHeight="36"/>
+        <Grid Grid.Row="3"
               x:Name="PlaysetDragSurface"
               ClipToBounds="False">
             <ScrollViewer VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled">
                 <ItemsControl x:Name="PlaysetModsList"
-                              ItemsSource="{Binding PlaysetMods}">
+                              ItemsSource="{Binding FilteredPlaysetMods}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="models:PlaysetModEntry">
                             <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
@@ -119,7 +120,6 @@
                                               IsChecked="{Binding IsEnabled}"
                                               IsEnabled="{Binding #PlaysetsSectionRoot.((vm:ParadoxGameLauncherViewModel)DataContext).CanEditSelectedPlayset}"
                                               VerticalAlignment="Center"/>
-    
                                     <Border Grid.Column="2"
                                             Width="92"
                                             Height="58"
@@ -139,7 +139,6 @@
                                                              IsVisible="{Binding IsCoverPlaceholderVisible}"/>
                                         </Grid>
                                     </Border>
-    
                                     <StackPanel Grid.Column="3"
                                                 Spacing="4"
                                                 VerticalAlignment="Center">
@@ -201,7 +200,6 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </ScrollViewer>
-    
             <Border x:Name="PlaysetInsertIndicator"
                     Height="3"
                     Margin="8,0"
@@ -215,4 +213,3 @@
         </Grid>
     </Grid>
 </UserControl>
-

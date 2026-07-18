@@ -16,20 +16,35 @@
                 <ui:FASymbolIconSource Symbol="Library"/>
             </ui:FASettingsExpander.IconSource>
             <ui:FASettingsExpander.Footer>
-                <Button Command="{Binding RefreshCommand}">
-                    <StackPanel Orientation="Horizontal"
-                                Spacing="6">
-                        <ui:FASymbolIcon Symbol="Sync"/>
-                        <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Action.Refresh}"/>
-                    </StackPanel>
-                </Button>
+                <StackPanel Orientation="Horizontal"
+                            Spacing="8">
+                    <Button Click="ImportModButton_OnClick">
+                        <StackPanel Orientation="Horizontal"
+                                    Spacing="6">
+                            <ui:FASymbolIcon Symbol="OpenFile"/>
+                            <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Action.ImportMod}"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding RefreshCommand}">
+                        <StackPanel Orientation="Horizontal"
+                                    Spacing="6">
+                            <ui:FASymbolIcon Symbol="Sync"/>
+                            <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Action.Refresh}"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
             </ui:FASettingsExpander.Footer>
         </ui:FASettingsExpander>
-    
-        <ScrollViewer Grid.Row="1"
+        <Grid Grid.Row="1"
+              RowDefinitions="Auto,*"
+              RowSpacing="10">
+            <TextBox PlaceholderText="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Mods.Search.Placeholder}"
+                     Text="{Binding ModSearchText}"
+                     MinHeight="36"/>
+            <ScrollViewer Grid.Row="1"
                       VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled">
-            <ItemsControl ItemsSource="{Binding Mods}">
+            <ItemsControl ItemsSource="{Binding FilteredMods}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="models:ModEntry">
                         <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
@@ -59,7 +74,6 @@
                                                          IsVisible="{Binding IsCoverPlaceholderVisible}"/>
                                     </Grid>
                                 </Border>
-    
                                 <StackPanel Grid.Column="1"
                                             Spacing="4"
                                             VerticalAlignment="Center">
@@ -87,7 +101,6 @@
                                                Opacity="0.62"
                                                TextTrimming="CharacterEllipsis"/>
                                 </StackPanel>
-    
                                 <StackPanel Grid.Column="2"
                                             Orientation="Horizontal"
                                             Spacing="8"
@@ -114,6 +127,6 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </ScrollViewer>
+        </Grid>
     </Grid>
 </UserControl>
-

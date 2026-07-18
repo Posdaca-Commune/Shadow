@@ -16,7 +16,6 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
     private readonly IShadowHostContext _hostContext;
     private string _statusTextKey = "Paradox.Status.Default";
     private object[] _statusTextArgs = [];
-
     public ParadoxGameLauncherViewModel(
         ParadoxGameLauncherConfiguration configuration,
         ParadoxGameLauncherService service,
@@ -39,7 +38,6 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
                 NotifyLauncherOptionProperties();
             }
         };
-
         ReloadStoredPlaysets();
         SelectedSection = Sections[0];
         ShadowLocalizer.Instance.PropertyChanged += (_, args) =>
@@ -52,24 +50,20 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
             {
                 return;
             }
-
             Localizer = new ShadowLocalizationScope();
             if (!string.IsNullOrEmpty(_statusTextKey))
             {
                 StatusText = ParadoxGameLauncherStrings.Format(_statusTextKey, _statusTextArgs);
             }
-
             OnPropertyChanged(nameof(ActivePlaysetName));
             OnPropertyChanged(nameof(SelectedPlaysetEditStateText));
             OnPropertyChanged(nameof(SelectedPlaysetSummaryText));
         };
-
         Refresh();
     }
 
     [ObservableProperty]
     private ShadowLocalizationScope _localizer = new();
-
     public IReadOnlyList<LauncherSection> Sections { get; } =
     [
         new("Home", LocalizedText.Key("Paradox.Section.Home.Title"),
@@ -83,19 +77,15 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
         new("GameSettings", LocalizedText.Key("Paradox.Section.GameSettings.Title"),
             LocalizedText.Key("Paradox.Section.GameSettings.Description"), FASymbol.Setting),
     ];
-
     public ObservableCollection<ModEntry> Mods { get; } = [];
-
+    public ObservableCollection<ModEntry> FilteredMods { get; } = [];
     public ObservableCollection<PlaysetModEntry> PlaysetMods { get; } = [];
-
+    public ObservableCollection<PlaysetModEntry> FilteredPlaysetMods { get; } = [];
     public ObservableCollection<ModEntry> AvailableMods { get; } = [];
-
+    public ObservableCollection<ModEntry> FilteredAvailableMods { get; } = [];
     public ObservableCollection<DlcEntry> Dlcs { get; } = [];
-
     public ObservableCollection<Playset> Playsets { get; } = [];
-
     public ParadoxGameSettingsViewModel GameSettings { get; }
-
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsHomeSelected))]
     [NotifyPropertyChangedFor(nameof(IsModsSelected))]
@@ -103,16 +93,12 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsPlaysetsSelected))]
     [NotifyPropertyChangedFor(nameof(IsGameSettingsSelected))]
     private LauncherSection _selectedSection = null!;
-
     public IReadOnlyList<ParadoxGameDefinition> AvailableGames => ParadoxGameCatalog.Games;
-
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SelectedGameDisplayName))]
     [NotifyPropertyChangedFor(nameof(SelectedPlaysetStorageDirectory))]
     private ParadoxGameDefinition _selectedGame = null!;
-
     public string SelectedGameDisplayName => SelectedGame.DisplayName;
-
     [RelayCommand]
     private void SelectGame(ParadoxGameDefinition? game)
     {
@@ -120,76 +106,51 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
         {
             return;
         }
-
         SelectedGame = game;
     }
 
     [ObservableProperty] private Playset? _selectedPlayset;
-
     [ObservableProperty] private ModEntry? _selectedMod;
-
     [ObservableProperty] private PlaysetModEntry? _selectedPlaysetMod;
-
     [ObservableProperty] private ModEntry? _selectedAvailableMod;
-
     [ObservableProperty] private string _newPlaysetName = string.Empty;
-
+    [ObservableProperty] private string _modSearchText = string.Empty;
+    [ObservableProperty] private string _playsetModSearchText = string.Empty;
+    [ObservableProperty] private string _availableModSearchText = string.Empty;
     [ObservableProperty] private string _statusText = ParadoxGameLauncherStrings.Get("Paradox.Status.Default");
-
     public int EnabledModCount => PlaysetMods.Count(mod => mod.IsEnabled);
-
     public int PlaysetModCount => PlaysetMods.Count;
-
     public int DisabledDlcCount => Dlcs.Count(dlc => !dlc.IsEnabled);
-
     public int ExternalPlaysetCount => Playsets.Count(playset => playset.IsExternal);
-
     public int PlaysetCount => Playsets.Count;
-
     public string ActivePlaysetName => SelectedPlayset?.Name ?? ParadoxGameLauncherStrings.Get("Paradox.Playsets.NoSelection");
-
     public bool CanEditSelectedPlayset => SelectedPlayset?.CanEdit == true;
-
     public string SelectedPlaysetEditStateText => SelectedPlayset?.CanEdit == false
         ? ParadoxGameLauncherStrings.Get("Paradox.Playsets.ReadOnly")
         : ParadoxGameLauncherStrings.Get("Paradox.Playsets.Editable");
-
     public string SelectedPlaysetSummaryText => ParadoxGameLauncherStrings.Format(
         "Paradox.Playsets.Summary",
         PlaysetModCount,
         EnabledModCount,
         SelectedPlaysetEditStateText);
-
     public string SelectedPlaysetStorageDirectory =>
         Path.Combine(_configuration.PlaysetStore.WorkspaceDirectory, "playsets");
-
     public string GameExecutablePath => _configuration.GameExecutablePath;
-
     public string GameUserDirectory => _configuration.GameUserDirectory;
-
     public string WorkshopDirectory => _configuration.WorkshopDirectory;
-
     public string LaunchArguments => _configuration.LaunchArguments;
-
     public bool CloseAfterLaunch => _configuration.CloseAfterLaunch;
-
     public bool IsHomeSelected => SelectedSection.Key == "Home";
-
     public bool IsModsSelected => SelectedSection.Key == "Mods";
-
     public bool IsDlcsSelected => SelectedSection.Key == "Dlcs";
-
     public bool IsPlaysetsSelected => SelectedSection.Key == "Playsets";
-
     public bool IsGameSettingsSelected => SelectedSection.Key == "GameSettings";
-
     partial void OnSelectedSectionChanged(LauncherSection value)
     {
         if (value.Key == "GameSettings")
         {
             GameSettings.ReloadCommand.Execute(null);
         }
-
         NotifyLauncherOptionProperties();
     }
 
@@ -199,7 +160,6 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
         {
             return;
         }
-
         _configuration.SelectGame(value.Id);
         GameSettings.ReloadCommand.Execute(null);
         NotifyLauncherOptionProperties();
@@ -214,7 +174,6 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
         {
             return;
         }
-
         _configuration.SelectedPlaysetId = value.Id;
         _configuration.Save();
         ApplySelectedPlaysetState();
@@ -232,7 +191,6 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
         {
             Mods.Add(mod);
         }
-
         try
         {
             _configuration.PlaysetStore.SaveModIndex(Mods);
@@ -241,16 +199,15 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
         {
             SetLocalizedStatusText("Paradox.Status.ModIndexFailed", ex.Message);
         }
-
         Dlcs.Clear();
         foreach (var dlc in _service.DiscoverDlcs())
         {
             dlc.PropertyChanged += (_, _) => OnSelectionChanged();
             Dlcs.Add(dlc);
         }
-
         ApplySelectedPlaysetState();
         RebuildAvailableMods();
+        RebuildFilteredMods();
         NotifyLauncherOptionProperties();
         SetLocalizedStatusText("Paradox.Status.Refreshed", Mods.Count, Dlcs.Count);
     }
@@ -258,15 +215,10 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
     [RelayCommand]
     private void AddPlayset()
     {
-        var name = string.IsNullOrWhiteSpace(NewPlaysetName)
+        var playsetName = string.IsNullOrWhiteSpace(NewPlaysetName)
             ? ParadoxGameLauncherStrings.Get("Paradox.Playset.New")
             : NewPlaysetName.Trim();
-
-        var playsetName = SelectedPlayset?.CanEdit == false
-            ? ParadoxGameLauncherStrings.Format("Paradox.Playset.CopySuffix", SelectedPlayset.Name)
-            : name;
         var playset = CreateLocalPlayset(playsetName);
-
         Playsets.Add(playset);
         _configuration.PlaysetStore.SavePlayset(playset);
         SelectedPlayset = playset;
@@ -278,7 +230,12 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
 
     public void AddPlayset(string name)
     {
-        NewPlaysetName = name;
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return;
+        }
+
+        NewPlaysetName = name.Trim();
         AddPlayset();
     }
 
@@ -289,24 +246,20 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
         {
             return;
         }
-
         var playset = SelectedPlayset;
         if (!playset.CanEdit)
         {
             SetLocalizedStatusText("Paradox.Status.CannotDeletePlayset", playset.Name);
             return;
         }
-
         if (Playsets.Count <= 1)
         {
             SetLocalizedStatusText("Paradox.Status.NeedOnePlayset");
             return;
         }
-
         var index = Playsets.IndexOf(playset);
         Playsets.Remove(playset);
         _configuration.PlaysetStore.DeletePlayset(playset);
-
         SelectedPlayset = Playsets.ElementAtOrDefault(Math.Clamp(index, 0, Playsets.Count - 1))
                           ?? Playsets.FirstOrDefault();
         _configuration.Save();
@@ -321,14 +274,12 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
         {
             return;
         }
-
         if (!CanEditSelectedPlayset)
         {
             _service.ApplyPlayset(SelectedPlayset, PlaysetMods.Select(mod => mod.Mod), Dlcs);
             SetLocalizedStatusText("Paradox.Status.AppliedReadOnlyPlayset", SelectedPlayset.Name);
             return;
         }
-
         PersistCurrentPlaysetState();
         _service.ApplyPlayset(SelectedPlayset, PlaysetMods.Select(mod => mod.Mod), Dlcs);
         OnPropertyChanged(nameof(EnabledModCount));
@@ -347,7 +298,6 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
             SetLocalizedStatusText("Paradox.Status.NoParadoxPlaysets");
             return;
         }
-
         foreach (var importedPlayset in importedPlaysets)
         {
             var existing = Playsets.FirstOrDefault(playset => playset.Id == importedPlayset.Id);
@@ -357,7 +307,6 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
                 _configuration.PlaysetStore.SavePlayset(importedPlayset);
                 continue;
             }
-
             existing.Name = importedPlayset.Name;
             existing.EnabledModIds = importedPlayset.EnabledModIds;
             existing.ModIds = importedPlayset.ModIds.Count > 0
@@ -369,7 +318,6 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
             existing.CanEdit = importedPlayset.CanEdit;
             _configuration.PlaysetStore.SavePlayset(existing);
         }
-
         SelectedPlayset = Playsets.FirstOrDefault(playset => playset.Id == _configuration.SelectedPlaysetId)
                           ?? Playsets.FirstOrDefault(playset => playset.IsExternal)
                           ?? SelectedPlayset;
@@ -396,12 +344,10 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
         {
             return;
         }
-
         if (PlaysetMods.Any(mod => string.Equals(mod.Id, SelectedAvailableMod.Id, StringComparison.OrdinalIgnoreCase)))
         {
             return;
         }
-
         var entry = new PlaysetModEntry(SelectedAvailableMod, true);
         entry.PropertyChanged += (_, _) =>
         {
@@ -430,7 +376,6 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
         {
             return;
         }
-
         var removed = SelectedPlaysetMod;
         PlaysetMods.Remove(removed);
         SelectedPlaysetMod = PlaysetMods.FirstOrDefault();
@@ -458,19 +403,16 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
         {
             return;
         }
-
         var oldIndex = PlaysetMods.IndexOf(mod);
         if (oldIndex < 0)
         {
             return;
         }
-
         var boundedTargetIndex = Math.Clamp(targetIndex, 0, PlaysetMods.Count - 1);
         if (oldIndex == boundedTargetIndex)
         {
             return;
         }
-
         PlaysetMods.Move(oldIndex, boundedTargetIndex);
         SelectedPlaysetMod = mod;
         PersistCurrentPlaysetState();
@@ -484,12 +426,10 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
         {
             return;
         }
-
         foreach (var mod in PlaysetMods)
         {
             mod.IsEnabled = true;
         }
-
         PersistCurrentPlaysetState();
         OnSelectionChanged();
     }
@@ -501,12 +441,10 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
         {
             return;
         }
-
         foreach (var mod in PlaysetMods)
         {
             mod.IsEnabled = false;
         }
-
         PersistCurrentPlaysetState();
         OnSelectionChanged();
     }
@@ -518,7 +456,6 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
         {
             dlc.IsEnabled = true;
         }
-
         OnSelectionChanged();
     }
 
@@ -548,7 +485,6 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
         {
             return;
         }
-
         try
         {
             _service.OpenModLocation(mod);
@@ -566,7 +502,6 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
         {
             return;
         }
-
         try
         {
             _service.OpenWorkshopPage(mod);
@@ -583,15 +518,15 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
         {
             PlaysetMods.Clear();
             AvailableMods.Clear();
+            FilteredPlaysetMods.Clear();
+            FilteredAvailableMods.Clear();
             return;
         }
-
         var playsetModIds = SelectedPlayset.ModIds.Count > 0
             ? SelectedPlayset.ModIds
             : SelectedPlayset.EnabledModIds;
         var enabledModIds = SelectedPlayset.EnabledModIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var knownMods = ParadoxModIdentity.BuildLookup(Mods);
-
         PlaysetMods.Clear();
         foreach (var modId in playsetModIds.Distinct(StringComparer.OrdinalIgnoreCase))
         {
@@ -599,7 +534,6 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
             {
                 continue;
             }
-
             var entry = new PlaysetModEntry(mod, ParadoxModIdentity.ContainsModReference(enabledModIds, mod));
             entry.PropertyChanged += (_, _) =>
             {
@@ -611,12 +545,10 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
             };
             PlaysetMods.Add(entry);
         }
-
         foreach (var dlc in Dlcs)
         {
             dlc.IsEnabled = !SelectedPlayset.DisabledDlcIds.Contains(dlc.Id, StringComparer.OrdinalIgnoreCase);
         }
-
         SelectedPlaysetMod = PlaysetMods.FirstOrDefault();
         RebuildAvailableMods();
         OnSelectionChanged();
@@ -626,6 +558,98 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
     {
         GameSettings.SaveLauncherOptions();
         _configuration.Save();
+    }
+
+    partial void OnModSearchTextChanged(string value)
+    {
+        RebuildFilteredMods();
+    }
+
+    partial void OnPlaysetModSearchTextChanged(string value)
+    {
+        RebuildFilteredPlaysetMods();
+    }
+
+    partial void OnAvailableModSearchTextChanged(string value)
+    {
+        RebuildFilteredAvailableMods();
+    }
+
+    public void ImportModFromArchive(string archivePath)
+    {
+        try
+        {
+            SaveHostPaths();
+            var imported = _service.ImportModFromArchive(archivePath);
+            Refresh();
+            SelectedMod = Mods.FirstOrDefault(mod =>
+                string.Equals(mod.Id, imported.Id, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(mod.DescriptorPath, imported.DescriptorPath, StringComparison.OrdinalIgnoreCase));
+            SetLocalizedStatusText("Paradox.Status.ImportedMod", imported.Title);
+        }
+        catch (Exception ex)
+        {
+            SetRawStatusText(ex.Message);
+        }
+    }
+
+    private void RebuildFilteredMods()
+    {
+        RebuildFilteredCollection(FilteredMods, Mods, ModSearchText, mod => mod);
+    }
+
+    private void RebuildFilteredPlaysetMods()
+    {
+        RebuildFilteredCollection(FilteredPlaysetMods, PlaysetMods, PlaysetModSearchText, mod => mod.Mod);
+    }
+
+    public void RefreshAvailableModFilters()
+    {
+        RebuildFilteredAvailableMods();
+    }
+
+    private void RebuildFilteredAvailableMods()
+    {
+        RebuildFilteredCollection(FilteredAvailableMods, AvailableMods, AvailableModSearchText, mod => mod);
+    }
+
+    private static void RebuildFilteredCollection<T>(
+        ObservableCollection<T> target,
+        IEnumerable<T> source,
+        string? searchText,
+        Func<T, ModEntry> modSelector)
+    {
+        var query = searchText?.Trim() ?? string.Empty;
+        target.Clear();
+        foreach (var item in source)
+        {
+            if (MatchesModSearch(modSelector(item), query))
+            {
+                target.Add(item);
+            }
+        }
+    }
+
+    private static bool MatchesModSearch(ModEntry mod, string query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return true;
+        }
+        return ContainsIgnoreCase(mod.Title, query)
+               || ContainsIgnoreCase(mod.Id, query)
+               || ContainsIgnoreCase(mod.RemoteFileId, query)
+               || ContainsIgnoreCase(mod.Version, query)
+               || ContainsIgnoreCase(mod.SourceLabel, query)
+               || ContainsIgnoreCase(mod.Subtitle, query)
+               || ContainsIgnoreCase(mod.DescriptorPath, query)
+               || ContainsIgnoreCase(mod.ContentPath, query);
+    }
+
+    private static bool ContainsIgnoreCase(string? value, string query)
+    {
+        return !string.IsNullOrWhiteSpace(value)
+               && value.Contains(query, StringComparison.CurrentCultureIgnoreCase);
     }
 
     private void SetLocalizedStatusText(string key, params object[] args)
@@ -693,7 +717,6 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
         {
             return;
         }
-
         SelectedPlayset.ModIds = PlaysetMods
             .Select(mod => ParadoxModIdentity.GetStableId(mod.Mod))
             .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -717,7 +740,6 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
             .Select(mod => mod.Id)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
         var previouslySelectedId = SelectedAvailableMod?.Id;
-
         AvailableMods.Clear();
         foreach (var mod in Mods
                      .Where(mod => !playsetModIds.Contains(mod.Id))
@@ -725,10 +747,11 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
         {
             AvailableMods.Add(mod);
         }
-
         SelectedAvailableMod = AvailableMods.FirstOrDefault(mod =>
                                    string.Equals(mod.Id, previouslySelectedId, StringComparison.OrdinalIgnoreCase))
                                ?? AvailableMods.FirstOrDefault();
+        RebuildFilteredAvailableMods();
+        RebuildFilteredPlaysetMods();
     }
 
     private void NotifyLauncherOptionProperties()
@@ -746,14 +769,12 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
         {
             return;
         }
-
         var oldIndex = PlaysetMods.IndexOf(SelectedPlaysetMod);
         var newIndex = oldIndex + direction;
         if (oldIndex < 0 || newIndex < 0 || newIndex >= PlaysetMods.Count)
         {
             return;
         }
-
         PlaysetMods.Move(oldIndex, newIndex);
         PersistCurrentPlaysetState();
     }
@@ -768,13 +789,11 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
             _configuration.PlaysetStore.SavePlayset(defaultPlayset);
             playsets = [defaultPlayset];
         }
-
         Playsets.Clear();
         foreach (var playset in playsets)
         {
             Playsets.Add(playset);
         }
-
         SelectedPlayset = Playsets.FirstOrDefault(playset => playset.Id == previousSelectedId)
                           ?? Playsets.FirstOrDefault(playset => playset.Id == _configuration.SelectedPlaysetId)
                           ?? Playsets.FirstOrDefault();
@@ -787,12 +806,10 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
         {
             return true;
         }
-
         if (SelectedPlayset is not null)
         {
             SetLocalizedStatusText("Paradox.Status.CannotEditPlayset", SelectedPlayset.Name);
         }
-
         return false;
     }
 
@@ -806,8 +823,3 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
         };
     }
 }
-
-
-
-
-

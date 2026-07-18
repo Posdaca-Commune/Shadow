@@ -58,19 +58,32 @@ Paradox launcher plugin currently exposes these commands. MSIX installs register
 the `shadow.exe` app execution alias, so `shadow` can be used from a terminal:
 
 ```powershell
-shadow --shadow-command paradox.launch
-shadow --shadow-command paradox.launch --game hoi4
-shadow --shadow-command paradox.launch --game hoi4 --playset-id default
-shadow --shadow-command paradox.launch --game hoi4 --playset-id default --allow-missing-mods
+shadow PDXGameLauncher hoi4
+shadow PDXGameLauncher hoi4 -playset default
+shadow PDXGameLauncher "Hearts of Iron IV" -p oiia:my-project
+shadow PDXGameLauncher hoi4 -playset default -debug
 ```
 
-Options:
+Legacy option style is still accepted:
 
-- `--shadow-command` or `--command`: command name.
-- `--game`, `--game-id`, or `--gameId`: target game id (`hoi4`, `ck3`, `eu4`,
-  `stellaris`, `vic3`, `imperator`).
-- `--playset-id`, `--playsetId`, or `--playset`: playset id to launch.
-- `--allow-missing-mods`: allows a playset to launch even when enabled mod ids
+```powershell
+shadow --shadow-command paradox.launch --game hoi4 --playset-id default
+```
+
+Syntax:
+
+```text
+shadow PDXGameLauncher <game> [-playset <id>] [-debug] [-allow-missing-mods]
+```
+
+Arguments and options:
+
+- `PDXGameLauncher`: launches the Paradox game launcher plugin command.
+- `<game>`: target game id or display name (`hoi4`, `ck3`, `eu4`, `stellaris`,
+  `vic3`, `imperator`, or names like `Hearts of Iron IV`).
+- `-playset`, `-p`, `--playset-id`: playset id to launch.
+- `-debug`: launch the game process with the `-debug` argument.
+- `-allow-missing-mods`: allows a playset to launch even when enabled mod ids
   are not found in the current scan.
 
 If no playset is specified, Shadow uses the selected playset from the saved
@@ -123,3 +136,5 @@ Example with a PFX certificate:
 ```powershell
 .\scripts\build-msix.ps1 -Version 1.0.0-beta.1 -CertificatePath .\certs\Shadow.pfx -CertificatePassword (Read-Host -AsSecureString)
 ```
+
+

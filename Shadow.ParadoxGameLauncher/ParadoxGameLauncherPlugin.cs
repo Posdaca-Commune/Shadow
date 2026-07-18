@@ -53,10 +53,10 @@ public sealed class ParadoxGameLauncherPlugin : IShadowCommandPlugin
         {
             ParadoxGameLauncherStrings.Register();
             var configuration = ParadoxGameLauncherConfiguration.Load(context.HostContext.PluginDataDirectory);
-            var gameId = GetOption(context.Options, "game", "game-id", "gameId");
+            var gameId = GetOption(context.Options, "game", "game-id", "gameId", "g");
             if (!string.IsNullOrWhiteSpace(gameId))
             {
-                configuration.SelectGame(gameId);
+                configuration.SelectGame(ResolveGameId(gameId));
             }
 
             var service = new ParadoxGameLauncherService(configuration);
@@ -71,15 +71,23 @@ public sealed class ParadoxGameLauncherPlugin : IShadowCommandPlugin
             }
 
             var missingModIds = FindMissingEnabledModIds(playset, mods);
-            if (missingModIds.Count > 0 && !HasFlag(context.Options, "allow-missing-mods"))
+            var allowMissingMods = HasFlag(context.Options, "allow-missing-mods")
+                                   || HasFlag(context.Options, "allowmissingmods");
+            if (missingModIds.Count > 0 && !allowMissingMods)
             {
                 return ShadowCommandResult.Failure(
                     ParadoxGameLauncherStrings.Format("Paradox.Command.MissingMods", string.Join(", ", missingModIds.Take(8))));
             }
 
+            var extraArguments = new List<string>();
+            if (HasFlag(context.Options, "debug"))
+            {
+                extraArguments.Add("-debug");
+            }
+
             var dlcs = service.DiscoverDlcs();
             service.ApplyPlayset(playset, mods, ApplyDlcSelection(playset, dlcs));
-            var process = service.StartGame();
+            var process = service.StartGame(extraArguments);
             configuration.SelectedPlaysetId = playset.Id;
             configuration.Save();
 
@@ -101,7 +109,7 @@ public sealed class ParadoxGameLauncherPlugin : IShadowCommandPlugin
         ParadoxGameLauncherConfiguration configuration,
         IReadOnlyList<Playset> playsets)
     {
-        var playsetId = GetOption(options, "playset-id", "playsetId", "playset");
+        var playsetId = GetOption(options, "playset-id", "playsetId", "playset", "p");
         if (!string.IsNullOrWhiteSpace(playsetId))
         {
             return playsets.FirstOrDefault(playset =>
@@ -135,6 +143,42 @@ public sealed class ParadoxGameLauncherPlugin : IShadowCommandPlugin
             .ToArray();
     }
 
+    private static string ResolveGameId(string value)
+    {
+        var trimmed = value.Trim();
+        var byId = ParadoxGameCatalog.Games.FirstOrDefault(game =>
+            string.Equals(game.Id, trimmed, StringComparison.OrdinalIgnoreCase));
+        if (byId is not null)
+        {
+            return byId.Id;
+        }
+
+        var byName = ParadoxGameCatalog.Games.FirstOrDefault(game =>
+            string.Equals(game.DisplayName, trimmed, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(game.DocumentsFolderName, trimmed, StringComparison.OrdinalIgnoreCase)
+            || game.SteamFolderNames.Any(folder => string.Equals(folder.TrimEnd('/'), trimmed, StringComparison.OrdinalIgnoreCase)));
+        if (byName is not null)
+        {
+            return byName.Id;
+        }
+
+        var compact = Compact(trimmed);
+        var byCompact = ParadoxGameCatalog.Games.FirstOrDefault(game =>
+            Compact(game.Id) == compact
+            || Compact(game.DisplayName) == compact
+            || Compact(game.DocumentsFolderName) == compact
+            || game.SteamFolderNames.Any(folder => Compact(folder) == compact));
+        return byCompact?.Id ?? trimmed;
+    }
+
+    private static string Compact(string value)
+    {
+        return new string(value
+            .Where(char.IsLetterOrDigit)
+            .Select(char.ToLowerInvariant)
+            .ToArray());
+    }
+
     private static string GetOption(IReadOnlyDictionary<string, string> options, params string[] names)
     {
         foreach (var name in names)
@@ -157,3 +201,4 @@ public sealed class ParadoxGameLauncherPlugin : IShadowCommandPlugin
                    || value.Equals("yes", StringComparison.OrdinalIgnoreCase));
     }
 }
+

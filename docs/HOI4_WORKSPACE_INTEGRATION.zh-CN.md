@@ -1,8 +1,8 @@
 # HOI4 工作区播放集集成
 
-> 注意：旧版 `Shadow.Hoi4Launcher` 与 `hoi4.launch` 已移除。
-> 请改用 `Shadow.ParadoxGameLauncher` 与 `paradox.launch --game hoi4`。
-> HOI4 工作区默认路径现为：`%AppData%\Posdaca\Hearts of Iron IV\`。
+> 注意：旧版 `Shadow.Hoi4Launcher` 与 `hoi4.launch` 已移除。  
+> 请改用 `Shadow.ParadoxGameLauncher` 与 `shadow PDXGameLauncher hoi4 ...`。  
+> HOI4 工作区默认路径现为：`%AppData%\Posdaca\Hearts of Iron IV\`。  
 > 旧路径 `%AppData%\Posdaca\Hoi4Workspace\` 仅作为迁移来源保留兼容。
 
 本文档说明外部项目如何通过 Shadow 的共享 HOI4 工作区读写播放集，并通过 Shadow 启动当前播放集。
@@ -143,13 +143,13 @@ Shadow 刷新 Mod 列表时会写入：
 Shadow 提供命令行接口，外部项目可以通过它应用播放集并启动 HOI4。
 
 ```powershell
-Shadow.exe --shadow-command paradox.launch --game hoi4 --playset-id "oiia:my-project"
+shadow PDXGameLauncher hoi4 -playset "oiia:my-project"
 ```
 
-如果不传 `--playset-id`，Shadow 会使用当前选中的播放集：
+如果不传 `-playset`，Shadow 会使用当前选中的播放集：
 
 ```powershell
-Shadow.exe --shadow-command paradox.launch --game hoi4
+shadow PDXGameLauncher hoi4
 ```
 
 命令执行流程：
@@ -166,7 +166,7 @@ Shadow.exe --shadow-command paradox.launch --game hoi4
 如果播放集里有 Shadow 当前未发现的启用 Mod，命令默认失败并返回非 0 exit code。调试时可以临时允许缺失 Mod：
 
 ```powershell
-Shadow.exe --shadow-command paradox.launch --game hoi4 --playset-id "oiia:my-project" --allow-missing-mods true
+shadow PDXGameLauncher hoi4 -playset "oiia:my-project" -debug
 ```
 
 ## 外部项目接入流程
@@ -180,7 +180,7 @@ Shadow.exe --shadow-command paradox.launch --game hoi4 --playset-id "oiia:my-pro
 5. 调用 Shadow 命令行启动：
 
 ```powershell
-Shadow.exe --shadow-command paradox.launch --game hoi4 --playset-id "<playset-id>"
+shadow PDXGameLauncher hoi4 -playset "<playset-id>"
 ```
 
 对于 Oiia 这类会创建 HOI4 Mod 项目的工具：
@@ -193,7 +193,7 @@ Shadow.exe --shadow-command paradox.launch --game hoi4 --playset-id "<playset-id
 对于 IDEA / Rider / IntelliJ Platform 插件，可以创建一个运行配置：
 
 - Executable: `Shadow.exe`
-- Arguments: `--shadow-command paradox.launch --game hoi4 --playset-id "oiia:<project-id>"`
+- Arguments: `PDXGameLauncher hoi4 -playset "oiia:<project-id>"`
 - Working directory: Shadow 输出目录，或任意可访问目录
 
 ## 注意事项
@@ -203,3 +203,5 @@ Shadow.exe --shadow-command paradox.launch --game hoi4 --playset-id "<playset-id
 - 本地 Mod 用 `contentPath` 匹配最稳定。
 - 播放集里的 `modIds` 和 `enabledModIds` 建议使用 Shadow 索引里的稳定 `id`。Shadow 也兼容旧 `shadowId`，但外部项目不应依赖旧格式。
 - 外部托管播放集建议设置 `isExternal=true` 和 `can_edit=false`，避免 Shadow 用户编辑后被外部项目下次同步覆盖。
+
+
