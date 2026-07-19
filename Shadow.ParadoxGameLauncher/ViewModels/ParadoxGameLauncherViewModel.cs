@@ -403,19 +403,108 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
         {
             return;
         }
+
         var oldIndex = PlaysetMods.IndexOf(mod);
-        if (oldIndex < 0)
+        if (oldIndex < 0 || PlaysetMods.Count <= 1)
         {
             return;
         }
+
         var boundedTargetIndex = Math.Clamp(targetIndex, 0, PlaysetMods.Count - 1);
         if (oldIndex == boundedTargetIndex)
         {
             return;
         }
-        PlaysetMods.Move(oldIndex, boundedTargetIndex);
+
+        // Rebuild explicit order instead of relying only on Move semantics + filtered projection.
+        var reordered = PlaysetMods.ToList();
+        reordered.RemoveAt(oldIndex);
+        reordered.Insert(boundedTargetIndex, mod);
+
+        PlaysetMods.Clear();
+        foreach (var entry in reordered)
+        {
+            PlaysetMods.Add(entry);
+        }
+
         SelectedPlaysetMod = mod;
+        RebuildFilteredPlaysetMods();
         PersistCurrentPlaysetState();
+        OnSelectionChanged();
+        SetLocalizedStatusText("Paradox.Status.ReorderedMod", mod.Title);
+    }
+
+    public void ReorderPlaysetMod(PlaysetModEntry mod, IReadOnlyList<PlaysetModEntry> orderedVisibleMods)
+    {
+        if (!EnsureSelectedPlaysetCanEdit() || orderedVisibleMods.Count == 0)
+        {
+            return;
+        }
+
+        var newVisibleOrder = orderedVisibleMods.ToList();
+        if (newVisibleOrder.IndexOf(mod) < 0)
+        {
+            return;
+        }
+
+        List<PlaysetModEntry> reordered;
+        if (string.IsNullOrWhiteSpace(PlaysetModSearchText)
+            || FilteredPlaysetMods.Count == PlaysetMods.Count)
+        {
+            // Full list is visible: apply the visible order directly.
+            if (newVisibleOrder.Count != PlaysetMods.Count
+                || newVisibleOrder.Any(item => PlaysetMods.IndexOf(item) < 0))
+            {
+                return;
+            }
+
+            reordered = newVisibleOrder;
+        }
+        else
+        {
+            // Search is active: splice the reordered visible subset back into the full list
+            // while preserving the relative positions of hidden items.
+            var visibleSet = newVisibleOrder.ToHashSet();
+            var queue = new Queue<PlaysetModEntry>(newVisibleOrder);
+            reordered = new List<PlaysetModEntry>(PlaysetMods.Count);
+            foreach (var entry in PlaysetMods)
+            {
+                if (visibleSet.Contains(entry))
+                {
+                    if (queue.Count > 0)
+                    {
+                        reordered.Add(queue.Dequeue());
+                    }
+                }
+                else
+                {
+                    reordered.Add(entry);
+                }
+            }
+
+            while (queue.Count > 0)
+            {
+                reordered.Add(queue.Dequeue());
+            }
+        }
+
+        var unchanged = reordered.Count == PlaysetMods.Count
+                        && reordered.Select((entry, index) => ReferenceEquals(entry, PlaysetMods[index])).All(equal => equal);
+        if (unchanged)
+        {
+            return;
+        }
+
+        PlaysetMods.Clear();
+        foreach (var entry in reordered)
+        {
+            PlaysetMods.Add(entry);
+        }
+
+        SelectedPlaysetMod = mod;
+        RebuildFilteredPlaysetMods();
+        PersistCurrentPlaysetState();
+        OnSelectionChanged();
         SetLocalizedStatusText("Paradox.Status.ReorderedMod", mod.Title);
     }
 
@@ -776,7 +865,9 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
             return;
         }
         PlaysetMods.Move(oldIndex, newIndex);
+        RebuildFilteredPlaysetMods();
         PersistCurrentPlaysetState();
+        OnSelectionChanged();
     }
 
     private void ReloadStoredPlaysets()

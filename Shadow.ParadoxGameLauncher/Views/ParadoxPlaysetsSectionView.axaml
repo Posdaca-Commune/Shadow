@@ -16,7 +16,7 @@
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="ClipToBounds" Value="True"/>
+            <Setter Property="ClipToBounds" Value="False"/>
             <Setter Property="Template">
                 <ControlTemplate>
                     <ContentPresenter Content="{TemplateBinding Content}"
@@ -131,7 +131,7 @@
                             <Setter Property="Background" Value="Transparent"/>
                             <Setter Property="BorderThickness" Value="0"/>
                             <Setter Property="CornerRadius" Value="8"/>
-                            <Setter Property="ClipToBounds" Value="True"/>
+                            <Setter Property="ClipToBounds" Value="False"/>
                             <Setter Property="Template">
                                 <ControlTemplate>
                                     <ContentPresenter Content="{TemplateBinding Content}"
@@ -145,7 +145,7 @@
                     </ListBox.Styles>
                     <ListBox.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <VirtualizingStackPanel />
+                            <StackPanel />
                         </ItemsPanelTemplate>
                     </ListBox.ItemsPanel>
                     <ListBox.ItemTemplate>

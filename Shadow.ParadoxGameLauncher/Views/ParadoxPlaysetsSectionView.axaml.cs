@@ -21,7 +21,7 @@ namespace Shadow.ParadoxGameLauncher.Views;
 
 public partial class ParadoxPlaysetsSectionView : UserControl
 {
-    private readonly record struct PlaysetModCardInfo(Border Card, PlaysetModEntry Mod, double Top);
+    private readonly record struct PlaysetModCardInfo(Border Card, PlaysetModEntry Mod, double Top, double Stride);
 
     private const int DragReorderAnimationMs = 150;
     private Point _dragStartPoint;
@@ -30,6 +30,9 @@ public partial class ParadoxPlaysetsSectionView : UserControl
     private bool _isDraggingMod;
     private double _draggedCardOriginalOpacity = 1;
     private int _draggedCardOriginalZIndex;
+    private Control? _draggedItemContainer;
+    private int _draggedItemContainerOriginalZIndex;
+    private bool _draggedItemContainerOriginalClipToBounds;
     private Transitions? _draggedCardOriginalTransitions;
     private BoxShadows _draggedCardOriginalBoxShadow;
     private TranslateTransform? _draggedCardTransform;
@@ -400,7 +403,15 @@ public partial class ParadoxPlaysetsSectionView : UserControl
             _draggedCardTransform = new TranslateTransform();
             card.Transitions = CreateCardTransitions();
             card.RenderTransform = _draggedCardTransform;
-            card.ZIndex = 100;
+                        card.ZIndex = 100;
+            _draggedItemContainer = card.FindAncestorOfType<ListBoxItem>();
+            if (_draggedItemContainer is not null)
+            {
+                _draggedItemContainerOriginalZIndex = _draggedItemContainer.ZIndex;
+                _draggedItemContainerOriginalClipToBounds = _draggedItemContainer.ClipToBounds;
+                _draggedItemContainer.ClipToBounds = false;
+                _draggedItemContainer.ZIndex = 100;
+            }
             e.Pointer.Capture(card);
         }
         else
@@ -431,7 +442,7 @@ public partial class ParadoxPlaysetsSectionView : UserControl
         }
     }
 
-    private async void PlaysetModCard_OnPointerReleased(object? sender, PointerReleasedEventArgs e)
+    private void PlaysetModCard_OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
         e.Pointer.Capture(null);
         if (!_isDraggingMod
@@ -441,13 +452,41 @@ public partial class ParadoxPlaysetsSectionView : UserControl
             ResetDragState();
             return;
         }
+
         PlaysetModEntry draggedMod = _draggedMod;
-        int targetIndex = _previewInsertIndex;
+        var orderedVisibleMods = BuildReorderedVisibleMods(draggedMod, _previewInsertIndex);
         e.Handled = true;
-        await ResetDragStateWithAnimationAsync(() =>
+
+        // Commit order immediately. Rebuilding the bound collection recreates containers,
+        // so skip the old drop animation and just clear drag visuals.
+        if (orderedVisibleMods.Count > 0)
         {
-            viewModel.MovePlaysetMod(draggedMod, ResolvePlaysetMoveTargetIndex(viewModel, draggedMod, targetIndex));
-        });
+            viewModel.ReorderPlaysetMod(draggedMod, orderedVisibleMods);
+        }
+
+        ResetDragState();
+    }
+
+    private IReadOnlyList<PlaysetModEntry> BuildReorderedVisibleMods(PlaysetModEntry draggedMod, int insertIndex)
+    {
+        var remaining = _dragStartCards
+            .Where(item => !ReferenceEquals(item.Mod, draggedMod))
+            .Select(item => item.Mod)
+            .ToList();
+
+        if (remaining.Count == 0 && _dragStartCards.Count == 1)
+        {
+            return [draggedMod];
+        }
+
+        if (remaining.Count == 0)
+        {
+            return Array.Empty<PlaysetModEntry>();
+        }
+
+        var boundedInsertIndex = Math.Clamp(insertIndex, 0, remaining.Count);
+        remaining.Insert(boundedInsertIndex, draggedMod);
+        return remaining;
     }
 
     private void UpdateDragPreview(PointerEventArgs e)
@@ -465,14 +504,15 @@ public partial class ParadoxPlaysetsSectionView : UserControl
         int insertIndex = cards.Count;
         for (int index = 0; index < cards.Count; index++)
         {
-            double centerY = cards[index].Top + cards[index].Card.Bounds.Height / 2.0;
+            double centerY = cards[index].Top + cards[index].Stride / 2.0;
             if (pointerY < centerY)
             {
                 insertIndex = index;
                 break;
             }
         }
-        _previewInsertIndex = Math.Clamp(insertIndex, 0, GetCurrentPlaysetCount() - 1);
+        // insertIndex is the gap among the remaining cards (0..cards.Count).
+        _previewInsertIndex = Math.Clamp(insertIndex, 0, cards.Count);
         ApplyDisplacedCardTransforms(cards, _previewInsertIndex);
         UpdateInsertIndicator(cards, insertIndex);
     }
@@ -483,7 +523,7 @@ public partial class ParadoxPlaysetsSectionView : UserControl
         {
             return;
         }
-        double shift = _draggedCard.Bounds.Height + _draggedCard.Margin.Bottom + _draggedCard.Margin.Top;
+        double shift = GetDraggedCardStride();
         for (int compactIndex = 0; compactIndex < cards.Count; compactIndex++)
         {
             PlaysetModCardInfo item = cards[compactIndex];
@@ -491,14 +531,20 @@ public partial class ParadoxPlaysetsSectionView : UserControl
             double targetOffset = 0;
             if (insertIndex < _draggedStartIndex)
             {
+                // Moving upward: open a gap at insertIndex by shifting the middle block down.
                 if (originalIndex >= insertIndex && originalIndex < _draggedStartIndex)
                 {
                     targetOffset = shift;
                 }
             }
-            else if (insertIndex > _draggedStartIndex && originalIndex > _draggedStartIndex && originalIndex <= insertIndex)
+            else if (insertIndex > _draggedStartIndex)
             {
-                targetOffset = 0.0 - shift;
+                // Moving downward: insertIndex is a gap among remaining cards, which equals the
+                // final full-list index of the dragged card after drop.
+                if (originalIndex > _draggedStartIndex && originalIndex <= insertIndex)
+                {
+                    targetOffset = 0.0 - shift;
+                }
             }
             SetDisplacedCardOffset(item.Card, targetOffset);
         }
@@ -536,13 +582,15 @@ public partial class ParadoxPlaysetsSectionView : UserControl
             else if (compactInsertIndex >= cards.Count)
             {
                 PlaysetModCardInfo last = cards[cards.Count - 1];
-                targetY = last.Top + last.Card.Bounds.Height + last.Card.Margin.Bottom / 2.0;
+                // Place the indicator in the middle of the trailing item gap.
+                targetY = last.Top + last.Stride - 4.0;
             }
             else
             {
                 PlaysetModCardInfo previous = cards[compactInsertIndex - 1];
                 PlaysetModCardInfo next = cards[compactInsertIndex];
-                targetY = (previous.Top + previous.Card.Bounds.Height + next.Top) / 2.0 - 1.5;
+                // Midpoint of the real gap between item slots (includes ListBoxItem margin).
+                targetY = (previous.Top + previous.Stride + next.Top) / 2.0 - 1.5;
             }
         }
         Point? point = this.TranslatePoint(new Point(0.0, targetY), PlaysetDragSurface);
@@ -573,7 +621,7 @@ public partial class ParadoxPlaysetsSectionView : UserControl
 
     private List<PlaysetModCardInfo> GetOrderedPlaysetModCards()
     {
-        return PlaysetModsList.GetVisualDescendants()
+        var cards = PlaysetModsList.GetVisualDescendants()
             .OfType<Border>()
             .Where(IsPlaysetModCard)
             .Select(card =>
@@ -587,12 +635,63 @@ public partial class ParadoxPlaysetsSectionView : UserControl
                 {
                     return null;
                 }
-                return new PlaysetModCardInfo(card, mod, top);
+
+                // Prefer ListBoxItem height+margin so the 8px item spacing is included.
+                double stride = GetCardStride(card);
+                return new PlaysetModCardInfo(card, mod, top, stride);
             })
             .Where(item => item is not null)
             .Select(item => item!.Value)
             .OrderBy(item => item.Top)
             .ToList();
+
+        // Refine stride from actual adjacent tops when available (most accurate).
+        for (var index = 0; index < cards.Count - 1; index++)
+        {
+            var measured = cards[index + 1].Top - cards[index].Top;
+            if (measured > 0.5)
+            {
+                cards[index] = cards[index] with { Stride = measured };
+            }
+        }
+
+        if (cards.Count >= 2)
+        {
+            cards[^1] = cards[^1] with { Stride = cards[^2].Stride };
+        }
+
+        return cards;
+    }
+
+
+    private double GetDraggedCardStride()
+    {
+        if (_draggedMod is not null)
+        {
+            var start = _dragStartCards.Find(item => ReferenceEquals(item.Mod, _draggedMod));
+            if (start.Stride > 0.5)
+            {
+                return start.Stride;
+            }
+        }
+
+        if (_draggedCard is not null)
+        {
+            return GetCardStride(_draggedCard);
+        }
+
+        return 0;
+    }
+
+    private static double GetCardStride(Border card)
+    {
+        if (card.FindAncestorOfType<ListBoxItem>() is { } item)
+        {
+            var height = item.Bounds.Height > 0.5 ? item.Bounds.Height : card.Bounds.Height;
+            return height + item.Margin.Top + item.Margin.Bottom;
+        }
+
+        return card.Bounds.Height + card.Margin.Top + card.Margin.Bottom;
     }
 
     private int GetCurrentPlaysetIndex(PlaysetModEntry mod)
@@ -715,7 +814,19 @@ public partial class ParadoxPlaysetsSectionView : UserControl
         PlaysetInsertIndicator.Opacity = 0;
     }
 
-    private static bool IsPlaysetModCard(Border border)
+    
+    private void RestoreDraggedItemContainer()
+    {
+        if (_draggedItemContainer is null)
+        {
+            return;
+        }
+
+        _draggedItemContainer.ZIndex = _draggedItemContainerOriginalZIndex;
+        _draggedItemContainer.ClipToBounds = _draggedItemContainerOriginalClipToBounds;
+        _draggedItemContainer = null;
+    }
+private static bool IsPlaysetModCard(Border border)
     {
         return border.Tag is PlaysetModEntry;
     }
@@ -730,6 +841,7 @@ public partial class ParadoxPlaysetsSectionView : UserControl
             _draggedCard.BoxShadow = _draggedCardOriginalBoxShadow;
             _draggedCard.Transitions = _draggedCardOriginalTransitions;
         }
+        RestoreDraggedItemContainer();
         ClearDragPreview();
         ClearDragFields();
     }
@@ -745,6 +857,9 @@ public partial class ParadoxPlaysetsSectionView : UserControl
         BoxShadows draggedCardOriginalBoxShadow = _draggedCardOriginalBoxShadow;
         List<KeyValuePair<Border, TranslateTransform>> displacedTransforms = _displacedCardTransforms.ToList();
         int insertIndicatorVersion = _insertIndicatorAnimationVersion + 1;
+        Control? draggedItemContainer = _draggedItemContainer;
+        int draggedItemContainerOriginalZIndex = _draggedItemContainerOriginalZIndex;
+        bool draggedItemContainerOriginalClipToBounds = _draggedItemContainerOriginalClipToBounds;
         _displacedCardTransforms.Clear();
         ClearDragFields();
         if (draggedCard != null)
@@ -778,6 +893,11 @@ public partial class ParadoxPlaysetsSectionView : UserControl
             draggedCard.RenderTransform = null;
             draggedCard.Transitions = draggedCardOriginalTransitions;
         }
+        if (draggedItemContainer is not null)
+        {
+            draggedItemContainer.ZIndex = draggedItemContainerOriginalZIndex;
+            draggedItemContainer.ClipToBounds = draggedItemContainerOriginalClipToBounds;
+        }
     }
 
     private double GetDraggedCardDropYOffset()
@@ -791,8 +911,33 @@ public partial class ParadoxPlaysetsSectionView : UserControl
         {
             return 0;
         }
-        int targetIndex = Math.Clamp(_previewInsertIndex, 0, _dragStartCards.Count - 1);
-        return _dragStartCards[targetIndex].Top - _dragStartCards[startIndex].Top;
+        // _previewInsertIndex is the gap among remaining cards. Map it back to a stable
+        // visual target using the pre-drag card tops.
+        var remaining = _dragStartCards
+            .Select((item, index) => (item, index))
+            .Where(pair => pair.index != startIndex)
+            .Select(pair => pair.item)
+            .ToList();
+        double targetTop;
+        if (remaining.Count == 0)
+        {
+            targetTop = _dragStartCards[startIndex].Top;
+        }
+        else if (_previewInsertIndex <= 0)
+        {
+            targetTop = remaining[0].Top;
+        }
+        else if (_previewInsertIndex >= remaining.Count)
+        {
+            var last = remaining[^1];
+            targetTop = last.Top + last.Stride;
+        }
+        else
+        {
+            targetTop = remaining[_previewInsertIndex].Top;
+        }
+
+        return targetTop - _dragStartCards[startIndex].Top;
     }
 
     private void ClearDragFields()
@@ -804,6 +949,7 @@ public partial class ParadoxPlaysetsSectionView : UserControl
         _draggedStartIndex = -1;
         _previewInsertIndex = -1;
         _draggedCardOriginalTransitions = null;
+        _draggedItemContainer = null;
         _dragStartCards.Clear();
     }
 
