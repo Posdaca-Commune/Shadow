@@ -6,8 +6,7 @@
              xmlns:vm="using:Shadow.ParadoxGameLauncher.ViewModels"
              x:Class="Shadow.ParadoxGameLauncher.Views.ParadoxHomeSectionView"
              x:DataType="vm:ParadoxGameLauncherViewModel">
-    <ScrollViewer
-                  VerticalScrollBarVisibility="Auto"
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
                   HorizontalScrollBarVisibility="Disabled">
         <StackPanel Spacing="14"
                     MaxWidth="760">

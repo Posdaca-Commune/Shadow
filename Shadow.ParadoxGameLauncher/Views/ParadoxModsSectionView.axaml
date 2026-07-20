@@ -7,8 +7,7 @@
              x:Class="Shadow.ParadoxGameLauncher.Views.ParadoxModsSectionView"
              x:Name="ModsSectionRoot"
              x:DataType="vm:ParadoxGameLauncherViewModel">
-    <Grid
-          RowDefinitions="Auto,*"
+    <Grid RowDefinitions="Auto,*"
           RowSpacing="12">
         <ui:FASettingsExpander Header="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Mods.Content.Header}"
                                Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Mods.Content.Description}">

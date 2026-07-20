@@ -162,13 +162,43 @@ public sealed class ParadoxGameLauncherService
     {
         var modList = mods.ToArray();
         var dlcList = dlcs.ToArray();
-        var enabledModIds = playset.EnabledModIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var enabledMods = modList
-            .Where(mod => ParadoxModIdentity.ContainsModReference(enabledModIds, mod))
-            .ToArray();
+        // Preserve playset order from EnabledModIds (or ModIds fallback), matching the official launcher.
+        var orderedEnabledIds = (playset.EnabledModIds.Count > 0
+                ? playset.EnabledModIds
+                : playset.ModIds)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var remainingMods = modList.ToList();
+        var enabledMods = new List<ModEntry>();
+        foreach (var enabledId in orderedEnabledIds)
+        {
+            var index = remainingMods.FindIndex(mod =>
+                ParadoxModIdentity.ContainsModReference(
+                    new HashSet<string>(StringComparer.OrdinalIgnoreCase) { enabledId },
+                    mod));
+            if (index < 0)
+            {
+                continue;
+            }
+
+            enabledMods.Add(remainingMods[index]);
+            remainingMods.RemoveAt(index);
+        }
+
+        // Keep any still-selected mods that were not listed in EnabledModIds (legacy playsets).
+        foreach (var mod in remainingMods.Where(mod =>
+                     ParadoxModIdentity.ContainsModReference(
+                         orderedEnabledIds.ToHashSet(StringComparer.OrdinalIgnoreCase),
+                         mod)))
+        {
+            enabledMods.Add(mod);
+        }
 
         var enabledModPaths = enabledMods
             .Select(EnsureLauncherModDescriptor)
+            .Where(path => !string.IsNullOrWhiteSpace(path))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
@@ -471,21 +501,60 @@ public sealed class ParadoxGameLauncherService
     {
         var localModDirectory = Path.Combine(GameUserDirectory, "mod");
 
+        // Official Paradox launcher only references descriptors under Documents/.../mod/.
         if (TryGetLocalModLauncherPath(mod.DescriptorPath, localModDirectory, out var localLauncherPath))
         {
+            // Only auto-heal generated/official ugc_*.mod stubs; never rewrite hand-authored local .mod files.
+            var localFileName = Path.GetFileName(mod.DescriptorPath);
+            if (localFileName.StartsWith("ugc_", StringComparison.OrdinalIgnoreCase)
+                && ShouldRefreshLocalLauncherDescriptor(mod, Path.Combine(localModDirectory, localFileName)))
+            {
+                WriteLauncherModDescriptor(Path.Combine(localModDirectory, localFileName), mod);
+            }
+
             return localLauncherPath;
         }
 
         Directory.CreateDirectory(localModDirectory);
-        var descriptorPath = Path.Combine(localModDirectory,
-            GetGeneratedDescriptorFileName(mod.DescriptorPath, mod.RemoteFileId));
+        var descriptorFileName = GetGeneratedDescriptorFileName(mod.DescriptorPath, mod.RemoteFileId);
+        var descriptorPath = Path.Combine(localModDirectory, descriptorFileName);
+        var launcherPath = $"mod/{descriptorFileName}";
+
+        // Always refresh generated stubs from the full source descriptor.
+        // Skipping rewrite would permanently keep stripped ugc_*.mod files missing replace_path.
+        WriteLauncherModDescriptor(descriptorPath, mod);
+        return launcherPath;
+    }
+
+    private void WriteLauncherModDescriptor(string descriptorPath, ModEntry mod)
+    {
         var contentPath = ResolveModContentPath(mod);
         var contentKey = File.Exists(contentPath) ? "archive" : "path";
+        var formattedContentPath = FormatClausewitzPath(contentPath);
+
+        // Official launcher copies workshop descriptor.mod into ugc_<id>.mod and only rewrites path/archive.
+        // Stripping replace_path / dependencies / tags breaks large total-conversion mods.
+        var sourceDescriptorPath = ResolveSourceDescriptorForLauncher(mod);
+        if (!string.IsNullOrWhiteSpace(sourceDescriptorPath) && File.Exists(sourceDescriptorPath))
+        {
+            var rewritten = RewriteDescriptorWithContentPath(
+                File.ReadAllText(sourceDescriptorPath),
+                contentKey,
+                formattedContentPath);
+            File.WriteAllText(descriptorPath, rewritten);
+            return;
+        }
+
         var lines = new List<string>
         {
             $"name=\"{EscapeClausewitzString(mod.Title)}\"",
-            $"{contentKey}=\"{EscapeClausewitzString(contentPath)}\"",
+            $"{contentKey}=\"{EscapeClausewitzString(formattedContentPath)}\"",
         };
+
+        if (!string.IsNullOrWhiteSpace(mod.Version))
+        {
+            lines.Add($"supported_version=\"{EscapeClausewitzString(mod.Version)}\"");
+        }
 
         if (!string.IsNullOrWhiteSpace(mod.RemoteFileId))
         {
@@ -495,8 +564,152 @@ public sealed class ParadoxGameLauncherService
         File.WriteAllText(
             descriptorPath,
             string.Join(Environment.NewLine, lines.Concat([string.Empty])));
+    }
 
-        return $"mod/{Path.GetFileName(descriptorPath)}";
+    private static string? ResolveSourceDescriptorForLauncher(ModEntry mod)
+    {
+        if (!string.IsNullOrWhiteSpace(mod.ContentPath) && Directory.Exists(mod.ContentPath))
+        {
+            var nested = Path.Combine(mod.ContentPath, "descriptor.mod");
+            if (File.Exists(nested))
+            {
+                return nested;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(mod.DescriptorPath) && File.Exists(mod.DescriptorPath))
+        {
+            if (string.Equals(Path.GetFileName(mod.DescriptorPath), "descriptor.mod", StringComparison.OrdinalIgnoreCase))
+            {
+                return mod.DescriptorPath;
+            }
+
+            var sibling = Path.Combine(Path.GetDirectoryName(mod.DescriptorPath) ?? string.Empty, "descriptor.mod");
+            if (File.Exists(sibling))
+            {
+                return sibling;
+            }
+
+            return mod.DescriptorPath;
+        }
+
+        return null;
+    }
+
+
+    private static string RewriteDescriptorWithContentPath(string sourceText, string contentKey, string formattedContentPath)
+    {
+        var sourceLines = sourceText
+            .Replace("\r\n", "\n")
+            .Replace('\r', '\n')
+            .Split('\n');
+
+        var lines = new List<string>();
+        var wroteContent = false;
+
+        foreach (var sourceLine in sourceLines)
+        {
+            var trimmed = sourceLine.TrimStart();
+            if (trimmed.StartsWith("path=", StringComparison.OrdinalIgnoreCase)
+                || trimmed.StartsWith("archive=", StringComparison.OrdinalIgnoreCase))
+            {
+                if (wroteContent)
+                {
+                    continue;
+                }
+
+                lines.Add($"{contentKey}=\"{EscapeClausewitzString(formattedContentPath)}\"");
+                wroteContent = true;
+                continue;
+            }
+
+            lines.Add(sourceLine);
+        }
+
+        // Workshop descriptor.mod often omits path; official ugc stubs always include it.
+        if (!wroteContent)
+        {
+            var nameIndex = lines.FindIndex(line =>
+                line.TrimStart().StartsWith("name=", StringComparison.OrdinalIgnoreCase));
+            var insertAt = nameIndex >= 0 ? nameIndex + 1 : lines.Count;
+            lines.Insert(insertAt, $"{contentKey}=\"{EscapeClausewitzString(formattedContentPath)}\"");
+        }
+
+        return string.Join("\n", lines).TrimEnd('\n', '\r') + "\n";
+    }
+
+    private static bool ShouldRefreshLocalLauncherDescriptor(ModEntry mod, string localDescriptorPath)
+    {
+        if (!File.Exists(localDescriptorPath))
+        {
+            return false;
+        }
+
+        var sourcePath = ResolveSourceDescriptorForLauncher(mod);
+        if (string.IsNullOrWhiteSpace(sourcePath)
+            || !File.Exists(sourcePath)
+            || string.Equals(Path.GetFullPath(sourcePath), Path.GetFullPath(localDescriptorPath), StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        try
+        {
+            var localText = File.ReadAllText(localDescriptorPath);
+            var sourceText = File.ReadAllText(sourcePath);
+            var localReplaceCount = CountOccurrences(localText, "replace_path=");
+            var sourceReplaceCount = CountOccurrences(sourceText, "replace_path=");
+            if (sourceReplaceCount > localReplaceCount)
+            {
+                return true;
+            }
+
+            var localHasDependencies = localText.Contains("dependencies=", StringComparison.OrdinalIgnoreCase);
+            var sourceHasDependencies = sourceText.Contains("dependencies=", StringComparison.OrdinalIgnoreCase);
+            return sourceHasDependencies && !localHasDependencies;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static int CountOccurrences(string text, string value)
+    {
+        if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(value))
+        {
+            return 0;
+        }
+
+        var count = 0;
+        var index = 0;
+        while ((index = text.IndexOf(value, index, StringComparison.OrdinalIgnoreCase)) >= 0)
+        {
+            count++;
+            index += value.Length;
+        }
+
+        return count;
+    }
+
+    private static string FormatClausewitzPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return string.Empty;
+        }
+
+        try
+        {
+            path = Path.GetFullPath(path);
+        }
+        catch
+        {
+            // Keep the original string if path normalization fails.
+        }
+
+        // Official Paradox stubs use forward slashes: C:/Program Files/Steam/...
+        return path.Replace('\\', '/');
     }
 
     private static bool TryGetLocalModLauncherPath(string descriptorPath, string localModDirectory,
@@ -876,7 +1089,7 @@ public sealed class ParadoxGameLauncherService
         var lines = new List<string>
         {
             $"name=\"{EscapeClausewitzString(title)}\"",
-            $"path=\"{EscapeClausewitzString(contentDirectory.Replace('\\', '/'))}\"",
+            $"path=\"{EscapeClausewitzString(FormatClausewitzPath(contentDirectory))}\"",
         };
 
         if (!string.IsNullOrWhiteSpace(version))

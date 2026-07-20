@@ -6,8 +6,7 @@
              xmlns:vm="using:Shadow.ParadoxGameLauncher.ViewModels"
              x:Class="Shadow.ParadoxGameLauncher.Views.ParadoxDlcsSectionView"
              x:DataType="vm:ParadoxGameLauncherViewModel">
-    <Grid
-          RowDefinitions="Auto,*"
+    <Grid RowDefinitions="Auto,*"
           RowSpacing="12">
         <ui:FASettingsExpander Header="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Dlcs.Loading.Header}"
                                Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Dlcs.Loading.Description}">

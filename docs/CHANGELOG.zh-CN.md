@@ -1,5 +1,13 @@
 # 变更日志
 
+## Unreleased
+
+### 修复
+
+- 对齐官方启动器的 mod 描述符生成逻辑：生成 `ugc_*.mod` 时保留完整 `replace_path` / `dependencies` / `tags` 等元数据，不再写成仅含 name/path/remote_file_id 的精简 stub（会导致大型整合模组在官方启动器可进、Shadow 不可进）。
+- `dlc_load.json` 的 `enabled_mods` 按 playset 顺序写入，与官方启动器一致。
+- 路径写入改为官方常用的 `C:/...` 正斜杠格式；对已损坏的 `ugc_*.mod` 会在启动前自动从 Workshop 的 `descriptor.mod` 修复。
+
 ## 1.0.0-beta.1 - 2026-06-17
 
 ### 新增

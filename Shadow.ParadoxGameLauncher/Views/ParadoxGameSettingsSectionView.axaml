@@ -11,7 +11,7 @@
                       HorizontalScrollBarVisibility="Disabled">
             <StackPanel x:DataType="vm:ParadoxGameSettingsViewModel"
                         Spacing="12"
-                    MaxWidth="760">
+                        MaxWidth="760">
             <ui:FASettingsExpander Header="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.LaunchPaths.Header}"
                                    Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.GameSettings.LaunchPaths.Description}">
                 <ui:FASettingsExpander.IconSource>

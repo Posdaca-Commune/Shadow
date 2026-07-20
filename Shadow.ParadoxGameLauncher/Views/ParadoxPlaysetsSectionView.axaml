@@ -28,8 +28,7 @@
             </Setter>
         </ControlTheme>
     </UserControl.Resources>
-    <Grid
-          RowDefinitions="Auto,Auto,Auto,*"
+    <Grid RowDefinitions="Auto,Auto,Auto,*"
           RowSpacing="12">
         <Grid ColumnDefinitions="Auto,*,Auto"
               ColumnSpacing="8"
