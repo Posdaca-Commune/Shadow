@@ -1,9 +1,8 @@
 using System;
 using System.Globalization;
 using Avalonia.Data.Converters;
-using Shadow.Abstractions;
 
-namespace Shadow.Localization;
+namespace Shadow.Abstractions;
 
 public sealed class LocStringConverter : IValueConverter
 {

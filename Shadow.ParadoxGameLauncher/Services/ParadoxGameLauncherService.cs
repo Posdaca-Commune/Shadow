@@ -1253,11 +1253,9 @@ public sealed class ParadoxGameLauncherService
 
             foreach (var alias in aliasColumns.Select(column => ReadString(reader, column)))
             {
-                if (!string.IsNullOrWhiteSpace(alias))
-                {
-                    mods[id] = alias;
-                    break;
-                }
+                if (string.IsNullOrWhiteSpace(alias)) continue;
+                mods[id] = alias;
+                break;
             }
         }
 
@@ -1320,12 +1318,7 @@ public sealed class ParadoxGameLauncherService
         IReadOnlyDictionary<string, string> launcherModMap,
         IReadOnlyDictionary<string, string> knownMods)
     {
-        if (knownMods.TryGetValue(launcherModId, out var knownModId))
-        {
-            return knownModId;
-        }
-
-        if (launcherModMap.TryGetValue(launcherModId, out var alias)
+        if (knownMods.TryGetValue(launcherModId, out var knownModId) || launcherModMap.TryGetValue(launcherModId, out var alias)
             && knownMods.TryGetValue(alias, out knownModId))
         {
             return knownModId;

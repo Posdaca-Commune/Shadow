@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Collections.Generic;
 using System.Linq;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media;
 using Avalonia.Styling;
@@ -15,12 +16,14 @@ using Shadow.Models;
 using Shadow.Abstractions;
 using Shadow.Plugins;
 using Shadow.Services;
+using Shadow.Views;
 
 namespace Shadow.ViewModels;
 
 public partial class SettingsViewModel : ViewModelBase
 {
     private readonly ApplicationSettings _applicationSettings;
+    private bool _isLoadingPersonalization;
 
     public SettingsViewModel()
         : this([], [], ApplicationSettingsStore.Load())
@@ -72,7 +75,22 @@ public partial class SettingsViewModel : ViewModelBase
             loadedPlugins
                 .Select(plugin => new PluginInfoViewModel(plugin))
                 .OrderBy(plugin => plugin.DisplayName));
+
+        _isLoadingPersonalization = true;
+        ApplicationSettingsStore.ApplyToPersonalization(_applicationSettings, Personalization);
         SelectedLanguageIndex = ResolveLanguageIndex(_applicationSettings.Language);
+        SelectedThemeModeIndex = Array.FindIndex(ThemeModes, option => option.Value == Personalization.ThemeMode);
+        if (SelectedThemeModeIndex < 0)
+        {
+            SelectedThemeModeIndex = 0;
+        }
+
+        SelectedBackdropIndex = Array.FindIndex(BackdropKinds, option => option.Value == Personalization.Backdrop);
+        if (SelectedBackdropIndex < 0)
+        {
+            SelectedBackdropIndex = 0;
+        }
+
         SelectedSection = Sections[0];
         SelectedSection.IsSelected = true;
         Personalization.PropertyChanged += Personalization_OnPropertyChanged;
@@ -82,6 +100,7 @@ public partial class SettingsViewModel : ViewModelBase
             OnPropertyChanged(nameof(ThemeModeName));
             OnPropertyChanged(nameof(BackdropName));
         };
+        _isLoadingPersonalization = false;
         ApplyPersonalization();
     }
 
@@ -163,20 +182,33 @@ public partial class SettingsViewModel : ViewModelBase
 
     partial void OnSelectedThemeModeIndexChanged(int value)
     {
+        if (_isLoadingPersonalization || value < 0 || value >= ThemeModes.Length)
+        {
+            return;
+        }
+
         Personalization.ThemeMode = ThemeModes[value].Value;
         OnPropertyChanged(nameof(ThemeModeName));
         ApplyThemeMode();
+        PersistPersonalization();
     }
 
     partial void OnSelectedBackdropIndexChanged(int value)
     {
+        if (_isLoadingPersonalization || value < 0 || value >= BackdropKinds.Length)
+        {
+            return;
+        }
+
         Personalization.Backdrop = BackdropKinds[value].Value;
         OnPropertyChanged(nameof(BackdropName));
+        ApplyBackdrop();
+        PersistPersonalization();
     }
 
     partial void OnSelectedLanguageIndexChanged(int value)
     {
-        if (value < 0 || value >= LanguageOptions.Length)
+        if (_isLoadingPersonalization || value < 0 || value >= LanguageOptions.Length)
         {
             return;
         }
@@ -229,10 +261,34 @@ public partial class SettingsViewModel : ViewModelBase
 
     private void Personalization_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(PersonalizationOptions.UseSystemAccentColor)
-            or nameof(PersonalizationOptions.AccentColor))
+        if (_isLoadingPersonalization)
         {
-            ApplyAccentColor();
+            return;
+        }
+
+        switch (e.PropertyName)
+        {
+            case nameof(PersonalizationOptions.UseSystemAccentColor):
+            case nameof(PersonalizationOptions.AccentColor):
+                ApplyAccentColor();
+                PersistPersonalization();
+                break;
+            case nameof(PersonalizationOptions.ShowCompactSidebar):
+                ApplyCompactSidebar();
+                PersistPersonalization();
+                break;
+            case nameof(PersonalizationOptions.EnableAnimations):
+                ApplyAnimationsPreference();
+                PersistPersonalization();
+                break;
+            case nameof(PersonalizationOptions.ThemeMode):
+                ApplyThemeMode();
+                PersistPersonalization();
+                break;
+            case nameof(PersonalizationOptions.Backdrop):
+                ApplyBackdrop();
+                PersistPersonalization();
+                break;
         }
     }
 
@@ -240,6 +296,9 @@ public partial class SettingsViewModel : ViewModelBase
     {
         ApplyThemeMode();
         ApplyAccentColor();
+        ApplyBackdrop();
+        ApplyCompactSidebar();
+        ApplyAnimationsPreference();
     }
 
     private void ApplyThemeMode()
@@ -288,6 +347,89 @@ public partial class SettingsViewModel : ViewModelBase
             : Personalization.AccentColor;
     }
 
+    private void ApplyBackdrop()
+    {
+        foreach (var window in EnumerateWindows())
+        {
+            if (window is MainWindow mainWindow)
+            {
+                mainWindow.ApplyBackdrop(Personalization.Backdrop);
+            }
+            else
+            {
+                ApplyBackdropToWindow(window, Personalization.Backdrop);
+            }
+        }
+    }
+
+    private void ApplyCompactSidebar()
+    {
+        foreach (var window in EnumerateWindows().OfType<MainWindow>())
+        {
+            window.ApplyCompactSidebar(Personalization.ShowCompactSidebar);
+        }
+    }
+
+    private void ApplyAnimationsPreference()
+    {
+        ShadowUiPreferences.EnableAnimations = Personalization.EnableAnimations;
+        foreach (var window in EnumerateWindows().OfType<MainWindow>())
+        {
+            window.ApplyAnimationsEnabled(Personalization.EnableAnimations);
+        }
+    }
+
+    private void PersistPersonalization()
+    {
+        if (_isLoadingPersonalization)
+        {
+            return;
+        }
+
+        ApplicationSettingsStore.CaptureFromPersonalization(_applicationSettings, Personalization);
+        ApplicationSettingsStore.Save(_applicationSettings);
+    }
+
+    internal static void ApplyBackdropToWindow(Window window, WindowBackdropKind backdrop)
+    {
+        switch (backdrop)
+        {
+            case WindowBackdropKind.Acrylic:
+                window.TransparencyLevelHint =
+                [
+                    WindowTransparencyLevel.AcrylicBlur,
+                    WindowTransparencyLevel.Blur,
+                    WindowTransparencyLevel.Transparent,
+                ];
+                window.Background = Brushes.Transparent;
+                break;
+            case WindowBackdropKind.Solid:
+                window.TransparencyLevelHint = [WindowTransparencyLevel.None];
+                var isLight = window.ActualThemeVariant == ThemeVariant.Light;
+                window.Background = new SolidColorBrush(Color.Parse(isLight ? "#F3F3F3" : "#202020"));
+                break;
+            default:
+                window.TransparencyLevelHint =
+                [
+                    WindowTransparencyLevel.Mica,
+                    WindowTransparencyLevel.AcrylicBlur,
+                    WindowTransparencyLevel.Blur,
+                ];
+                window.Background = Brushes.Transparent;
+                break;
+        }
+    }
+
+    private static IEnumerable<Window> EnumerateWindows()
+    {
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            return desktop.Windows;
+        }
+
+        return [];
+    }
+
     private static FluentAvaloniaTheme? TryGetFluentTheme(Application application)
     {
         return application.Styles.OfType<FluentAvaloniaTheme>().FirstOrDefault();
@@ -302,5 +444,6 @@ public partial class SettingsViewModel : ViewModelBase
         return index < 0 ? 0 : index;
     }
 }
+
 
 

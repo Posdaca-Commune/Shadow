@@ -1,6 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:loc="using:Shadow.ParadoxGameLauncher.Localization"
+             xmlns:loc="using:Shadow.Abstractions"
              xmlns:ui="using:FluentAvalonia.UI.Controls"
              xmlns:models="using:Shadow.ParadoxGameLauncher.Models"
              xmlns:vm="using:Shadow.ParadoxGameLauncher.ViewModels"
@@ -60,4 +60,5 @@
         </ScrollViewer>
     </Grid>
 </UserControl>
+
 

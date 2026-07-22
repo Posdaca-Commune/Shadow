@@ -1,6 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:loc="using:Shadow.Localization"
+             xmlns:loc="using:Shadow.Abstractions"
              xmlns:ui="using:FluentAvalonia.UI.Controls"
              xmlns:vm="using:Shadow.ViewModels"
              x:Class="Shadow.Views.SettingsView"
@@ -270,5 +270,6 @@
         </ScrollViewer>
     </Grid>
 </UserControl>
+
 
 

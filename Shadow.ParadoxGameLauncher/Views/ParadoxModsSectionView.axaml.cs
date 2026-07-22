@@ -1,7 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
-using Avalonia.VisualTree;
 using Shadow.ParadoxGameLauncher.Localization;
 using Shadow.ParadoxGameLauncher.ViewModels;
 

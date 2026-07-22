@@ -3,7 +3,6 @@ using Avalonia.Animation;
 using Avalonia.Animation.Easings;
 using Avalonia.Controls;
 using Avalonia.Styling;
-using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
 using Avalonia.Data;
@@ -109,7 +108,7 @@ public partial class ParadoxPlaysetsSectionView : UserControl
         {
             ItemsSource = viewModel.FilteredAvailableMods,
             ItemTemplate = CreateAvailableModCardTemplate(viewModel),
-            ItemContainerTheme = (ControlTheme)Resources["PlainModCardListItemTheme"],
+            ItemContainerTheme = (ControlTheme)Resources["PlainModCardListItemTheme"]!,
             HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
             Background = Brushes.Transparent,
             BorderThickness = new Thickness(0),
@@ -188,7 +187,7 @@ public partial class ParadoxPlaysetsSectionView : UserControl
         viewModel.AvailableModSearchText = string.Empty;
     }
 
-    private static IDataTemplate CreateAvailableModCardTemplate(ParadoxGameLauncherViewModel viewModel)
+    private static FuncDataTemplate<ModEntry> CreateAvailableModCardTemplate(ParadoxGameLauncherViewModel viewModel)
     {
         return new FuncDataTemplate<ModEntry>((mod, _) =>
         {
@@ -906,7 +905,7 @@ private static bool IsPlaysetModCard(Border border)
         {
             return 0;
         }
-        int startIndex = _dragStartCards.FindIndex(item => item.Mod == _draggedMod);
+        var startIndex = _dragStartCards.FindIndex(item => item.Mod == _draggedMod);
         if (startIndex < 0)
         {
             return 0;

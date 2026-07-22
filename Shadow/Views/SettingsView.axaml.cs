@@ -6,6 +6,7 @@ using Avalonia.Animation;
 using Avalonia.Animation.Easings;
 using Avalonia.Controls;
 using Avalonia.Media;
+using Shadow.Abstractions;
 using Shadow.ViewModels;
 
 namespace Shadow.Views;
@@ -60,7 +61,7 @@ public partial class SettingsView : UserControl
 
     private async void PlaySectionTransition()
     {
-        if (!_isAnimationReady)
+        if (!_isAnimationReady || !ShadowUiPreferences.EnableAnimations)
         {
             return;
         }

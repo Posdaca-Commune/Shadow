@@ -1,6 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:loc="using:Shadow.Localization"
+             xmlns:loc="using:Shadow.Abstractions"
              xmlns:vm="using:Shadow.ViewModels"
              x:Class="Shadow.Views.HomeView"
              x:DataType="vm:HomeViewModel">
@@ -54,4 +54,5 @@
         </Grid>
     </Grid>
 </UserControl>
+
 

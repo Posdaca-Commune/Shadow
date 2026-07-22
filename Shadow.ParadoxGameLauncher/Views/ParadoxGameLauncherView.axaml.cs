@@ -20,7 +20,6 @@ public partial class ParadoxGameLauncherView : UserControl
 
     public ParadoxGameLauncherView()
     {
-        ShadowLocalizer.Instance.PropertyChanged += Localizer_OnPropertyChanged;
         InitializeComponent();
         ConfigureSectionTransitions();
         AttachedToVisualTree += (_, _) =>
@@ -60,7 +59,7 @@ public partial class ParadoxGameLauncherView : UserControl
 
     private async void PlaySectionTransition()
     {
-        if (!_isSectionAnimationReady)
+        if (!_isSectionAnimationReady || !ShadowUiPreferences.EnableAnimations)
         {
             return;
         }
@@ -127,9 +126,5 @@ public partial class ParadoxGameLauncherView : UserControl
         {
             viewModel.PropertyChanged += ViewModel_OnPropertyChanged;
         }
-    }
-
-    private void Localizer_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
     }
 }
