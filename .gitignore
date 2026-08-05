@@ -1,4 +1,4 @@
-# Build output
+﻿# Build output
 [Bb]in/
 [Oo]bj/
 [Dd]ebug/
@@ -57,3 +57,8 @@ Thumbs.db
 
 # Local tooling state
 .codex/
+
+# MSIX signing material (private keys / passwords)
+certs/*.pfx
+certs/*.p12
+certs/*.password.txt

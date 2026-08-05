@@ -122,10 +122,18 @@ dotnet run --project Shadow/Shadow.csproj
 MSIX 包在安装前需要签名。可使用 `-CertificatePath` 或 `-CertificateThumbprint`
 在打包时签名。
 
+先生成本地测试证书：
+
+```powershell
+.\scripts\create-msix-cert.ps1
+```
+
 使用 PFX 证书的示例：
 
 ```powershell
-.\scripts\build-msix.ps1 -Version 1.0.0-beta.1 -CertificatePath .\certs\Shadow.pfx -CertificatePassword (Read-Host -AsSecureString)
+$password = Get-Content .\certs\Shadow.pfx.password.txt | ConvertTo-SecureString -AsPlainText -Force
+.\scripts\build-msix.ps1 -Version 1.0.0-beta.1 -CertificatePath .\certs\Shadow.pfx -CertificatePassword $password
 ```
 
-
+把 `certs/Shadow.cer` 发给测试者，先安装信任证书再安装 MSIX。完整流程见
+`certs/README.md`。

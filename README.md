@@ -1,6 +1,6 @@
-# Shadow
+﻿# Shadow
 
-[简体中文](docs/README.zh-CN.md)
+[绠€浣撲腑鏂嘳(docs/README.zh-CN.md)
 
 Shadow is an Avalonia-based workstation shell for Paradox Interactive tooling.
 The host application loads feature plugins from a `Plugins` directory, while
@@ -131,10 +131,18 @@ The generated package is written to `artifacts/msix/Shadow-1.0.0-beta.1.msix`.
 MSIX packages must be signed before installation. Use `-CertificatePath` or
 `-CertificateThumbprint` to sign during packaging.
 
+To create a local test certificate first:
+
+```powershell
+.\scripts\create-msix-cert.ps1
+```
+
 Example with a PFX certificate:
 
 ```powershell
-.\scripts\build-msix.ps1 -Version 1.0.0-beta.1 -CertificatePath .\certs\Shadow.pfx -CertificatePassword (Read-Host -AsSecureString)
+$password = Get-Content .\certs\Shadow.pfx.password.txt | ConvertTo-SecureString -AsPlainText -Force
+.\scripts\build-msix.ps1 -Version 1.0.0-beta.1 -CertificatePath .\certs\Shadow.pfx -CertificatePassword $password
 ```
 
-
+Share `certs/Shadow.cer` with testers so they can trust the package before
+installing. See `certs/README.md` for the full sideload flow.
