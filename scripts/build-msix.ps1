@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [string]$Configuration = "Release",
     [string]$Runtime = "win-x64",
@@ -49,6 +49,98 @@ function Convert-ToPackageVersion {
     throw "无法从版本号 '$InputVersion' 推导 MSIX 四段数字版本。请用 -PackageVersion 显式指定，例如 1.0.0.0。"
 }
 
+function Get-NuGetSdkBuildToolsRoot {
+    $toolsRoot = Join-Path $repoRoot "artifacts\tools\Microsoft.Windows.SDK.BuildTools"
+    $existing = Get-ChildItem -LiteralPath $toolsRoot -Recurse -Filter "makeappx.exe" -ErrorAction SilentlyContinue |
+        Where-Object { $_.FullName -match "\\bin\\[^\\]+\\x64\\makeappx\.exe$" } |
+        Sort-Object FullName -Descending |
+        Select-Object -First 1
+
+    if ($existing) {
+        return $existing.Directory.FullName
+    }
+
+    Write-Host "未检测到本机 Windows SDK，正在通过 NuGet 获取 Microsoft.Windows.SDK.BuildTools..."
+
+    $dotnet = Get-Command dotnet -ErrorAction SilentlyContinue
+    if (-not $dotnet) {
+        throw "未找到 dotnet。请安装 .NET SDK，或安装 Windows 10/11 SDK 后再打包。"
+    }
+
+    $stageRoot = Join-Path $repoRoot "artifacts\tools\_sdk-buildtools-restore"
+    if (Test-Path -LiteralPath $stageRoot) {
+        Remove-Item -LiteralPath $stageRoot -Recurse -Force
+    }
+
+    New-Item -ItemType Directory -Path $stageRoot -Force | Out-Null
+    $projPath = Join-Path $stageRoot "SdkBuildTools.csproj"
+    $proj = @"
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <DisableImplicitNuGetFallbackFolder>true</DisableImplicitNuGetFallbackFolder>
+    <RestorePackagesPath>$stageRoot\packages</RestorePackagesPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />
+  </ItemGroup>
+</Project>
+"@
+    Set-Content -LiteralPath $projPath -Value $proj -Encoding UTF8
+
+    $packagesPath = Join-Path $stageRoot "packages"
+    $restoreOutput = & $dotnet.Source restore $projPath --packages $packagesPath 2>&1
+    foreach ($line in $restoreOutput) {
+        Write-Host $line
+    }
+    if ($LASTEXITCODE -ne 0) {
+        throw "通过 NuGet 还原 Microsoft.Windows.SDK.BuildTools 失败。"
+    }
+
+    $makeAppx = Get-ChildItem -LiteralPath (Join-Path $stageRoot "packages") -Recurse -Filter "makeappx.exe" -ErrorAction SilentlyContinue |
+        Where-Object { $_.FullName -match "\\bin\\[^\\]+\\x64\\makeappx\.exe$" } |
+        Sort-Object FullName -Descending |
+        Select-Object -First 1
+
+    if (-not $makeAppx) {
+        throw "NuGet 包已还原，但仍未找到 makeappx.exe。"
+    }
+
+    $packageDir = $makeAppx.FullName
+    # climb to the package root (.../microsoft.windows.sdk.buildtools/<version>)
+    while ($packageDir -and ((Split-Path $packageDir -Leaf).ToLowerInvariant() -ne "microsoft.windows.sdk.buildtools")) {
+        $packageDir = Split-Path $packageDir -Parent
+    }
+    if (-not $packageDir) {
+        throw "无法定位 Microsoft.Windows.SDK.BuildTools 包目录。"
+    }
+
+    $versionDir = Get-ChildItem -LiteralPath $packageDir -Directory | Sort-Object Name -Descending | Select-Object -First 1
+    if (-not $versionDir) {
+        throw "Microsoft.Windows.SDK.BuildTools 包目录为空。"
+    }
+
+    if (Test-Path -LiteralPath $toolsRoot) {
+        Remove-Item -LiteralPath $toolsRoot -Recurse -Force
+    }
+
+    New-Item -ItemType Directory -Path (Split-Path $toolsRoot -Parent) -Force | Out-Null
+    Copy-Item -LiteralPath $versionDir.FullName -Destination $toolsRoot -Recurse -Force
+    Remove-Item -LiteralPath $stageRoot -Recurse -Force
+
+    $binDir = Get-ChildItem -LiteralPath $toolsRoot -Recurse -Filter "makeappx.exe" |
+        Where-Object { $_.FullName -match "\\bin\\[^\\]+\\x64\\makeappx\.exe$" } |
+        Sort-Object FullName -Descending |
+        Select-Object -First 1
+
+    if (-not $binDir) {
+        throw "已缓存 SDK BuildTools，但仍未找到 makeappx.exe。"
+    }
+
+    Write-Host "已缓存 SDK BuildTools：$($binDir.Directory.FullName)"
+    return $binDir.Directory.FullName
+}
+
 function Resolve-WindowsSdkTool {
     param(
         [string]$ToolName,
@@ -79,6 +171,12 @@ function Resolve-WindowsSdkTool {
         if ($candidate) {
             return $candidate
         }
+    }
+
+    $nugetBinDir = Get-NuGetSdkBuildToolsRoot
+    $nugetCandidate = Join-Path $nugetBinDir $ToolName
+    if (Test-Path -LiteralPath $nugetCandidate) {
+        return (Resolve-Path -LiteralPath $nugetCandidate).Path
     }
 
     throw "未找到 $ToolName。请安装 Windows 10/11 SDK，或用对应参数显式指定工具路径。"
