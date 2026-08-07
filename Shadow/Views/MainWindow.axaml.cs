@@ -19,7 +19,7 @@ public partial class MainWindow : FAAppWindow
 {
     private const double TitleBarHeight = 48;
     private const double ExpandedPaneLength = 260;
-    private const double CompactPaneLength = 72;
+    private const double CompactPaneLength = 48;
     private const int WindowStateAnimationMs = 120;
     private readonly ScaleTransform _contentSurfaceScale = new(1, 1);
     private bool _isWindowStateAnimationReady;
@@ -47,11 +47,19 @@ public partial class MainWindow : FAAppWindow
 
     public void ApplyCompactSidebar(bool compact)
     {
-        NavigationView.OpenPaneLength = compact ? CompactPaneLength : ExpandedPaneLength;
-        NavigationView.IsPaneOpen = !compact;
-        NavigationView.PaneDisplayMode = compact
-            ? FANavigationViewPaneDisplayMode.LeftCompact
-            : FANavigationViewPaneDisplayMode.Left;
+        NavigationView.CompactPaneLength = CompactPaneLength;
+        NavigationView.OpenPaneLength = ExpandedPaneLength;
+
+        if (compact)
+        {
+            NavigationView.PaneDisplayMode = FANavigationViewPaneDisplayMode.LeftCompact;
+            NavigationView.IsPaneOpen = false;
+        }
+        else
+        {
+            NavigationView.PaneDisplayMode = FANavigationViewPaneDisplayMode.Left;
+            NavigationView.IsPaneOpen = true;
+        }
     }
 
     public void ApplyAnimationsEnabled(bool enabled)
