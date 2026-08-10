@@ -1,4 +1,6 @@
 using System;
+using System.ComponentModel;
+using System.Linq;
 using System.Threading.Tasks;
 using FluentAvalonia.UI.Controls;
 using FluentAvalonia.UI.Windowing;
@@ -36,7 +38,55 @@ public partial class MainWindow : FAAppWindow
             _isWindowStateAnimationReady = true;
             ApplyPersonalizationFromDataContext();
         };
-        DataContextChanged += (_, _) => ApplyPersonalizationFromDataContext();
+        DataContextChanged += (_, _) =>
+        {
+            ApplyPersonalizationFromDataContext();
+            HookDataContextNavigation();
+        };
+    }
+
+    private MainWindowViewModel? _hookedViewModel;
+
+    private void HookDataContextNavigation()
+    {
+        if (_hookedViewModel is not null)
+        {
+            _hookedViewModel.PropertyChanged -= ViewModelOnPropertyChanged;
+            _hookedViewModel = null;
+        }
+
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        _hookedViewModel = viewModel;
+        _hookedViewModel.PropertyChanged += ViewModelOnPropertyChanged;
+        SyncNavigationSelection(viewModel.SelectedPageKey);
+    }
+
+    private void ViewModelOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainWindowViewModel.SelectedPageKey)
+            && sender is MainWindowViewModel viewModel)
+        {
+            SyncNavigationSelection(viewModel.SelectedPageKey);
+        }
+    }
+
+    private void SyncNavigationSelection(string pageKey)
+    {
+        if (NavigationView is null || DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        var match = viewModel.NavigationItems.FirstOrDefault(item => item.Key == pageKey)
+                    ?? viewModel.FooterNavigationItems.FirstOrDefault(item => item.Key == pageKey);
+        if (match is not null && !ReferenceEquals(NavigationView.SelectedItem, match))
+        {
+            NavigationView.SelectedItem = match;
+        }
     }
 
     public void ApplyBackdrop(WindowBackdropKind backdrop)

@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FluentAvalonia.UI.Controls;
@@ -9,7 +9,7 @@ using Shadow.ParadoxGameLauncher.Services;
 
 namespace Shadow.ParadoxGameLauncher.ViewModels;
 
-public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
+public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, IShadowHomeStatusProvider
 {
     private readonly ParadoxGameLauncherConfiguration _configuration;
     private readonly ParadoxGameLauncherService _service;
@@ -180,6 +180,33 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
         OnPropertyChanged(nameof(ActivePlaysetName));
         OnSelectionChanged();
     }
+    public ShadowHomeStatus GetHomeStatus()
+    {
+        var gameName = SelectedGame.DisplayName;
+        var playsetName = ActivePlaysetName;
+        var executableConfigured = !string.IsNullOrWhiteSpace(GameExecutablePath)
+                                   && System.IO.File.Exists(GameExecutablePath);
+        var needsSetup = !executableConfigured;
+        var summary = needsSetup
+            ? ParadoxGameLauncherStrings.Get("Paradox.HomeStatus.NeedsSetup.Summary")
+            : ParadoxGameLauncherStrings.Format("Paradox.HomeStatus.Ready.Summary", gameName, playsetName);
+        var detail = needsSetup
+            ? ParadoxGameLauncherStrings.Get("Paradox.HomeStatus.NeedsSetup.Detail")
+            : ParadoxGameLauncherStrings.Format(
+                "Paradox.HomeStatus.Ready.Detail",
+                EnabledModCount,
+                PlaysetModCount,
+                DisabledDlcCount);
+
+        return new ShadowHomeStatus(
+            Title: ParadoxGameLauncherStrings.Get("Paradox.Nav.Title"),
+            Summary: summary,
+            Detail: detail,
+            NeedsSetup: needsSetup,
+            CanLaunch: executableConfigured && SelectedPlayset is not null,
+            Launch: executableConfigured ? () => LaunchCommand.Execute(null) : null);
+    }
+
 
     [RelayCommand]
     private void Refresh()
@@ -914,3 +941,4 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject
         };
     }
 }
+

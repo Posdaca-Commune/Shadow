@@ -256,6 +256,56 @@
                     </ItemsControl>
                 </StackPanel>
 
+                <StackPanel IsVisible="{Binding IsAboutSelected}"
+                            Spacing="12">
+                    <ui:FASettingsExpander Header="{Binding AboutVersionLabel}"
+                                           Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.About.Description}">
+                        <ui:FASettingsExpander.IconSource>
+                            <ui:FASymbolIconSource Symbol="Help"/>
+                        </ui:FASettingsExpander.IconSource>
+                        <ui:FASettingsExpander.Footer>
+                            <TextBlock Text="{Binding AboutVersionValue}"
+                                       FontWeight="SemiBold"/>
+                        </ui:FASettingsExpander.Footer>
+                    </ui:FASettingsExpander>
+
+                    <ui:FASettingsExpander Header="{Binding AboutAppDataLabel}">
+                        <ui:FASettingsExpander.IconSource>
+                            <ui:FASymbolIconSource Symbol="OpenFile"/>
+                        </ui:FASettingsExpander.IconSource>
+                        <ui:FASettingsExpander.Footer>
+                            <TextBlock Text="{Binding AboutAppDataValue}"
+                                       FontSize="12"
+                                       MaxWidth="460"
+                                       Opacity="0.78"
+                                       TextWrapping="Wrap"/>
+                        </ui:FASettingsExpander.Footer>
+                    </ui:FASettingsExpander>
+
+                    <ui:FASettingsExpander Header="{Binding AboutRepositoryLabel}">
+                        <ui:FASettingsExpander.IconSource>
+                            <ui:FASymbolIconSource Symbol="Globe"/>
+                        </ui:FASettingsExpander.IconSource>
+                        <ui:FASettingsExpander.Footer>
+                            <TextBlock Text="{Binding AboutRepositoryValue}"
+                                       FontSize="12"
+                                       MaxWidth="460"
+                                       Opacity="0.78"
+                                       TextWrapping="Wrap"/>
+                        </ui:FASettingsExpander.Footer>
+                    </ui:FASettingsExpander>
+
+                    <ui:FASettingsExpander Header="{Binding AboutLicenseLabel}">
+                        <ui:FASettingsExpander.IconSource>
+                            <ui:FASymbolIconSource Symbol="Document"/>
+                        </ui:FASettingsExpander.IconSource>
+                        <ui:FASettingsExpander.Footer>
+                            <TextBlock Text="{Binding AboutLicenseValue}"
+                                       Opacity="0.78"/>
+                        </ui:FASettingsExpander.Footer>
+                    </ui:FASettingsExpander>
+                </StackPanel>
+
                 <ui:FASettingsExpander Header="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Placeholder.Header}"
                                         Description="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Settings.Placeholder.Description}"
                                         IsVisible="{Binding IsPlaceholderSectionSelected}">

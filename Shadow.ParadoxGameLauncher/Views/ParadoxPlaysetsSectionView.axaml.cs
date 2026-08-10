@@ -159,7 +159,7 @@ public partial class ParadoxPlaysetsSectionView : UserControl
         }
 
         modsList.AddHandler(
-            InputElement.PointerPressedEvent,
+            PointerPressedEvent,
             (_, args) =>
             {
                 if (args.Source is not Control source || IsInteractiveSource(source))
@@ -753,7 +753,7 @@ public partial class ParadoxPlaysetsSectionView : UserControl
         {
             new DoubleTransition
             {
-                Property = Visual.OpacityProperty,
+                Property = OpacityProperty,
                 Duration = TimeSpan.FromMilliseconds(150),
                 Easing = new CubicEaseOut()
             },
@@ -772,7 +772,7 @@ public partial class ParadoxPlaysetsSectionView : UserControl
         {
             new DoubleTransition
             {
-                Property = Visual.OpacityProperty,
+                Property = OpacityProperty,
                 Duration = TimeSpan.FromMilliseconds(150),
                 Easing = new CubicEaseOut()
             }

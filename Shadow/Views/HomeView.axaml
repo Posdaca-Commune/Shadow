@@ -1,58 +1,267 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+﻿<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:loc="using:Shadow.Abstractions"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
              xmlns:vm="using:Shadow.ViewModels"
+             xmlns:system="using:System"
              x:Class="Shadow.Views.HomeView"
              x:DataType="vm:HomeViewModel">
-    <Grid RowDefinitions="Auto,*"
-          Margin="40,34">
-        <StackPanel Grid.Row="0" Spacing="8">
-            <TextBlock Text="{Binding Title}"
-                       FontSize="32"
-                       FontWeight="SemiBold"/>
-            <TextBlock Text="{Binding Subtitle}"
-                       FontSize="15"
-                       Opacity="0.7"/>
-        </StackPanel>
-
-        <Grid Grid.Row="1"
-              ColumnDefinitions="*,*"
-              RowDefinitions="Auto,Auto"
-              Margin="0,34,0,0">
-            <Border Grid.Row="0" Grid.Column="0" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1"
-                    CornerRadius="8"
-                    Padding="22"
-                    Margin="0,0,10,10">
-                <StackPanel Spacing="10">
-                    <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Home.PluginSystem.Title}"
-                               FontSize="18"
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                  VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="40,34,40,40"
+                    Spacing="22"
+                    MaxWidth="980">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="{Binding Title}"
+                               FontSize="32"
                                FontWeight="SemiBold"/>
-                    <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Home.PluginSystem.Description}"
-                               TextWrapping="Wrap"
+                    <TextBlock Text="{Binding Subtitle}"
+                               FontSize="15"
                                Opacity="0.72"/>
+                    <TextBlock Text="{Binding HeroDescription}"
+                               TextWrapping="Wrap"
+                               MaxWidth="640"
+                               Opacity="0.68"/>
+                    <TextBlock Text="{Binding VersionLabel}"
+                               FontSize="12"
+                               Opacity="0.55"
+                               Margin="0,4,0,0"/>
                 </StackPanel>
-            </Border>
 
-            <Border Grid.Row="0" Grid.Column="1"
+                <Button Grid.Column="1"
+                        Command="{Binding RefreshCommand}"
+                        VerticalAlignment="Top"
+                        Padding="12,8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <ui:FASymbolIcon Symbol="Sync" FontSize="14"/>
+                        <TextBlock Text="{Binding RefreshActionLabel}"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
+
+            <UniformGrid Columns="3" Margin="0,4,0,0">
+                <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="18"
+                        Margin="0,0,10,0">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{Binding FeatureCount}"
+                                   FontSize="28"
+                                   FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding FeatureCountLabel}"
+                                   Opacity="0.68"/>
+                    </StackPanel>
+                </Border>
+                <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="18"
+                        Margin="5,0">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{Binding ReadyFeatureCount}"
+                                   FontSize="28"
+                                   FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding ReadyCountLabel}"
+                                   Opacity="0.68"/>
+                    </StackPanel>
+                </Border>
+                <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="18"
+                        Margin="10,0,0,0">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{Binding SetupNeededCount}"
+                                   FontSize="28"
+                                   FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding SetupNeededLabel}"
+                                   Opacity="0.68"/>
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+
+            <StackPanel Spacing="12">
+                <TextBlock Text="{Binding QuickActionsTitle}"
+                           FontSize="18"
+                           FontWeight="SemiBold"/>
+                <ItemsControl ItemsSource="{Binding QuickActions}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:HomeQuickActionViewModel">
+                            <Button Command="{Binding Command}"
+                                    Margin="0,0,10,10"
+                                    MinWidth="210"
+                                    HorizontalContentAlignment="Left"
+                                    Padding="14,12">
+                                <Grid ColumnDefinitions="Auto,*"
+                                      ColumnSpacing="12">
+                                    <Border Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                            CornerRadius="6"
+                                            Width="36"
+                                            Height="36">
+                                        <ui:FASymbolIcon Symbol="{Binding Symbol}"
+                                                         FontSize="16"
+                                                         HorizontalAlignment="Center"
+                                                         VerticalAlignment="Center"/>
+                                    </Border>
+                                    <StackPanel Grid.Column="1"
+                                                Spacing="2"
+                                                VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Title}"
+                                                   FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding Description}"
+                                                   FontSize="12"
+                                                   Opacity="0.68"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   MaxWidth="180"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+            <StackPanel Spacing="12"
+                        IsVisible="{Binding HasFeatures}">
+                <TextBlock Text="{Binding FeaturesTitle}"
+                           FontSize="18"
+                           FontWeight="SemiBold"/>
+                <ItemsControl ItemsSource="{Binding FeatureCards}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Spacing="12"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:HomeFeatureCardViewModel">
+                            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="10"
+                                    Padding="20">
+                                <Grid ColumnDefinitions="Auto,*,Auto"
+                                      ColumnSpacing="16">
+                                    <Border Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                            CornerRadius="8"
+                                            Width="44"
+                                            Height="44"
+                                            VerticalAlignment="Top">
+                                        <ui:FASymbolIcon Symbol="{Binding Symbol}"
+                                                         FontSize="18"
+                                                         HorizontalAlignment="Center"
+                                                         VerticalAlignment="Center"/>
+                                    </Border>
+
+                                    <StackPanel Grid.Column="1"
+                                                Spacing="6">
+                                        <DockPanel LastChildFill="False">
+                                            <TextBlock Text="{Binding Title}"
+                                                       FontSize="17"
+                                                       FontWeight="SemiBold"
+                                                       DockPanel.Dock="Left"/>
+                                            <Border DockPanel.Dock="Right"
+                                                    IsVisible="{Binding NeedsSetup}"
+                                                    Background="{DynamicResource SystemFillColorCautionBackgroundBrush}"
+                                                    CornerRadius="4"
+                                                    Padding="8,2"
+                                                    Margin="12,0,0,0">
+                                                <TextBlock Text="{Binding SetupBadgeLabel}"
+                                                           FontSize="11"
+                                                           VerticalAlignment="Center"/>
+                                            </Border>
+                                        </DockPanel>
+                                        <TextBlock Text="{Binding Summary}"
+                                                   TextWrapping="Wrap"
+                                                   Opacity="0.78"/>
+                                        <TextBlock Text="{Binding Detail}"
+                                                   IsVisible="{Binding HasDetail}"
+                                                   TextWrapping="Wrap"
+                                                   FontSize="12"
+                                                   Opacity="0.62"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="2"
+                                                Spacing="8"
+                                                VerticalAlignment="Center"
+                                                MinWidth="120">
+                                        <Button Content="{Binding PrimaryActionLabel}"
+                                                Command="{Binding OpenCommand}"
+                                                HorizontalAlignment="Stretch"/>
+                                        <Button Content="{Binding LaunchActionLabel}"
+                                                Command="{Binding LaunchCommand}"
+                                                IsVisible="{Binding CanLaunch}"
+                                                Classes="accent"
+                                                HorizontalAlignment="Stretch"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+            <Border IsVisible="{Binding HasNoFeatures}"
                     Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
-                    CornerRadius="8"
-                    Padding="22"
-                    Margin="10,0,0,10">
-                <StackPanel Spacing="10">
-                    <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Home.Workstation.Title}"
-                               FontSize="18"
+                    CornerRadius="10"
+                    Padding="22">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="{Binding EmptyPluginsTitle}"
+                               FontSize="17"
                                FontWeight="SemiBold"/>
-                    <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Shadow.Home.Workstation.Description}"
+                    <TextBlock Text="{Binding EmptyPluginsDescription}"
                                TextWrapping="Wrap"
                                Opacity="0.72"/>
+                    <Button Content="{Binding OpenSettingsActionLabel}"
+                            Command="{Binding OpenSettingsCommand}"
+                            HorizontalAlignment="Left"
+                            Margin="0,8,0,0"/>
                 </StackPanel>
             </Border>
-        </Grid>
-    </Grid>
-</UserControl>
 
+            <StackPanel Spacing="10"
+                        IsVisible="{Binding ShowGettingStarted}">
+                <TextBlock Text="{Binding GettingStartedTitle}"
+                           FontSize="18"
+                           FontWeight="SemiBold"/>
+                <ItemsControl ItemsSource="{Binding GettingStartedTips}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="system:String">
+                            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="14,12"
+                                    Margin="0,0,0,8">
+                                <Grid ColumnDefinitions="Auto,*"
+                                      ColumnSpacing="10">
+                                    <ui:FASymbolIcon Symbol="Accept"
+                                                     FontSize="14"
+                                                     Opacity="0.7"
+                                                     VerticalAlignment="Top"
+                                                     Margin="0,2,0,0"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding}"
+                                               TextWrapping="Wrap"
+                                               Opacity="0.78"/>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
 

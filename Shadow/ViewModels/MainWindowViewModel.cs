@@ -1,8 +1,8 @@
-using System.Collections.Generic;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+﻿using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using FluentAvalonia.UI.Controls;
 using Shadow.Abstractions;
 using Shadow.Plugins;
@@ -20,6 +20,15 @@ public partial class MainWindowViewModel : ViewModelBase
     internal MainWindowViewModel(PluginCatalog pluginCatalog, ApplicationSettings applicationSettings)
     {
         SettingsPage = new SettingsViewModel(pluginCatalog.SettingsSections, pluginCatalog.Plugins, applicationSettings);
+
+        var pluginNavigationItems = pluginCatalog.NavigationItems
+            .Select(item => new NavigationItemViewModel(item))
+            .GroupBy(item => item.Key)
+            .Select(group => group.First())
+            .ToArray();
+
+        HomePage = new HomeViewModel(pluginNavigationItems, NavigateTo);
+
         NavigationItems = new ObservableCollection<NavigationItemViewModel>(
             new[]
             {
@@ -29,10 +38,7 @@ public partial class MainWindowViewModel : ViewModelBase
                     LocalizedText.Key("Shadow.Nav.Home.Description"),
                     FASymbol.Home,
                     HomePage),
-            }
-            .Concat(pluginCatalog.NavigationItems.Select(item => new NavigationItemViewModel(item)))
-            .GroupBy(item => item.Key)
-            .Select(group => group.First()));
+            }.Concat(pluginNavigationItems));
 
         FooterNavigationItems =
         [
@@ -65,7 +71,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private readonly Dictionary<string, object> _pages;
 
-    public HomeViewModel HomePage { get; } = new();
+    public HomeViewModel HomePage { get; }
 
     public SettingsViewModel SettingsPage { get; }
 
@@ -89,14 +95,22 @@ public partial class MainWindowViewModel : ViewModelBase
     public string CurrentPageTitle => SelectedPageKey switch
     {
         "Settings" => Localizer["Shadow.CurrentPage.Settings"],
+        "Home" => Localizer["Shadow.Nav.Home.Title"],
         _ => Localizer["Shadow.CurrentPage.Workstation"],
     };
 
     [RelayCommand]
-    private void Navigate(string pageKey)
+    private void Navigate(string pageKey) => NavigateTo(pageKey);
+
+    private void NavigateTo(string pageKey)
     {
         SelectedPageKey = pageKey;
         CurrentPage = _pages.TryGetValue(pageKey, out var page) ? page : HomePage;
+
+        if (string.Equals(pageKey, "Home", System.StringComparison.OrdinalIgnoreCase))
+        {
+            HomePage.Refresh();
+        }
     }
 
     private void RefreshCurrentPage()
@@ -104,5 +118,10 @@ public partial class MainWindowViewModel : ViewModelBase
         var page = CurrentPage;
         CurrentPage = new object();
         CurrentPage = page;
+
+        if (IsHomeSelected)
+        {
+            HomePage.Refresh();
+        }
     }
 }

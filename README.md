@@ -1,6 +1,6 @@
 ﻿# Shadow
 
-[绠€浣撲腑鏂嘳(docs/README.zh-CN.md)
+[中文文档](docs/README.zh-CN.md)
 
 Shadow is an Avalonia-based workstation shell for Paradox Interactive tooling.
 The host application loads feature plugins from a `Plugins` directory, while
@@ -9,9 +9,9 @@ plugin is `Shadow.ParadoxGameLauncher`, a multi-game launcher and playset manage
 for titles such as Hearts of Iron IV, Crusader Kings III, Europa Universalis IV,
 Stellaris, Victoria 3, and Imperator: Rome.
 
-> Status: `1.0.0-beta.1` is an early beta. It is usable for local launch
-> workflows, but you should back up your game user configuration before relying
-> on it as your only launcher.
+> Status: `1.0.0` is the first stable release. It is ready for general Windows
+> use and Store packaging, but you should still back up your game user
+> configuration before relying on it as your only launcher.
 
 ## Features
 
@@ -39,7 +39,7 @@ separate .NET runtime.
 
 ## Getting Started
 
-1. Download `Shadow-1.0.0-beta.1.msix` from the GitHub release.
+1. Download `Shadow-1.0.0.msix` from the GitHub release.
 2. Install the package with Windows App Installer.
 3. Start `Shadow` from the Start menu or desktop shortcut.
 4. Open `Paradox Game Launcher` from the left navigation.
@@ -124,10 +124,10 @@ To create a Windows x64 MSIX package with the bundled plugin, install the
 Windows 10/11 SDK, then run:
 
 ```powershell
-.\scripts\build-msix.ps1 -Version 1.0.0-beta.1
+.\scripts\build-msix.ps1 -Version 1.0.0
 ```
 
-The generated package is written to `artifacts/msix/Shadow-1.0.0-beta.1.msix`.
+The generated package is written to `artifacts/msix/Shadow-1.0.0.msix`.
 MSIX packages must be signed before installation. Use `-CertificatePath` or
 `-CertificateThumbprint` to sign during packaging.
 
@@ -141,7 +141,7 @@ Example with a PFX certificate:
 
 ```powershell
 $password = Get-Content .\certs\Shadow.pfx.password.txt | ConvertTo-SecureString -AsPlainText -Force
-.\scripts\build-msix.ps1 -Version 1.0.0-beta.1 -CertificatePath .\certs\Shadow.pfx -CertificatePassword $password
+.\scripts\build-msix.ps1 -Version 1.0.0 -CertificatePath .\certs\Shadow.pfx -CertificatePassword $password
 ```
 
 Share `certs/Shadow.cer` with testers so they can trust the package before

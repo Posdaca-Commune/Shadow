@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Collections.Generic;
@@ -53,11 +54,6 @@ public partial class SettingsViewModel : ViewModelBase
                 LocalizedText.Key("Shadow.Settings.Section.Plugins.Title"),
                 LocalizedText.Key("Shadow.Settings.Section.Plugins.Description"),
                 FASymbol.AllApps),
-            new SettingsSectionViewModel(
-                "Workspace",
-                LocalizedText.Key("Shadow.Settings.Section.Workspace.Title"),
-                LocalizedText.Key("Shadow.Settings.Section.Workspace.Description"),
-                FASymbol.Document),
         ];
 
         foreach (var section in pluginSections)
@@ -99,6 +95,11 @@ public partial class SettingsViewModel : ViewModelBase
             OnPropertyChanged(nameof(LoadedPluginCountLabel));
             OnPropertyChanged(nameof(ThemeModeName));
             OnPropertyChanged(nameof(BackdropName));
+            OnPropertyChanged(nameof(AboutVersionLabel));
+            OnPropertyChanged(nameof(AboutAppDataLabel));
+            OnPropertyChanged(nameof(AboutRepositoryLabel));
+            OnPropertyChanged(nameof(AboutLicenseLabel));
+            OnPropertyChanged(nameof(AboutLicenseValue));
         };
         _isLoadingPersonalization = false;
         ApplyPersonalization();
@@ -153,8 +154,31 @@ public partial class SettingsViewModel : ViewModelBase
 
     public bool IsPluginSectionSelected => SelectedSection.Content is not null;
 
+    public bool IsAboutSelected => SelectedSection.Key == "About";
+
     public bool IsPlaceholderSectionSelected =>
-        !IsPersonalizationSelected && !IsPluginInventorySelected && !IsPluginSectionSelected;
+        !IsPersonalizationSelected
+        && !IsPluginInventorySelected
+        && !IsPluginSectionSelected
+        && !IsAboutSelected;
+
+    public string AboutVersionLabel => Localizer["Shadow.Settings.About.Version"];
+
+    public string AboutAppDataLabel => Localizer["Shadow.Settings.About.AppData"];
+
+    public string AboutRepositoryLabel => Localizer["Shadow.Settings.About.Repository"];
+
+    public string AboutLicenseLabel => Localizer["Shadow.Settings.About.License"];
+
+    public string AboutVersionValue { get; } = ResolveAppVersion();
+
+    public string AboutAppDataValue { get; } = System.IO.Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "Shadow");
+
+    public string AboutRepositoryValue { get; } = "https://github.com/Posdaca-Commune/Shadow";
+
+    public string AboutLicenseValue => Localizer["Shadow.Settings.About.LicenseValue"];
 
     public int LoadedPluginCount => LoadedPlugins.Count;
 
@@ -237,6 +261,7 @@ public partial class SettingsViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsPersonalizationSelected));
         OnPropertyChanged(nameof(IsPluginInventorySelected));
         OnPropertyChanged(nameof(IsPluginSectionSelected));
+        OnPropertyChanged(nameof(IsAboutSelected));
         OnPropertyChanged(nameof(IsPlaceholderSectionSelected));
     }
 
@@ -433,6 +458,22 @@ public partial class SettingsViewModel : ViewModelBase
     private static FluentAvaloniaTheme? TryGetFluentTheme(Application application)
     {
         return application.Styles.OfType<FluentAvaloniaTheme>().FirstOrDefault();
+    }
+
+    private static string ResolveAppVersion()
+    {
+        var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+        var informational = assembly
+            .GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>()
+            ?.InformationalVersion;
+        if (!string.IsNullOrWhiteSpace(informational))
+        {
+            var plusIndex = informational.IndexOf('+');
+            return plusIndex > 0 ? informational[..plusIndex] : informational;
+        }
+
+        var version = assembly.GetName().Version;
+        return version is null ? "1.0.0" : $"{version.Major}.{version.Minor}.{version.Build}";
     }
 
     private int ResolveLanguageIndex(string language)

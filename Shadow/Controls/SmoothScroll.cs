@@ -1,6 +1,5 @@
-using System;
+﻿using System;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -13,10 +12,14 @@ namespace Shadow.Controls;
 /// </summary>
 public static class SmoothScroll
 {
-    private const double PixelsPerWheelUnit = 72;
-    private const double Smoothing = 0.28;
-    private const double MinDistance = 0.5;
-    private const int FrameDelayMs = 16;
+    // Distance applied per mouse-wheel unit (Avalonia delta is typically +/- 1 per notch).
+    private const double PixelsPerWheelUnit = 64;
+
+    // Higher = snappier follow. ~18 keeps motion smooth without feeling laggy.
+    private const double FollowSpeed = 18;
+
+    private const double MinDistance = 0.25;
+    private const double MaxDeltaSeconds = 0.05;
 
     public static readonly AttachedProperty<bool> IsEnabledProperty =
         AvaloniaProperty.RegisterAttached<ScrollViewer, bool>(
@@ -47,12 +50,7 @@ public static class SmoothScroll
         }
 
         scrollViewer.RemoveHandler(InputElement.PointerWheelChangedEvent, OnPointerWheelChanged);
-        if (States.TryGetValue(scrollViewer, out var state))
-        {
-            state.AnimationVersion++;
-            state.IsAnimating = false;
-            state.HasTarget = false;
-        }
+        StopAnimation(scrollViewer);
     }
 
     private static void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
@@ -79,9 +77,7 @@ public static class SmoothScroll
             state.TargetOffset.X - (e.Delta.X * PixelsPerWheelUnit),
             state.TargetOffset.Y - (e.Delta.Y * PixelsPerWheelUnit));
 
-        next = new Vector(
-            Math.Clamp(next.X, 0, maxOffset.X),
-            Math.Clamp(next.Y, 0, maxOffset.Y));
+        next = ClampOffset(next, maxOffset);
 
         if (Vector.Distance(next, scrollViewer.Offset) < MinDistance
             && Vector.Distance(next, state.TargetOffset) < MinDistance)
@@ -91,55 +87,111 @@ public static class SmoothScroll
 
         state.TargetOffset = next;
         e.Handled = true;
-        _ = RunAnimationAsync(scrollViewer, state);
+        StartAnimation(scrollViewer, state);
     }
 
-    private static async Task RunAnimationAsync(ScrollViewer scrollViewer, ScrollState state)
+    private static void StartAnimation(ScrollViewer scrollViewer, ScrollState state)
     {
         if (state.IsAnimating)
         {
             return;
         }
 
+        var topLevel = TopLevel.GetTopLevel(scrollViewer);
+        if (topLevel is null)
+        {
+            scrollViewer.Offset = state.TargetOffset;
+            state.HasTarget = false;
+            return;
+        }
+
         state.IsAnimating = true;
         var version = ++state.AnimationVersion;
+        state.LastFrameTime = null;
 
-        try
+        void OnFrame(TimeSpan time)
         {
-            while (version == state.AnimationVersion && GetIsEnabled(scrollViewer))
+            if (version != state.AnimationVersion || !GetIsEnabled(scrollViewer))
             {
-                var maxOffset = GetMaxOffset(scrollViewer);
-                state.TargetOffset = new Vector(
-                    Math.Clamp(state.TargetOffset.X, 0, maxOffset.X),
-                    Math.Clamp(state.TargetOffset.Y, 0, maxOffset.Y));
-
-                var from = scrollViewer.Offset;
-                var to = state.TargetOffset;
-                var dx = to.X - from.X;
-                var dy = to.Y - from.Y;
-
-                if (Math.Abs(dx) < MinDistance && Math.Abs(dy) < MinDistance)
+                if (version == state.AnimationVersion)
                 {
-                    scrollViewer.Offset = to;
-                    break;
+                    state.IsAnimating = false;
+                    state.HasTarget = false;
+                    state.LastFrameTime = null;
                 }
 
-                scrollViewer.Offset = new Vector(
-                    from.X + (dx * Smoothing),
-                    from.Y + (dy * Smoothing));
-
-                await Task.Delay(FrameDelayMs).ConfigureAwait(true);
+                return;
             }
-        }
-        finally
-        {
-            if (version == state.AnimationVersion)
+
+            if (TopLevel.GetTopLevel(scrollViewer) is null)
             {
                 state.IsAnimating = false;
                 state.HasTarget = false;
+                state.LastFrameTime = null;
+                return;
             }
+
+            var dt = state.LastFrameTime is { } last
+                ? (time - last).TotalSeconds
+                : 1.0 / 60.0;
+
+            if (dt <= 0)
+            {
+                dt = 1.0 / 60.0;
+            }
+            else if (dt > MaxDeltaSeconds)
+            {
+                // Avoid large jumps after tab switches / long stalls.
+                dt = MaxDeltaSeconds;
+            }
+
+            state.LastFrameTime = time;
+
+            var maxOffset = GetMaxOffset(scrollViewer);
+            state.TargetOffset = ClampOffset(state.TargetOffset, maxOffset);
+
+            var from = scrollViewer.Offset;
+            var to = state.TargetOffset;
+            var dx = to.X - from.X;
+            var dy = to.Y - from.Y;
+
+            if (Math.Abs(dx) < MinDistance && Math.Abs(dy) < MinDistance)
+            {
+                scrollViewer.Offset = to;
+                state.IsAnimating = false;
+                state.HasTarget = false;
+                state.LastFrameTime = null;
+                return;
+            }
+
+            // Frame-rate independent exponential smoothing:
+            // offset += (target - offset) * (1 - e^(-speed * dt))
+            var t = 1.0 - Math.Exp(-FollowSpeed * dt);
+            scrollViewer.Offset = new Vector(
+                from.X + (dx * t),
+                from.Y + (dy * t));
+
+            topLevel.RequestAnimationFrame(OnFrame);
         }
+
+        topLevel.RequestAnimationFrame(OnFrame);
     }
+
+    private static void StopAnimation(ScrollViewer scrollViewer)
+    {
+        if (!States.TryGetValue(scrollViewer, out var state))
+        {
+            return;
+        }
+
+        state.AnimationVersion++;
+        state.IsAnimating = false;
+        state.HasTarget = false;
+        state.LastFrameTime = null;
+    }
+
+    private static Vector ClampOffset(Vector offset, Vector maxOffset) =>
+        new(Math.Clamp(offset.X, 0, maxOffset.X), Math.Clamp(offset.Y, 0, maxOffset.Y));
 
     private static Vector GetMaxOffset(ScrollViewer scrollViewer)
     {
@@ -156,5 +208,6 @@ public static class SmoothScroll
         public bool HasTarget;
         public bool IsAnimating;
         public int AnimationVersion;
+        public TimeSpan? LastFrameTime;
     }
 }

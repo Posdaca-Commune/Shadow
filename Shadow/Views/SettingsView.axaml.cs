@@ -92,7 +92,7 @@ public partial class SettingsView : UserControl
         [
             new DoubleTransition
             {
-                Property = Visual.OpacityProperty,
+                Property = OpacityProperty,
                 Duration = TimeSpan.FromMilliseconds(SectionFadeAnimationMs),
                 Easing = CreateSectionEasing(),
             },
