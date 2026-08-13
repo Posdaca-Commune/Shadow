@@ -26,6 +26,7 @@ public sealed class ParadoxGameLauncherConfiguration
         EnsureSelectedGame();
         _playsetStore = CreatePlaysetStore(SelectedGame.Id);
         ApplyActiveGameDefaults();
+        Save();
     }
 
     public string StatePath { get; }
@@ -262,19 +263,19 @@ public sealed class ParadoxGameLauncherConfiguration
         var game = SelectedGame;
         var profile = ActiveProfile;
 
-        if (string.IsNullOrWhiteSpace(profile.GameUserDirectory))
+        if (!ParadoxPathDiscovery.IsExistingDirectory(profile.GameUserDirectory))
         {
-            profile.GameUserDirectory = game.DefaultUserDirectory;
+            profile.GameUserDirectory = ParadoxPathDiscovery.TryDiscoverUserDirectory(game) ?? game.DefaultUserDirectory;
         }
 
-        if (string.IsNullOrWhiteSpace(profile.WorkshopDirectory))
+        if (!ParadoxPathDiscovery.IsExistingFile(profile.GameExecutablePath))
         {
-            profile.WorkshopDirectory = TryDiscoverWorkshopDirectory(game) ?? string.Empty;
+            profile.GameExecutablePath = ParadoxPathDiscovery.TryDiscoverGameExecutable(game) ?? profile.GameExecutablePath ?? string.Empty;
         }
 
-        if (string.IsNullOrWhiteSpace(profile.GameExecutablePath))
+        if (!ParadoxPathDiscovery.IsExistingDirectory(profile.WorkshopDirectory))
         {
-            profile.GameExecutablePath = TryDiscoverGameExecutable(game) ?? string.Empty;
+            profile.WorkshopDirectory = ParadoxPathDiscovery.TryDiscoverWorkshopDirectory(game, profile.GameExecutablePath) ?? profile.WorkshopDirectory ?? string.Empty;
         }
 
         foreach (var playset in State.Playsets.Where(playset =>
@@ -303,90 +304,5 @@ public sealed class ParadoxGameLauncherConfiguration
         }
     }
 
-    private static string? TryDiscoverGameExecutable(ParadoxGameDefinition game)
-    {
-        foreach (var candidate in EnumerateSteamLibraryRoots())
-        {
-            foreach (var folderName in game.SteamFolderNames)
-            {
-                var executablePath = Path.Combine(candidate, "steamapps", "common", folderName.TrimEnd('/', '\\'), game.ExecutableFileName);
-                if (File.Exists(executablePath))
-                {
-                    return executablePath;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    private static string? TryDiscoverWorkshopDirectory(ParadoxGameDefinition game)
-    {
-        foreach (var candidate in EnumerateSteamLibraryRoots())
-        {
-            var workshopPath = Path.Combine(candidate, "steamapps", "workshop", "content", game.SteamAppId);
-            if (Directory.Exists(workshopPath))
-            {
-                return workshopPath;
-            }
-        }
-
-        return null;
-    }
-
-    private static IEnumerable<string> EnumerateSteamLibraryRoots()
-    {
-        var roots = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var defaultRoot in new[]
-                 {
-                     Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Steam"),
-                     Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Steam"),
-                 })
-        {
-            if (Directory.Exists(defaultRoot))
-            {
-                roots.Add(defaultRoot);
-            }
-        }
-
-        foreach (var root in roots.ToArray())
-        {
-            var libraryFoldersPath = Path.Combine(root, "steamapps", "libraryfolders.vdf");
-            if (!File.Exists(libraryFoldersPath))
-            {
-                continue;
-            }
-
-            try
-            {
-                foreach (var line in File.ReadLines(libraryFoldersPath))
-                {
-                    var trimmed = line.Trim();
-                    if (!trimmed.Contains("\"path\"", StringComparison.OrdinalIgnoreCase))
-                    {
-                        continue;
-                    }
-
-                    var parts = trimmed.Split('"', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                    if (parts.Length < 2)
-                    {
-                        continue;
-                    }
-
-                    var path = parts[^1].Replace(@"\\", @"\");
-                    if (Directory.Exists(path))
-                    {
-                        roots.Add(path);
-                    }
-                }
-            }
-            catch
-            {
-                // Steam library discovery is best-effort only.
-            }
-        }
-
-        return roots;
-    }
 }
+

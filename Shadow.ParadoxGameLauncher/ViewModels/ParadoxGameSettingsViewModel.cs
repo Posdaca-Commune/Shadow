@@ -137,6 +137,93 @@ public sealed partial class ParadoxGameSettingsViewModel : ObservableObject
         _configuration.Save();
     }
 
+    [RelayCommand]
+    private void DetectGameExecutable()
+    {
+        var path = ParadoxPathDiscovery.TryDiscoverGameExecutable(_configuration.SelectedGame);
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            SetStatusText("Paradox.GameSettings.Status.GamePathMissing");
+            return;
+        }
+
+        GameExecutablePath = path;
+        TryFillWorkshopDirectory(preferExisting: true);
+        SetStatusText("Paradox.GameSettings.Status.GamePathDetected");
+    }
+
+    [RelayCommand]
+    private void DetectUserDirectory()
+    {
+        var path = ParadoxPathDiscovery.TryDiscoverUserDirectory(_configuration.SelectedGame);
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            SetStatusText("Paradox.GameSettings.Status.UserDirectoryMissing");
+            return;
+        }
+
+        GameUserDirectory = path;
+        SetStatusText("Paradox.GameSettings.Status.UserDirectoryDetected");
+    }
+
+    [RelayCommand]
+    private void DetectWorkshopDirectory()
+    {
+        TryFillWorkshopDirectory(preferExisting: false);
+    }
+
+    public bool TryApplyGameDirectory(string directory)
+    {
+        var path = ParadoxPathDiscovery.ResolveExecutableFromDirectory(_configuration.SelectedGame, directory);
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            SetStatusText("Paradox.GameSettings.Status.GameDirectoryInvalid", _configuration.SelectedGame.ExecutableFileName);
+            return false;
+        }
+
+        GameExecutablePath = path;
+        TryFillWorkshopDirectory(preferExisting: true);
+        SetStatusText("Paradox.GameSettings.Status.GamePathSelected");
+        return true;
+    }
+
+    public void ApplyUserDirectory(string directory)
+    {
+        GameUserDirectory = directory;
+        SetStatusText("Paradox.GameSettings.Status.UserDirectorySelected");
+    }
+
+    public void ApplyWorkshopDirectory(string directory)
+    {
+        WorkshopDirectory = directory;
+        SetStatusText("Paradox.GameSettings.Status.WorkshopDirectorySelected");
+    }
+
+    private void TryFillWorkshopDirectory(bool preferExisting)
+    {
+        if (preferExisting && ParadoxPathDiscovery.IsExistingDirectory(WorkshopDirectory))
+        {
+            return;
+        }
+
+        var path = ParadoxPathDiscovery.TryDiscoverWorkshopDirectory(_configuration.SelectedGame, GameExecutablePath);
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            if (!preferExisting)
+            {
+                SetStatusText("Paradox.GameSettings.Status.WorkshopDirectoryMissing");
+            }
+
+            return;
+        }
+
+        WorkshopDirectory = path;
+        if (!preferExisting)
+        {
+            SetStatusText("Paradox.GameSettings.Status.WorkshopDirectoryDetected");
+        }
+    }
+
     partial void OnGameExecutablePathChanged(string value)
     {
         _configuration.GameExecutablePath = value;
