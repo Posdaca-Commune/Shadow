@@ -137,3 +137,7 @@ $password = Get-Content .\certs\Shadow.pfx.password.txt | ConvertTo-SecureString
 
 把 `certs/Shadow.cer` 发给测试者，先安装信任证书再安装 MSIX。完整流程见
 `certs/README.md`。
+
+## 隐私政策
+
+见 [privacy.md](privacy.md)。

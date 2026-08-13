@@ -6,6 +6,7 @@ param(
     [string]$PackageVersion,
     [string]$PackageIdentity = "PosdacaCommune.Shadow",
     [string]$Publisher = "CN=Posdaca Commune",
+    [string]$PublisherDisplayName = "Posdaca Commune",
     [string]$MakeAppxPath,
     [string]$SignToolPath,
     [string]$CertificatePath,
@@ -244,12 +245,14 @@ function Write-PackageManifest {
         [string]$DestinationPath,
         [string]$Identity,
         [string]$PublisherName,
+        [string]$PublisherDisplayName,
         [string]$MsixVersion
     )
 
     $manifest = Get-Content -LiteralPath $TemplatePath -Raw
     $manifest = $manifest.Replace("__PACKAGE_IDENTITY__", $Identity)
     $manifest = $manifest.Replace("__PUBLISHER__", $PublisherName)
+    $manifest = $manifest.Replace("__PUBLISHER_DISPLAY_NAME__", $PublisherDisplayName)
     $manifest = $manifest.Replace("__PACKAGE_VERSION__", $MsixVersion)
     Set-Content -LiteralPath $DestinationPath -Value $manifest -Encoding UTF8
 }
@@ -327,6 +330,7 @@ Write-PackageManifest `
     -DestinationPath (Join-Path $packageRoot "AppxManifest.xml") `
     -Identity $PackageIdentity `
     -PublisherName $Publisher `
+    -PublisherDisplayName $PublisherDisplayName `
     -MsixVersion $PackageVersion
 
 if ($SkipPackage) {

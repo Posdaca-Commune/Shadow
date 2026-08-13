@@ -1,4 +1,4 @@
-﻿# Shadow
+# Shadow
 
 [中文文档](docs/README.zh-CN.md)
 
@@ -146,3 +146,7 @@ $password = Get-Content .\certs\Shadow.pfx.password.txt | ConvertTo-SecureString
 
 Share `certs/Shadow.cer` with testers so they can trust the package before
 installing. See `certs/README.md` for the full sideload flow.
+
+## Privacy
+
+See [docs/privacy.md](docs/privacy.md).

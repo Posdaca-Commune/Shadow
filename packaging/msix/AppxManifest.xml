@@ -13,8 +13,8 @@
     ProcessorArchitecture="x64" />
 
   <Properties>
-    <DisplayName>Shadow</DisplayName>
-    <PublisherDisplayName>Posdaca Commune</PublisherDisplayName>
+    <DisplayName>Shadow Studio</DisplayName>
+    <PublisherDisplayName>__PUBLISHER_DISPLAY_NAME__</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 
@@ -30,7 +30,7 @@
   <Applications>
     <Application Id="Shadow" Executable="Shadow.exe" EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
-        DisplayName="Shadow"
+        DisplayName="Shadow Studio"
         Description="Shadow Paradox multi-game launch pad"
         BackgroundColor="#3A86D7"
         Square44x44Logo="Assets\Square44x44Logo.png"
