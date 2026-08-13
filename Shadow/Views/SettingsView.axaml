@@ -48,10 +48,12 @@
             </ListBox>
         </Grid>
 
-        <ScrollViewer Grid.Column="1">
+        <ScrollViewer Grid.Column="1"
+                      Padding="0,0,18,0">
             <StackPanel x:Name="SettingsContentPanel"
                         Spacing="14"
-                        MaxWidth="760">
+                        MaxWidth="760"
+                        Margin="0,0,2,0">
                 <StackPanel Spacing="4"
                             Margin="0,2,0,10">
                     <TextBlock Text="{Binding SelectedSection.Title}"
