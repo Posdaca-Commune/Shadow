@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.0.1 - 2026-08-23
+
+### Added
+
+- Automatic discovery of installed Paradox game directories, with an option to
+  pick the directory manually in game settings.
+
+### Changed
+
+- Refined card margins across the launcher sections for a more consistent layout.
+- Microsoft Store listing assets, privacy policy, and MSIX packaging updates.
+
+### Fixed
+
+- Creating a playset no longer copies the current playset's mods and disabled
+  DLC state; new playsets now start empty.
+- Selecting a mod card in the "Add mod" dialog no longer shifts the card
+  content or adds stray borders to covers and badges.
+- The drag-reorder insert indicator now sits consistently just below the
+  preceding card, including the end-of-list position where it previously
+  floated far below the last card.
+- Reordering by drag now flips the insertion point after the same travel
+  distance in both directions, regardless of where inside the card it is
+  grabbed.
+
+### Notes
+
+- Maintenance release focused on first-run setup and playset drag interactions.
+
 ## 1.0.0 - 2026-08-10
 
 ### Added

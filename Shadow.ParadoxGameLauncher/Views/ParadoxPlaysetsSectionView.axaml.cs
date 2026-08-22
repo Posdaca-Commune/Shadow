@@ -23,6 +23,9 @@ public partial class ParadoxPlaysetsSectionView : UserControl
     private readonly record struct PlaysetModCardInfo(Border Card, PlaysetModEntry Mod, double Top, double Stride);
 
     private const int DragReorderAnimationMs = 150;
+    // Vertical gap between playset mod cards (ListBoxItem bottom margin).
+    private const double PlaysetItemGap = 8.0;
+    private const double InsertIndicatorBarHalf = 1.5;
     private Point _dragStartPoint;
     private Border? _draggedCard;
     private PlaysetModEntry? _draggedMod;
@@ -212,6 +215,8 @@ public partial class ParadoxPlaysetsSectionView : UserControl
                 Margin = new Thickness(0),
                 Cursor = new Cursor(StandardCursorType.Hand),
                 DataContext = mod,
+                // Child borders inherit the same DataContext; Tag marks the card root only.
+                Tag = mod,
                 HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
             };
 
@@ -353,7 +358,7 @@ public partial class ParadoxPlaysetsSectionView : UserControl
         StyledElement? current = control;
         while (current is not null)
         {
-            if (current is Border border && border.DataContext is ModEntry)
+            if (current is Border border && border.Tag is ModEntry)
             {
                 return border;
             }
@@ -368,14 +373,17 @@ public partial class ParadoxPlaysetsSectionView : UserControl
     {
         foreach (var border in listHost.GetVisualDescendants().OfType<Border>())
         {
-            if (border.DataContext is not ModEntry)
+            if (border.Tag is not ModEntry)
             {
                 continue;
             }
 
             var isSelected = ReferenceEquals(border, selectedCard);
             border.BorderBrush = new SolidColorBrush(Color.Parse(isSelected ? "#FF60A5FA" : "#1AFFFFFF"));
+            // Thicker selection border is offset by a smaller padding so the content
+            // stays at the same position and size as the unselected state.
             border.BorderThickness = new Thickness(isSelected ? 2 : 1);
+            border.Padding = new Thickness(isSelected ? 9 : 10);
         }
     }
 
@@ -499,12 +507,15 @@ public partial class ParadoxPlaysetsSectionView : UserControl
         {
             return;
         }
-        double pointerY = e.GetPosition(this).Y;
+        // Compare the dragged card's own visual center against the other cards' visual
+        // centers, so the travel needed to flip the insertion gap is exactly one card
+        // stride in both directions, no matter where inside the card the pointer grabbed.
+        double draggedCardCenterY = GetDraggedCardCurrentCenterY(e);
         int insertIndex = cards.Count;
         for (int index = 0; index < cards.Count; index++)
         {
-            double centerY = cards[index].Top + cards[index].Stride / 2.0;
-            if (pointerY < centerY)
+            double cardCenterY = cards[index].Top + cards[index].Stride / 2.0 - PlaysetItemGap / 2.0;
+            if (draggedCardCenterY < cardCenterY)
             {
                 insertIndex = index;
                 break;
@@ -514,6 +525,17 @@ public partial class ParadoxPlaysetsSectionView : UserControl
         _previewInsertIndex = Math.Clamp(insertIndex, 0, cards.Count);
         ApplyDisplacedCardTransforms(cards, _previewInsertIndex);
         UpdateInsertIndicator(cards, insertIndex);
+    }
+
+    private double GetDraggedCardCurrentCenterY(PointerEventArgs e)
+    {
+        var start = _dragStartCards.Find(item => ReferenceEquals(item.Mod, _draggedMod));
+        double cardHeight = _draggedCard is { Bounds.Height: > 0.5 } draggedCard
+            ? draggedCard.Bounds.Height
+            : start.Stride - PlaysetItemGap;
+        // The card follows the pointer 1:1, so its current center is its drag-start
+        // center shifted by the pointer delta.
+        return start.Top + cardHeight / 2.0 + (e.GetPosition(this).Y - _dragStartPoint.Y);
     }
 
     private void ApplyDisplacedCardTransforms(IReadOnlyList<PlaysetModCardInfo> cards, int insertIndex)
@@ -574,23 +596,13 @@ public partial class ParadoxPlaysetsSectionView : UserControl
         double targetY = 0;
         if (cards.Count > 0)
         {
-            if (compactInsertIndex <= 0)
-            {
-                targetY = cards[0].Top - 4.0;
-            }
-            else if (compactInsertIndex >= cards.Count)
-            {
-                PlaysetModCardInfo last = cards[cards.Count - 1];
-                // Place the indicator in the middle of the trailing item gap.
-                targetY = last.Top + last.Stride - 4.0;
-            }
-            else
-            {
-                PlaysetModCardInfo previous = cards[compactInsertIndex - 1];
-                PlaysetModCardInfo next = cards[compactInsertIndex];
-                // Midpoint of the real gap between item slots (includes ListBoxItem margin).
-                targetY = (previous.Top + previous.Stride + next.Top) / 2.0 - 1.5;
-            }
+            // compactInsertIndex is also the dragged card's landing slot in the full
+            // drag-start order, regardless of drag direction. Anchoring there keeps the
+            // bar centered in the gap just below the card that precedes the insertion
+            // point — including the end-of-list case, where the remaining cards have
+            // already shifted up and the gap opens above, not below, the last old slot.
+            int landingIndex = Math.Clamp(compactInsertIndex, 0, _dragStartCards.Count - 1);
+            targetY = _dragStartCards[landingIndex].Top - PlaysetItemGap / 2.0 - InsertIndicatorBarHalf;
         }
         Point? point = this.TranslatePoint(new Point(0.0, targetY), PlaysetDragSurface);
         if (!point.HasValue)

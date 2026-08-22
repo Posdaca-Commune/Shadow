@@ -814,14 +814,13 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
 
     private Playset CreateLocalPlayset(string name)
     {
+        // A new playset starts empty; it must not inherit the current playset's mods or DLC state.
         return new Playset
         {
             Name = name,
-            ModIds = PlaysetMods.Select(mod => ParadoxModIdentity.GetStableId(mod.Mod)).ToList(),
-            EnabledModIds = PlaysetMods.Where(mod => mod.IsEnabled)
-                .Select(mod => ParadoxModIdentity.GetStableId(mod.Mod))
-                .ToList(),
-            DisabledDlcIds = Dlcs.Where(dlc => !dlc.IsEnabled).Select(dlc => dlc.Id).ToList(),
+            ModIds = [],
+            EnabledModIds = [],
+            DisabledDlcIds = [],
             Source = "Shadow",
             CanEdit = true,
         };
