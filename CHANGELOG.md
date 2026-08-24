@@ -1,11 +1,31 @@
 # Changelog
 
+## 1.1.0 - 2026-08-24
+
+### Added
+
+- Save management section for the selected game: browse saves with timestamps,
+  sizes, and backup counts; back up a save to the Shadow workspace; restore a
+  backup; and delete saves (existing backups are kept).
+- Per-game save folder and format support for Hearts of Iron IV, Crusader Kings
+  III, Europa Universalis IV, Stellaris, Victoria 3, and Imperator: Rome.
+- Save search plus summary counters for total saves and backups.
+- Open the game's save folder directly from the section header.
+
+### Notes
+
+- Save backups are stored under `%APPDATA%\Posdaca\<Game>\save-backups` and are
+  not removed when a save is deleted.
+- Restoring a backup overwrites the current save file.
+
 ## 1.0.1 - 2026-08-23
 
 ### Added
 
 - Automatic discovery of installed Paradox game directories, with an option to
   pick the directory manually in game settings.
+- The "Add mod" dialog now supports selecting multiple mods: click a card to
+  select it, click again to deselect, then add them all at once.
 
 ### Changed
 

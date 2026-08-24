@@ -15,6 +15,7 @@ sealed class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        System.Diagnostics.Trace.Listeners.Add(new System.Diagnostics.ConsoleTraceListener());
         InitializeLocalization();
         var commandLine = ShadowCommandLine.Parse(args);
         if (!string.IsNullOrWhiteSpace(commandLine.Command))

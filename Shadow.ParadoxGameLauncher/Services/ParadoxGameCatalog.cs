@@ -14,6 +14,7 @@ public static class ParadoxGameCatalog
             ExecutableFileName = "hoi4.exe",
             SteamAppId = "394360",
             SteamFolderNames = ["Hearts of Iron IV", "Hearts of Iron IV/"],
+            SaveFileExtensions = [".hoi4"],
         },
         new()
         {
@@ -23,6 +24,7 @@ public static class ParadoxGameCatalog
             ExecutableFileName = "ck3.exe",
             SteamAppId = "1158310",
             SteamFolderNames = ["Crusader Kings III"],
+            SaveFileExtensions = [".ck3"],
         },
         new()
         {
@@ -32,6 +34,7 @@ public static class ParadoxGameCatalog
             ExecutableFileName = "eu4.exe",
             SteamAppId = "236850",
             SteamFolderNames = ["Europa Universalis IV"],
+            SaveFileExtensions = [".eu4"],
         },
         new()
         {
@@ -41,6 +44,8 @@ public static class ParadoxGameCatalog
             ExecutableFileName = "stellaris.exe",
             SteamAppId = "281990",
             SteamFolderNames = ["Stellaris"],
+            SaveFolderName = "save_games",
+            SaveFileExtensions = [".sav", ""],
         },
         new()
         {
@@ -50,6 +55,7 @@ public static class ParadoxGameCatalog
             ExecutableFileName = "victoria3.exe",
             SteamAppId = "529340",
             SteamFolderNames = ["Victoria 3"],
+            SaveFileExtensions = [".v3"],
         },
         new()
         {
@@ -59,6 +65,7 @@ public static class ParadoxGameCatalog
             ExecutableFileName = "ImperatorRome.exe",
             SteamAppId = "859580",
             SteamFolderNames = ["ImperatorRome", "Imperator Rome"],
+            SaveFileExtensions = [".rome"],
         },
     ];
 

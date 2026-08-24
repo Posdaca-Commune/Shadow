@@ -154,6 +154,7 @@
                 <views:ParadoxModsSectionView IsVisible="{Binding IsModsSelected}"/>
                 <views:ParadoxDlcsSectionView IsVisible="{Binding IsDlcsSelected}"/>
                 <views:ParadoxPlaysetsSectionView IsVisible="{Binding IsPlaysetsSelected}"/>
+                <views:ParadoxSavesSectionView IsVisible="{Binding IsSavesSelected}"/>
                 <views:ParadoxGameSettingsSectionView IsVisible="{Binding IsGameSettingsSelected}"/>
             </Grid>
         </Grid>

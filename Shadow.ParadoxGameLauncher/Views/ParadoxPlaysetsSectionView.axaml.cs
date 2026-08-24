@@ -107,10 +107,11 @@ public partial class ParadoxPlaysetsSectionView : UserControl
                 Mode = BindingMode.TwoWay,
             });
 
+        var selectedMods = new HashSet<ModEntry>();
         var modsList = new ListBox
         {
             ItemsSource = viewModel.FilteredAvailableMods,
-            ItemTemplate = CreateAvailableModCardTemplate(viewModel),
+            ItemTemplate = CreateAvailableModCardTemplate(viewModel, selectedMods.Contains),
             ItemContainerTheme = (ControlTheme)Resources["PlainModCardListItemTheme"]!,
             HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
             Background = Brushes.Transparent,
@@ -153,12 +154,13 @@ public partial class ParadoxPlaysetsSectionView : UserControl
         dialog.Resources["ContentDialogMinWidth"] = 640d;
         dialog.Resources["ContentDialogMaxHeight"] = 760d;
 
-        ModEntry? selectedMod = null;
-        void SelectMod(ModEntry mod, Border card)
+        string addButtonText = ParadoxGameLauncherStrings.Get("Paradox.Dialog.Add");
+        void UpdatePrimaryButton()
         {
-            selectedMod = mod;
-            dialog.IsPrimaryButtonEnabled = true;
-            HighlightSelectedAvailableModCard(modsList, card);
+            dialog.IsPrimaryButtonEnabled = selectedMods.Count > 0;
+            dialog.PrimaryButtonText = selectedMods.Count > 0
+                ? $"{addButtonText} ({selectedMods.Count})"
+                : addButtonText;
         }
 
         modsList.AddHandler(
@@ -170,27 +172,35 @@ public partial class ParadoxPlaysetsSectionView : UserControl
                     return;
                 }
 
-                var card = FindAncestorModCard(source);
-                if (card?.DataContext is not ModEntry mod)
+                if (FindAncestorModCard(source) is not { Tag: ModEntry mod } card)
                 {
                     return;
                 }
 
-                SelectMod(mod, card);
-                args.Handled = args.ClickCount >= 2;
+                if (!selectedMods.Remove(mod))
+                {
+                    selectedMods.Add(mod);
+                }
+
+                ApplyCardSelectionVisual(card, selectedMods.Contains(mod));
+                UpdatePrimaryButton();
+                args.Handled = true;
             },
             RoutingStrategies.Tunnel);
 
         if (await dialog.ShowAsync(TopLevel.GetTopLevel(this)) == FAContentDialogResult.Primary
-            && selectedMod is not null)
+            && selectedMods.Count > 0)
         {
-            viewModel.AddModToPlayset(selectedMod);
+            // Add in the stable available-list order regardless of the active search filter.
+            viewModel.AddModsToPlayset(viewModel.AvailableMods.Where(selectedMods.Contains));
         }
 
         viewModel.AvailableModSearchText = string.Empty;
     }
 
-    private static FuncDataTemplate<ModEntry> CreateAvailableModCardTemplate(ParadoxGameLauncherViewModel viewModel)
+    private static FuncDataTemplate<ModEntry> CreateAvailableModCardTemplate(
+        ParadoxGameLauncherViewModel viewModel,
+        Func<ModEntry, bool> isSelected)
     {
         return new FuncDataTemplate<ModEntry>((mod, _) =>
         {
@@ -334,6 +344,9 @@ public partial class ParadoxPlaysetsSectionView : UserControl
             grid.Children.Add(textPanel);
             grid.Children.Add(actions);
             root.Child = grid;
+            // Re-realized containers (virtualization) rebuild from this template, so seed
+            // the visual selection state here instead of only on click.
+            ApplyCardSelectionVisual(root, isSelected(mod));
             return root;
         }, supportsRecycling: false);
     }
@@ -369,22 +382,13 @@ public partial class ParadoxPlaysetsSectionView : UserControl
         return null;
     }
 
-    private static void HighlightSelectedAvailableModCard(Control listHost, Border selectedCard)
+    private static void ApplyCardSelectionVisual(Border card, bool isSelected)
     {
-        foreach (var border in listHost.GetVisualDescendants().OfType<Border>())
-        {
-            if (border.Tag is not ModEntry)
-            {
-                continue;
-            }
-
-            var isSelected = ReferenceEquals(border, selectedCard);
-            border.BorderBrush = new SolidColorBrush(Color.Parse(isSelected ? "#FF60A5FA" : "#1AFFFFFF"));
-            // Thicker selection border is offset by a smaller padding so the content
-            // stays at the same position and size as the unselected state.
-            border.BorderThickness = new Thickness(isSelected ? 2 : 1);
-            border.Padding = new Thickness(isSelected ? 9 : 10);
-        }
+        card.BorderBrush = new SolidColorBrush(Color.Parse(isSelected ? "#FF60A5FA" : "#1AFFFFFF"));
+        // Thicker selection border is offset by a smaller padding so the content
+        // stays at the same position and size as the unselected state.
+        card.BorderThickness = new Thickness(isSelected ? 2 : 1);
+        card.Padding = new Thickness(isSelected ? 9 : 10);
     }
 
 

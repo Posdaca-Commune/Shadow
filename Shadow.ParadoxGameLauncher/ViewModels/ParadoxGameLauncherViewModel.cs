@@ -58,6 +58,7 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
             OnPropertyChanged(nameof(ActivePlaysetName));
             OnPropertyChanged(nameof(SelectedPlaysetEditStateText));
             OnPropertyChanged(nameof(SelectedPlaysetSummaryText));
+            OnPropertyChanged(nameof(SavesSummaryText));
         };
         Refresh();
     }
@@ -74,6 +75,8 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
             LocalizedText.Key("Paradox.Section.Dlcs.Description"), FASymbol.Shop),
         new("Playsets", LocalizedText.Key("Paradox.Section.Playsets.Title"),
             LocalizedText.Key("Paradox.Section.Playsets.Description"), FASymbol.BulletList),
+        new("Saves", LocalizedText.Key("Paradox.Section.Saves.Title"),
+            LocalizedText.Key("Paradox.Section.Saves.Description"), FASymbol.SaveLocal),
         new("GameSettings", LocalizedText.Key("Paradox.Section.GameSettings.Title"),
             LocalizedText.Key("Paradox.Section.GameSettings.Description"), FASymbol.Setting),
     ];
@@ -85,12 +88,15 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
     public ObservableCollection<ModEntry> FilteredAvailableMods { get; } = [];
     public ObservableCollection<DlcEntry> Dlcs { get; } = [];
     public ObservableCollection<Playset> Playsets { get; } = [];
+    public ObservableCollection<SaveEntry> Saves { get; } = [];
+    public ObservableCollection<SaveEntry> FilteredSaves { get; } = [];
     public ParadoxGameSettingsViewModel GameSettings { get; }
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsHomeSelected))]
     [NotifyPropertyChangedFor(nameof(IsModsSelected))]
     [NotifyPropertyChangedFor(nameof(IsDlcsSelected))]
     [NotifyPropertyChangedFor(nameof(IsPlaysetsSelected))]
+    [NotifyPropertyChangedFor(nameof(IsSavesSelected))]
     [NotifyPropertyChangedFor(nameof(IsGameSettingsSelected))]
     private LauncherSection _selectedSection = null!;
     public IReadOnlyList<ParadoxGameDefinition> AvailableGames => ParadoxGameCatalog.Games;
@@ -144,12 +150,17 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
     public bool IsModsSelected => SelectedSection.Key == "Mods";
     public bool IsDlcsSelected => SelectedSection.Key == "Dlcs";
     public bool IsPlaysetsSelected => SelectedSection.Key == "Playsets";
+    public bool IsSavesSelected => SelectedSection.Key == "Saves";
     public bool IsGameSettingsSelected => SelectedSection.Key == "GameSettings";
     partial void OnSelectedSectionChanged(LauncherSection value)
     {
         if (value.Key == "GameSettings")
         {
             GameSettings.ReloadCommand.Execute(null);
+        }
+        if (value.Key == "Saves")
+        {
+            ReloadSaves(showStatus: false);
         }
         NotifyLauncherOptionProperties();
     }
@@ -235,6 +246,7 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
         ApplySelectedPlaysetState();
         RebuildAvailableMods();
         RebuildFilteredMods();
+        ReloadSaves(showStatus: false);
         NotifyLauncherOptionProperties();
         SetLocalizedStatusText("Paradox.Status.Refreshed", Mods.Count, Dlcs.Count);
     }
@@ -392,8 +404,202 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
 
     public void AddModToPlayset(ModEntry mod)
     {
-        SelectedAvailableMod = mod;
-        AddSelectedModToPlayset();
+        AddModsToPlayset([mod]);
+    }
+
+    public void AddModsToPlayset(IEnumerable<ModEntry> mods)
+    {
+        if (SelectedPlayset is null || !EnsureSelectedPlaysetCanEdit())
+        {
+            return;
+        }
+
+        var existingIds = PlaysetMods
+            .Select(mod => mod.Id)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var addedCount = 0;
+        PlaysetModEntry? lastAddedEntry = null;
+        foreach (var mod in mods)
+        {
+            if (mod is null || !existingIds.Add(mod.Id))
+            {
+                continue;
+            }
+
+            var entry = new PlaysetModEntry(mod, true);
+            entry.PropertyChanged += (_, _) =>
+            {
+                PersistCurrentPlaysetState();
+                OnSelectionChanged();
+            };
+            PlaysetMods.Add(entry);
+            SelectedPlaysetMod = entry;
+            lastAddedEntry = entry;
+            addedCount++;
+        }
+
+        if (addedCount == 0)
+        {
+            return;
+        }
+
+        SelectedAvailableMod = null;
+        PersistCurrentPlaysetState();
+        RebuildAvailableMods();
+        OnSelectionChanged();
+        if (addedCount == 1 && lastAddedEntry is not null)
+        {
+            SetLocalizedStatusText("Paradox.Status.AddedToPlayset", lastAddedEntry.Title);
+        }
+        else
+        {
+            SetLocalizedStatusText("Paradox.Status.AddedModsToPlayset", addedCount);
+        }
+    }
+
+    [ObservableProperty]
+    private string _saveSearchText = string.Empty;
+
+    public int SaveCount => Saves.Count;
+
+    public int SaveBackupCount => Saves.Sum(save => save.BackupCount);
+
+    public string SavesSummaryText =>
+        ParadoxGameLauncherStrings.Format("Paradox.Saves.Summary", SaveCount, SaveBackupCount);
+
+    partial void OnSaveSearchTextChanged(string value)
+    {
+        RebuildFilteredSaves();
+    }
+
+    private void RebuildFilteredSaves()
+    {
+        var query = SaveSearchText.Trim();
+        FilteredSaves.Clear();
+        foreach (var save in Saves)
+        {
+            if (string.IsNullOrWhiteSpace(query)
+                || ContainsIgnoreCase(save.Name, query)
+                || ContainsIgnoreCase(save.FileName, query))
+            {
+                FilteredSaves.Add(save);
+            }
+        }
+    }
+
+    public void ReloadSaves(bool showStatus = true)
+    {
+        try
+        {
+            var saves = _service.DiscoverSaves();
+            Saves.Clear();
+            foreach (var save in saves)
+            {
+                Saves.Add(save);
+            }
+            RebuildFilteredSaves();
+            OnPropertyChanged(nameof(SaveCount));
+            OnPropertyChanged(nameof(SaveBackupCount));
+            OnPropertyChanged(nameof(SavesSummaryText));
+            if (showStatus)
+            {
+                SetLocalizedStatusText("Paradox.Status.SavesRefreshed", Saves.Count);
+            }
+        }
+        catch (Exception ex)
+        {
+            SetLocalizedStatusText("Paradox.Status.SaveOperationFailed", ex.Message);
+        }
+    }
+
+    [RelayCommand]
+    private void RefreshSaves()
+    {
+        ReloadSaves(showStatus: true);
+    }
+
+    [RelayCommand]
+    private void BackupSave(SaveEntry? save)
+    {
+        if (save is null)
+        {
+            return;
+        }
+
+        try
+        {
+            _service.CreateSaveBackup(save);
+            ReloadSaves(showStatus: false);
+            SetLocalizedStatusText("Paradox.Status.SaveBackedUp", save.Name);
+        }
+        catch (Exception ex)
+        {
+            SetLocalizedStatusText("Paradox.Status.SaveOperationFailed", ex.Message);
+        }
+    }
+
+    public void RestoreSaveBackup(SaveEntry save, SaveBackupEntry backup)
+    {
+        try
+        {
+            _service.RestoreSaveBackup(save, backup);
+            ReloadSaves(showStatus: false);
+            SetLocalizedStatusText("Paradox.Status.SaveBackupRestored", save.Name);
+        }
+        catch (Exception ex)
+        {
+            SetLocalizedStatusText("Paradox.Status.SaveOperationFailed", ex.Message);
+        }
+    }
+
+    public void DeleteSave(SaveEntry save)
+    {
+        try
+        {
+            _service.DeleteSave(save);
+            ReloadSaves(showStatus: false);
+            SetLocalizedStatusText("Paradox.Status.SaveDeleted", save.Name);
+        }
+        catch (Exception ex)
+        {
+            SetLocalizedStatusText("Paradox.Status.SaveOperationFailed", ex.Message);
+        }
+    }
+
+    public IReadOnlyList<SaveBackupEntry> GetSaveBackups(SaveEntry save)
+    {
+        return _service.GetSaveBackups(save);
+    }
+
+    public void NotifyNoSaveBackups()
+    {
+        SetLocalizedStatusText("Paradox.Status.NoSaveBackups");
+    }
+
+    [RelayCommand]
+    private void OpenSaveDirectory()
+    {
+        try
+        {
+            _service.OpenSaveDirectory();
+        }
+        catch (Exception ex)
+        {
+            SetLocalizedStatusText("Paradox.Status.SaveOperationFailed", ex.Message);
+        }
+    }
+
+    [RelayCommand]
+    private void OpenSaveBackupDirectory()
+    {
+        try
+        {
+            _service.OpenSaveBackupDirectory();
+        }
+        catch (Exception ex)
+        {
+            SetLocalizedStatusText("Paradox.Status.SaveOperationFailed", ex.Message);
+        }
     }
 
     [RelayCommand]

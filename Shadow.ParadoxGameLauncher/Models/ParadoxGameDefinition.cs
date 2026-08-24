@@ -23,6 +23,17 @@ public sealed class ParadoxGameDefinition
 
     public required string SteamAppId { get; init; }
 
+    /// <summary>
+    /// Folder name inside the game user directory that holds save files.
+    /// </summary>
+    public string SaveFolderName { get; init; } = "save games";
+
+    /// <summary>
+    /// Save file extensions (lowercase, with dot). An empty entry matches files
+    /// without an extension.
+    /// </summary>
+    public IReadOnlyList<string> SaveFileExtensions { get; init; } = [];
+
     public IReadOnlyList<string> SteamFolderNames { get; init; } = [];
 
     public string DefaultUserDirectory => Path.Combine(

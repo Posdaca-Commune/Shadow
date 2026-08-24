@@ -44,6 +44,154 @@ public sealed class ParadoxGameLauncherService
 
     public string DlcLoadPath => Path.Combine(GameUserDirectory, "dlc_load.json");
 
+    public string SaveDirectory => Path.Combine(GameUserDirectory, _configuration.SelectedGame.SaveFolderName);
+
+    private string SaveBackupRootDirectory => Path.Combine(
+        ParadoxWorkspacePlaysetStore.GetWorkspaceDirectory(_configuration.SelectedGame),
+        "save-backups");
+
+    public IReadOnlyList<SaveEntry> DiscoverSaves()
+    {
+        if (!Directory.Exists(SaveDirectory))
+        {
+            return [];
+        }
+
+        var extensions = _configuration.SelectedGame.SaveFileExtensions
+            .Select(extension => extension.ToLowerInvariant())
+            .ToHashSet();
+        var saves = new List<SaveEntry>();
+        foreach (var filePath in Directory.EnumerateFiles(SaveDirectory))
+        {
+            var fileName = Path.GetFileName(filePath);
+            var extension = Path.GetExtension(fileName).ToLowerInvariant();
+            if (extensions.Count > 0 && !extensions.Contains(extension))
+            {
+                continue;
+            }
+
+            var info = new FileInfo(filePath);
+            saves.Add(new SaveEntry
+            {
+                Name = Path.GetFileNameWithoutExtension(fileName),
+                FileName = fileName,
+                FilePath = filePath,
+                Extension = extension,
+                LastWriteTime = info.LastWriteTime,
+                SizeBytes = info.Length,
+                BackupCount = CountSaveBackups(Path.GetFileNameWithoutExtension(fileName)),
+            });
+        }
+
+        return saves
+            .OrderByDescending(save => save.LastWriteTime)
+            .ToList();
+    }
+
+    public IReadOnlyList<SaveBackupEntry> GetSaveBackups(SaveEntry save)
+    {
+        var directory = GetSaveBackupDirectory(save.Name);
+        if (!Directory.Exists(directory))
+        {
+            return [];
+        }
+
+        return Directory.EnumerateFiles(directory)
+            .Select(filePath =>
+            {
+                var info = new FileInfo(filePath);
+                return new SaveBackupEntry
+                {
+                    FileName = Path.GetFileName(filePath),
+                    FilePath = filePath,
+                    CreatedTime = info.LastWriteTime,
+                    SizeBytes = info.Length,
+                };
+            })
+            .OrderByDescending(backup => backup.CreatedTime)
+            .ToList();
+    }
+
+    public SaveBackupEntry CreateSaveBackup(SaveEntry save)
+    {
+        if (!File.Exists(save.FilePath))
+        {
+            throw new InvalidOperationException(ParadoxGameLauncherStrings.Get("Paradox.Service.SaveMissing"));
+        }
+
+        var directory = GetSaveBackupDirectory(save.Name);
+        Directory.CreateDirectory(directory);
+        var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH.mm.ss");
+        var backupPath = Path.Combine(directory, $"{timestamp}{save.Extension}");
+        File.Copy(save.FilePath, backupPath, overwrite: true);
+        var info = new FileInfo(backupPath);
+        return new SaveBackupEntry
+        {
+            FileName = Path.GetFileName(backupPath),
+            FilePath = backupPath,
+            CreatedTime = info.LastWriteTime,
+            SizeBytes = info.Length,
+        };
+    }
+
+    public void RestoreSaveBackup(SaveEntry save, SaveBackupEntry backup)
+    {
+        if (!File.Exists(backup.FilePath))
+        {
+            throw new InvalidOperationException(ParadoxGameLauncherStrings.Get("Paradox.Service.SaveBackupMissing"));
+        }
+
+        Directory.CreateDirectory(SaveDirectory);
+        File.Copy(backup.FilePath, save.FilePath, overwrite: true);
+    }
+
+    public void DeleteSave(SaveEntry save)
+    {
+        if (!File.Exists(save.FilePath))
+        {
+            return;
+        }
+
+        File.Delete(save.FilePath);
+    }
+
+    public void OpenSaveDirectory()
+    {
+        OpenDirectoryInExplorer(SaveDirectory);
+    }
+
+    public void OpenSaveBackupDirectory()
+    {
+        OpenDirectoryInExplorer(SaveBackupRootDirectory);
+    }
+
+    private static void OpenDirectoryInExplorer(string directory)
+    {
+        if (!Directory.Exists(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = directory,
+            UseShellExecute = true,
+        });
+    }
+
+    private string GetSaveBackupDirectory(string saveName)
+    {
+        return Path.Combine(SaveBackupRootDirectory, saveName);
+    }
+
+    private int CountSaveBackups(string saveName)
+    {
+        var directory = GetSaveBackupDirectory(saveName);
+        return Directory.Exists(directory)
+            ? Directory.EnumerateFiles(directory).Count()
+            : 0;
+    }
+
     public IReadOnlyList<ModEntry> DiscoverMods()
     {
         var descriptors = new List<string>();
