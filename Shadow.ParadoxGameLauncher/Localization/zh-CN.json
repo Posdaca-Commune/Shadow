@@ -118,6 +118,7 @@
     "Paradox.Plugin.DisplayName":  "Paradox 游戏启动器",
     "Paradox.Saves.Content.Description":  "浏览和删除本地存档文件。",
     "Paradox.Saves.Content.Header":  "存档管理",
+    "Paradox.Saves.FileCount":  "{0} 个文件",
     "Paradox.Saves.Search.Placeholder":  "搜索存档",
     "Paradox.Saves.Summary":  "{0} 个存档",
     "Paradox.Section.Dlcs.Description":  "DLC 启用状态和加载文件",

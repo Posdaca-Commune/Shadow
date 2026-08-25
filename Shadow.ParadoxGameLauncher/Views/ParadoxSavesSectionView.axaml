@@ -110,6 +110,20 @@
                                         <TextBlock Text="{Binding SizeText}"
                                                    FontSize="11"/>
                                     </Border>
+                                    <Border Background="{DynamicResource ControlFillColorTertiaryBrush}"
+                                            CornerRadius="4"
+                                            Padding="5,1"
+                                            IsVisible="{Binding HasMetadata}">
+                                        <TextBlock Text="{Binding MetadataText}"
+                                                   FontSize="11"/>
+                                    </Border>
+                                    <Border Background="{DynamicResource ControlFillColorTertiaryBrush}"
+                                            CornerRadius="4"
+                                            Padding="5,1"
+                                            IsVisible="{Binding HasMultipleFiles}">
+                                        <TextBlock Text="{Binding FileCountText}"
+                                                   FontSize="11"/>
+                                    </Border>
                                 </StackPanel>
                             </StackPanel>
                             <StackPanel Grid.Column="2"

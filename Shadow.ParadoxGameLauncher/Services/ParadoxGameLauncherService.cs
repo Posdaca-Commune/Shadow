@@ -44,11 +44,12 @@ public sealed class ParadoxGameLauncherService
 
     public string DlcLoadPath => Path.Combine(GameUserDirectory, "dlc_load.json");
 
-    public string SaveDirectory => Path.Combine(GameUserDirectory, _configuration.SelectedGame.SaveFolderName);
+    public string SaveDirectory => ResolveSaveDirectory();
 
     public IReadOnlyList<SaveEntry> DiscoverSaves()
     {
-        if (!Directory.Exists(SaveDirectory))
+        var directory = SaveDirectory;
+        if (!Directory.Exists(directory))
         {
             return [];
         }
@@ -57,25 +58,62 @@ public sealed class ParadoxGameLauncherService
             .Select(extension => extension.ToLowerInvariant())
             .ToHashSet();
         var saves = new List<SaveEntry>();
-        foreach (var filePath in Directory.EnumerateFiles(SaveDirectory))
+
+        // Folder-based saves (Stellaris): each subdirectory is one save containing
+        // multiple timestamped .sav files (current state + built-in autosave history).
+        foreach (var subDir in Directory.EnumerateDirectories(directory))
         {
-            var fileName = Path.GetFileName(filePath);
-            var extension = Path.GetExtension(fileName).ToLowerInvariant();
-            if (extensions.Count > 0 && !extensions.Contains(extension))
+            var subFiles = Directory.EnumerateFiles(subDir)
+                .Where(filePath => MatchesSaveExtension(filePath, extensions))
+                .ToList();
+            if (subFiles.Count == 0)
             {
                 continue;
             }
 
+            var latestFile = subFiles
+                .Select(filePath => new FileInfo(filePath))
+                .OrderByDescending(info => info.LastWriteTime)
+                .First();
+            var totalSize = subFiles.Sum(filePath => new FileInfo(filePath).Length);
+            var folderEntry = new SaveEntry
+            {
+                Name = Path.GetFileName(subDir),
+                FileName = Path.GetFileName(subDir),
+                FilePath = subDir,
+                Extension = Path.GetExtension(latestFile.Name).ToLowerInvariant(),
+                LastWriteTime = latestFile.LastWriteTime,
+                SizeBytes = totalSize,
+                IsFolder = true,
+                FileCount = subFiles.Count,
+            };
+            folderEntry.Metadata = SaveMetadataParser.Parse(folderEntry);
+            saves.Add(folderEntry);
+        }
+
+        // File-based saves (HOI4, EU4, etc.): each file in the save directory is one save.
+        foreach (var filePath in Directory.EnumerateFiles(directory))
+        {
+            if (!MatchesSaveExtension(filePath, extensions))
+            {
+                continue;
+            }
+
+            var fileName = Path.GetFileName(filePath);
             var info = new FileInfo(filePath);
-            saves.Add(new SaveEntry
+            var fileEntry = new SaveEntry
             {
                 Name = Path.GetFileNameWithoutExtension(fileName),
                 FileName = fileName,
                 FilePath = filePath,
-                Extension = extension,
+                Extension = Path.GetExtension(fileName).ToLowerInvariant(),
                 LastWriteTime = info.LastWriteTime,
                 SizeBytes = info.Length,
-            });
+                IsFolder = false,
+                FileCount = 1,
+            };
+            fileEntry.Metadata = SaveMetadataParser.Parse(fileEntry);
+            saves.Add(fileEntry);
         }
 
         return saves
@@ -83,8 +121,59 @@ public sealed class ParadoxGameLauncherService
             .ToList();
     }
 
+    private static bool MatchesSaveExtension(string filePath, IReadOnlySet<string> extensions)
+    {
+        if (extensions.Count == 0)
+        {
+            return true;
+        }
+
+        var extension = Path.GetExtension(filePath).ToLowerInvariant();
+        return extensions.Contains(extension);
+    }
+
+    private string ResolveSaveDirectory()
+    {
+        var gameDir = GameUserDirectory;
+        var folderName = _configuration.SelectedGame.SaveFolderName;
+
+        // Exact path first.
+        var exactPath = Path.Combine(gameDir, folderName);
+        if (Directory.Exists(exactPath))
+        {
+            return exactPath;
+        }
+
+        // Case-insensitive and variant (space/underscore) matching against sibling directories.
+        if (Directory.Exists(gameDir))
+        {
+            var normalized = folderName.Replace("_", " ").Trim();
+            foreach (var dir in Directory.EnumerateDirectories(gameDir))
+            {
+                var candidateName = Path.GetFileName(dir);
+                var candidateNormalized = candidateName.Replace("_", " ").Trim();
+                if (string.Equals(candidateName, folderName, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(candidateNormalized, normalized, StringComparison.OrdinalIgnoreCase))
+                {
+                    return dir;
+                }
+            }
+        }
+
+        return exactPath;
+    }
+
     public void DeleteSave(SaveEntry save)
     {
+        if (save.IsFolder)
+        {
+            if (Directory.Exists(save.FilePath))
+            {
+                Directory.Delete(save.FilePath, recursive: true);
+            }
+            return;
+        }
+
         if (!File.Exists(save.FilePath))
         {
             return;
@@ -100,6 +189,22 @@ public sealed class ParadoxGameLauncherService
 
     public void RevealSaveInExplorer(SaveEntry save)
     {
+        if (save.IsFolder)
+        {
+            if (!Directory.Exists(save.FilePath))
+            {
+                return;
+            }
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "explorer.exe",
+                Arguments = $"\"{save.FilePath}\"",
+                UseShellExecute = true,
+            });
+            return;
+        }
+
         if (!File.Exists(save.FilePath))
         {
             return;

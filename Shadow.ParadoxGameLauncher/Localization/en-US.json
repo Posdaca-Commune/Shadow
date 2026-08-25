@@ -118,6 +118,7 @@
     "Paradox.Plugin.DisplayName":  "Paradox Game Launcher",
     "Paradox.Saves.Content.Description":  "Browse and delete local save files.",
     "Paradox.Saves.Content.Header":  "Save management",
+    "Paradox.Saves.FileCount":  "{0} files",
     "Paradox.Saves.Search.Placeholder":  "Search saves",
     "Paradox.Saves.Summary":  "{0} saves",
     "Paradox.Section.Dlcs.Description":  "DLC enabled state and load file",

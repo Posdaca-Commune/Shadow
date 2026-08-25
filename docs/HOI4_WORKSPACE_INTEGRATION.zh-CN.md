@@ -18,13 +18,13 @@ Shadow 使用以下目录作为 HOI4 工作区：
 在 Windows 上通常展开为：
 
 ```text
-C:\Users\<user>\AppData\Roaming\Posdaca\Hoi4Workspace\
+C:\Users\<user>\AppData\Roaming\Posdaca\Hearts of Iron IV\
 ```
 
 当前约定的子目录：
 
 ```text
-Hoi4Workspace\
+Hearts of Iron IV\
   mods\
     index.json
   playsets\
@@ -203,5 +203,3 @@ shadow PDXGameLauncher hoi4 -playset "<playset-id>"
 - 本地 Mod 用 `contentPath` 匹配最稳定。
 - 播放集里的 `modIds` 和 `enabledModIds` 建议使用 Shadow 索引里的稳定 `id`。Shadow 也兼容旧 `shadowId`，但外部项目不应依赖旧格式。
 - 外部托管播放集建议设置 `isExternal=true` 和 `can_edit=false`，避免 Shadow 用户编辑后被外部项目下次同步覆盖。
-
-

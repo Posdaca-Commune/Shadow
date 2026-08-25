@@ -9,7 +9,7 @@ plugin is `Shadow.ParadoxGameLauncher`, a multi-game launcher and playset manage
 for titles such as Hearts of Iron IV, Crusader Kings III, Europa Universalis IV,
 Stellaris, Victoria 3, and Imperator: Rome.
 
-> Status: `1.0.0` is the first stable release. It is ready for general Windows
+> Status: `1.1.1` is the current release. It is ready for general Windows
 > use and Store packaging, but you should still back up your game user
 > configuration before relying on it as your only launcher.
 
@@ -25,6 +25,9 @@ Stellaris, Victoria 3, and Imperator: Rome.
   display mode, resolution, refresh rate, VSync, and volume.
 - Shared per-game workspace files under `%APPDATA%\Posdaca\<Game Name>`.
 - Mod index export to `%APPDATA%\Posdaca\<Game Name>\mods\index.json`.
+- Save management: browse, search, and delete saves with in-game date and country
+  metadata; reveal saves in Explorer; folder-based saves (Stellaris) shown as single
+  cards with file-count badges.
 - Command-line plugin command dispatch, including `paradox.launch`.
 
 ## Requirements
@@ -39,7 +42,7 @@ separate .NET runtime.
 
 ## Getting Started
 
-1. Download `Shadow-1.0.0.msix` from the GitHub release.
+1. Download `Shadow-1.1.1.msix` from the GitHub release.
 2. Install the package with Windows App Installer.
 3. Start `Shadow` from the Start menu or desktop shortcut.
 4. Open `Paradox Game Launcher` from the left navigation.
@@ -124,10 +127,10 @@ To create a Windows x64 MSIX package with the bundled plugin, install the
 Windows 10/11 SDK, then run:
 
 ```powershell
-.\scripts\build-msix.ps1 -Version 1.0.0
+.\scripts\build-msix.ps1 -Version 1.1.1
 ```
 
-The generated package is written to `artifacts/msix/Shadow-1.0.0.msix`.
+The generated package is written to `artifacts/msix/Shadow-1.1.1.msix`.
 MSIX packages must be signed before installation. Use `-CertificatePath` or
 `-CertificateThumbprint` to sign during packaging.
 
@@ -141,7 +144,7 @@ Example with a PFX certificate:
 
 ```powershell
 $password = Get-Content .\certs\Shadow.pfx.password.txt | ConvertTo-SecureString -AsPlainText -Force
-.\scripts\build-msix.ps1 -Version 1.0.0 -CertificatePath .\certs\Shadow.pfx -CertificatePassword $password
+.\scripts\build-msix.ps1 -Version 1.1.1 -CertificatePath .\certs\Shadow.pfx -CertificatePassword $password
 ```
 
 Share `certs/Shadow.cer` with testers so they can trust the package before

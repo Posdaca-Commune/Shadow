@@ -1,4 +1,4 @@
-﻿# Microsoft Store listing copy
+# Microsoft Store listing copy
 
 Product name / 产品名称: Shadow Studio
 
@@ -16,7 +16,7 @@ What you can do:
 - Discover local and Steam Workshop mods already present on your PC
 - Create editable Shadow playsets and add several mods at once
 - Import playsets from the official Paradox Launcher as read-only copies
-- Back up, restore, and delete game saves with per-game save detection
+- Browse, search, and delete game saves with in-game date and country metadata
 - Enable or disable DLC and write the result to standard game load files
 - Edit common settings.txt options such as language, display mode, resolution, refresh rate, VSync, and volume
 - Open a configured game executable from the home page or the launcher page
@@ -29,13 +29,13 @@ Before you rely on it as your only launch tool, back up your Paradox user folder
 ### Features
 - Desktop utility for local Paradox playset, mod, and save files
 - Playset management with official-launcher import and multi-select mod adding
-- Save management with backups, restore, and per-game save detection
+- Save management with browse, search, and per-game save detection
 - DLC and settings written to standard local game files
 - Home status, quick actions, and command-line start
 - No playable game content in the app package
 
-### What's new in 1.1.0
-Adds a save management section: browse saves with timestamps and sizes, back them up to the app workspace, restore any backup, and delete saves while keeping backups. Also includes automatic game folder discovery with manual selection, empty new playsets, and a consistent drag-to-reorder experience.
+### What's new in 1.1.1
+Save cards now show an in-game date badge and country metadata (HOI4 tag or Stellaris empire name). Each card has a "reveal in folder" button. Stellaris folder-based saves appear as a single card with a file-count badge. The backup/restore feature has been removed; the save section is now browse, search, and delete. Save directory resolution is case-insensitive and handles underscore/space variants.
 
 ## 中文
 
@@ -51,7 +51,7 @@ Shadow Studio 是一款 Windows 桌面工具，用于整理本机已安装 Parad
 - 发现本机已有的本地 Mod 和 Steam Workshop Mod
 - 创建可编辑的 Shadow 播放集，支持一次添加多个 Mod
 - 从官方 Paradox Launcher 导入只读播放集
-- 备份、恢复和删除游戏存档，自动识别各游戏的存档目录
+- 浏览、搜索和删除游戏存档，显示游戏内日期和国家元数据
 - 启用或禁用 DLC，并写入标准游戏加载文件
 - 修改 settings.txt 中的常见选项，例如语言、显示模式、分辨率、刷新率、垂直同步和音量
 - 从主页或启动器页面打开已配置的游戏可执行文件
@@ -64,10 +64,10 @@ Shadow Studio 在本地运行。请先配置游戏可执行文件、Paradox 用�
 ### 功能要点
 - 用于本地 Paradox 播放集、Mod 和存档文件的桌面工具
 - 播放集管理，支持导入官方启动器播放集和多选添加 Mod
-- 存档管理：备份、恢复，自动识别各游戏存档目录
+- 存档管理：浏览、搜索和删除，自动识别各游戏存档目录
 - DLC 和设置写入标准本地游戏文件
 - 主页状态、快捷操作和命令行启动
 - 应用包内不含可玩的游戏内容
 
-### 1.1.0 更新内容
-新增存档管理分区：浏览存档（显示保存时间与大小）、备份到应用工作区、从任意备份恢复，删除存档时保留备份。同时包含游戏目录自动查找与手动选择、新建空播放集，以及更一致的拖拽排序体验。
+### 1.1.1 更新内容
+存档卡片现在显示游戏内日期标签和国家元数据（HOI4 国家代码或群星帝国名称）。每张卡片新增「在文件夹中显示」按钮。群星文件夹型存档显示为单个卡片并标注文件数。移除备份 / 恢复功能，存档分区改为浏览、搜索和删除。存档目录解析改为大小写不敏感，并统一处理下划线 / 空格变体。

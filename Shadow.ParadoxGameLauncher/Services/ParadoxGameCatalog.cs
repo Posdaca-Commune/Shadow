@@ -44,8 +44,7 @@ public static class ParadoxGameCatalog
             ExecutableFileName = "stellaris.exe",
             SteamAppId = "281990",
             SteamFolderNames = ["Stellaris"],
-            SaveFolderName = "save_games",
-            SaveFileExtensions = [".sav", ""],
+            SaveFileExtensions = [".sav"],
         },
         new()
         {

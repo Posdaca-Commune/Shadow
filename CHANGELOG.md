@@ -1,5 +1,39 @@
 # Changelog
 
+## 1.1.1 - 2026-08-25
+
+### Added
+
+- Save metadata parsing: the save section now shows an in-game date badge and,
+  where available, a country tag (HOI4) or empire name (Stellaris) on each card.
+- "Reveal in folder" button on each save card to locate the save file (or folder
+  for Stellaris-style saves) in Windows Explorer.
+- Folder-based save support for Stellaris: each save directory (containing multiple
+  timestamped `.sav` files) is now shown as a single card with a file-count badge.
+
+### Changed
+
+- Removed the backup/restore feature from the save section. The toolbar now has a
+  single "open save folder" button instead of a dropdown with separate save and
+  backup folder options. Save cards no longer show backup or restore buttons.
+- Save directory resolution is now case-insensitive and normalises underscore/space
+  variants, so `save_games` and `save games` are matched interchangeably.
+- Save summary no longer includes a backup count.
+- Delete confirmation dialog updated to reflect that deletion is irreversible
+  (backups are no longer kept).
+
+### Fixed
+
+- Stellaris saves were not discovered because the catalog defined the save folder
+  as `save_games` (underscore) while the actual directory is `save games` (space).
+  The resolver now falls back to variant matching when an exact path is not found.
+
+### Notes
+
+- Save metadata is parsed from the ZIP `meta` entry (Stellaris/CK3/EU4/Vic3) or from
+  the binary file header and filename (HOI4). Only lightweight fields are read; the
+  full gamestate is not parsed.
+
 ## 1.1.0 - 2026-08-24
 
 ### Added
