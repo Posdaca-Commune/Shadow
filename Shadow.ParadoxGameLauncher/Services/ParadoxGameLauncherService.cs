@@ -46,10 +46,6 @@ public sealed class ParadoxGameLauncherService
 
     public string SaveDirectory => Path.Combine(GameUserDirectory, _configuration.SelectedGame.SaveFolderName);
 
-    private string SaveBackupRootDirectory => Path.Combine(
-        ParadoxWorkspacePlaysetStore.GetWorkspaceDirectory(_configuration.SelectedGame),
-        "save-backups");
-
     public IReadOnlyList<SaveEntry> DiscoverSaves()
     {
         if (!Directory.Exists(SaveDirectory))
@@ -79,70 +75,12 @@ public sealed class ParadoxGameLauncherService
                 Extension = extension,
                 LastWriteTime = info.LastWriteTime,
                 SizeBytes = info.Length,
-                BackupCount = CountSaveBackups(Path.GetFileNameWithoutExtension(fileName)),
             });
         }
 
         return saves
             .OrderByDescending(save => save.LastWriteTime)
             .ToList();
-    }
-
-    public IReadOnlyList<SaveBackupEntry> GetSaveBackups(SaveEntry save)
-    {
-        var directory = GetSaveBackupDirectory(save.Name);
-        if (!Directory.Exists(directory))
-        {
-            return [];
-        }
-
-        return Directory.EnumerateFiles(directory)
-            .Select(filePath =>
-            {
-                var info = new FileInfo(filePath);
-                return new SaveBackupEntry
-                {
-                    FileName = Path.GetFileName(filePath),
-                    FilePath = filePath,
-                    CreatedTime = info.LastWriteTime,
-                    SizeBytes = info.Length,
-                };
-            })
-            .OrderByDescending(backup => backup.CreatedTime)
-            .ToList();
-    }
-
-    public SaveBackupEntry CreateSaveBackup(SaveEntry save)
-    {
-        if (!File.Exists(save.FilePath))
-        {
-            throw new InvalidOperationException(ParadoxGameLauncherStrings.Get("Paradox.Service.SaveMissing"));
-        }
-
-        var directory = GetSaveBackupDirectory(save.Name);
-        Directory.CreateDirectory(directory);
-        var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH.mm.ss");
-        var backupPath = Path.Combine(directory, $"{timestamp}{save.Extension}");
-        File.Copy(save.FilePath, backupPath, overwrite: true);
-        var info = new FileInfo(backupPath);
-        return new SaveBackupEntry
-        {
-            FileName = Path.GetFileName(backupPath),
-            FilePath = backupPath,
-            CreatedTime = info.LastWriteTime,
-            SizeBytes = info.Length,
-        };
-    }
-
-    public void RestoreSaveBackup(SaveEntry save, SaveBackupEntry backup)
-    {
-        if (!File.Exists(backup.FilePath))
-        {
-            throw new InvalidOperationException(ParadoxGameLauncherStrings.Get("Paradox.Service.SaveBackupMissing"));
-        }
-
-        Directory.CreateDirectory(SaveDirectory);
-        File.Copy(backup.FilePath, save.FilePath, overwrite: true);
     }
 
     public void DeleteSave(SaveEntry save)
@@ -160,9 +98,19 @@ public sealed class ParadoxGameLauncherService
         OpenDirectoryInExplorer(SaveDirectory);
     }
 
-    public void OpenSaveBackupDirectory()
+    public void RevealSaveInExplorer(SaveEntry save)
     {
-        OpenDirectoryInExplorer(SaveBackupRootDirectory);
+        if (!File.Exists(save.FilePath))
+        {
+            return;
+        }
+
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = "explorer.exe",
+            Arguments = $"/select,\"{save.FilePath}\"",
+            UseShellExecute = true,
+        });
     }
 
     private static void OpenDirectoryInExplorer(string directory)
@@ -177,19 +125,6 @@ public sealed class ParadoxGameLauncherService
             FileName = directory,
             UseShellExecute = true,
         });
-    }
-
-    private string GetSaveBackupDirectory(string saveName)
-    {
-        return Path.Combine(SaveBackupRootDirectory, saveName);
-    }
-
-    private int CountSaveBackups(string saveName)
-    {
-        var directory = GetSaveBackupDirectory(saveName);
-        return Directory.Exists(directory)
-            ? Directory.EnumerateFiles(directory).Count()
-            : 0;
     }
 
     public IReadOnlyList<ModEntry> DiscoverMods()

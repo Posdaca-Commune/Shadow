@@ -136,7 +136,8 @@
                                             CommandParameter="{Binding}"
                                             Width="34"
                                             Height="34"
-                                            Padding="0">
+                                            Padding="0"
+                                            ToolTip.Tip="{Binding #ModsSectionRoot.((vm:ParadoxGameLauncherViewModel)DataContext).Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Action.RevealInFolder}">
                                         <ui:FASymbolIcon Symbol="OpenFolder"/>
                                     </Button>
                                     <Button Command="{Binding #ModsSectionRoot.((vm:ParadoxGameLauncherViewModel)DataContext).OpenWorkshopPageCommand}"
@@ -144,7 +145,8 @@
                                             Width="34"
                                             Height="34"
                                             Padding="0"
-                                            IsVisible="{Binding CanOpenWorkshopPage}">
+                                            IsVisible="{Binding CanOpenWorkshopPage}"
+                                            ToolTip.Tip="{Binding #ModsSectionRoot.((vm:ParadoxGameLauncherViewModel)DataContext).Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Action.RevealInBrowser}">
                                         <ui:FASymbolIcon Symbol="Globe"/>
                                     </Button>
                                 </StackPanel>

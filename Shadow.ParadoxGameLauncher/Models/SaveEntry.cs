@@ -1,5 +1,3 @@
-using Shadow.ParadoxGameLauncher.Localization;
-
 namespace Shadow.ParadoxGameLauncher.Models;
 
 public sealed class SaveEntry
@@ -16,16 +14,9 @@ public sealed class SaveEntry
 
     public required long SizeBytes { get; init; }
 
-    public required int BackupCount { get; init; }
-
     public string LastWriteText => LastWriteTime.ToString("yyyy-MM-dd HH:mm");
 
     public string SizeText => FormatSize(SizeBytes);
-
-    public string BackupCountText =>
-        ParadoxGameLauncherStrings.Format("Paradox.Saves.BackupCount", BackupCount);
-
-    public bool HasBackups => BackupCount > 0;
 
     public static string FormatSize(long bytes)
     {

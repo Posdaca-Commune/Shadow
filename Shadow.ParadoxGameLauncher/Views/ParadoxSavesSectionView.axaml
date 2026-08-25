@@ -24,22 +24,12 @@
                             <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Action.Refresh}"/>
                         </StackPanel>
                     </Button>
-                    <Button>
+                    <Button Command="{Binding OpenSaveDirectoryCommand}">
                         <StackPanel Orientation="Horizontal"
                                     Spacing="6">
                             <ui:FASymbolIcon Symbol="OpenFolder"/>
-                            <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Action.OpenFolders}"/>
-                            <ui:FASymbolIcon Symbol="ChevronDown"
-                                             FontSize="10"/>
+                            <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Action.OpenSaveFolder}"/>
                         </StackPanel>
-                        <Button.Flyout>
-                            <MenuFlyout Placement="BottomEdgeAlignedLeft">
-                                <MenuItem Header="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Action.OpenSaveFolder}"
-                                          Command="{Binding OpenSaveDirectoryCommand}"/>
-                                <MenuItem Header="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Action.OpenBackupFolder}"
-                                          Command="{Binding OpenSaveBackupDirectoryCommand}"/>
-                            </MenuFlyout>
-                        </Button.Flyout>
                     </Button>
                 </StackPanel>
             </ui:FASettingsExpander.Footer>
@@ -120,33 +110,19 @@
                                         <TextBlock Text="{Binding SizeText}"
                                                    FontSize="11"/>
                                     </Border>
-                                    <Border Background="{DynamicResource ControlFillColorTertiaryBrush}"
-                                            CornerRadius="4"
-                                            Padding="5,1"
-                                            IsVisible="{Binding HasBackups}">
-                                        <TextBlock Text="{Binding BackupCountText}"
-                                                   FontSize="11"/>
-                                    </Border>
                                 </StackPanel>
                             </StackPanel>
                             <StackPanel Grid.Column="2"
                                         Orientation="Horizontal"
                                         Spacing="8"
                                         VerticalAlignment="Center">
-                                <Button Command="{Binding #SavesSectionRoot.((vm:ParadoxGameLauncherViewModel)DataContext).BackupSaveCommand}"
+                                <Button Command="{Binding #SavesSectionRoot.((vm:ParadoxGameLauncherViewModel)DataContext).RevealSaveInFolderCommand}"
                                         CommandParameter="{Binding}"
                                         Width="34"
                                         Height="34"
                                         Padding="0"
-                                        ToolTip.Tip="{Binding #SavesSectionRoot.((vm:ParadoxGameLauncherViewModel)DataContext).Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Action.BackupSave}">
-                                    <ui:FASymbolIcon Symbol="Save"/>
-                                </Button>
-                                <Button Click="RestoreSaveButton_OnClick"
-                                        Width="34"
-                                        Height="34"
-                                        Padding="0"
-                                        ToolTip.Tip="{Binding #SavesSectionRoot.((vm:ParadoxGameLauncherViewModel)DataContext).Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Action.RestoreSave}">
-                                    <ui:FASymbolIcon Symbol="Clock"/>
+                                        ToolTip.Tip="{Binding #SavesSectionRoot.((vm:ParadoxGameLauncherViewModel)DataContext).Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Action.RevealInFolder}">
+                                    <ui:FASymbolIcon Symbol="OpenFolder"/>
                                 </Button>
                                 <Button Click="DeleteSaveButton_OnClick"
                                         Width="34"

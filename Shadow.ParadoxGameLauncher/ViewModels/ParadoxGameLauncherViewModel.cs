@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FluentAvalonia.UI.Controls;
@@ -462,10 +462,8 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
 
     public int SaveCount => Saves.Count;
 
-    public int SaveBackupCount => Saves.Sum(save => save.BackupCount);
-
     public string SavesSummaryText =>
-        ParadoxGameLauncherStrings.Format("Paradox.Saves.Summary", SaveCount, SaveBackupCount);
+        ParadoxGameLauncherStrings.Format("Paradox.Saves.Summary", SaveCount);
 
     partial void OnSaveSearchTextChanged(string value)
     {
@@ -499,7 +497,6 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
             }
             RebuildFilteredSaves();
             OnPropertyChanged(nameof(SaveCount));
-            OnPropertyChanged(nameof(SaveBackupCount));
             OnPropertyChanged(nameof(SavesSummaryText));
             if (showStatus)
             {
@@ -518,40 +515,6 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
         ReloadSaves(showStatus: true);
     }
 
-    [RelayCommand]
-    private void BackupSave(SaveEntry? save)
-    {
-        if (save is null)
-        {
-            return;
-        }
-
-        try
-        {
-            _service.CreateSaveBackup(save);
-            ReloadSaves(showStatus: false);
-            SetLocalizedStatusText("Paradox.Status.SaveBackedUp", save.Name);
-        }
-        catch (Exception ex)
-        {
-            SetLocalizedStatusText("Paradox.Status.SaveOperationFailed", ex.Message);
-        }
-    }
-
-    public void RestoreSaveBackup(SaveEntry save, SaveBackupEntry backup)
-    {
-        try
-        {
-            _service.RestoreSaveBackup(save, backup);
-            ReloadSaves(showStatus: false);
-            SetLocalizedStatusText("Paradox.Status.SaveBackupRestored", save.Name);
-        }
-        catch (Exception ex)
-        {
-            SetLocalizedStatusText("Paradox.Status.SaveOperationFailed", ex.Message);
-        }
-    }
-
     public void DeleteSave(SaveEntry save)
     {
         try
@@ -566,22 +529,17 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
         }
     }
 
-    public IReadOnlyList<SaveBackupEntry> GetSaveBackups(SaveEntry save)
-    {
-        return _service.GetSaveBackups(save);
-    }
-
-    public void NotifyNoSaveBackups()
-    {
-        SetLocalizedStatusText("Paradox.Status.NoSaveBackups");
-    }
-
     [RelayCommand]
-    private void OpenSaveDirectory()
+    private void RevealSaveInFolder(SaveEntry? save)
     {
+        if (save is null)
+        {
+            return;
+        }
+
         try
         {
-            _service.OpenSaveDirectory();
+            _service.RevealSaveInExplorer(save);
         }
         catch (Exception ex)
         {
@@ -590,11 +548,11 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
     }
 
     [RelayCommand]
-    private void OpenSaveBackupDirectory()
+    private void OpenSaveDirectory()
     {
         try
         {
-            _service.OpenSaveBackupDirectory();
+            _service.OpenSaveDirectory();
         }
         catch (Exception ex)
         {
