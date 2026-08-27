@@ -408,24 +408,11 @@ public sealed class ParadoxGameLauncherService
         _configuration.Save();
     }
 
-    public ModEntry ImportModFromArchive(string archivePath)
+    public ModEntry ImportModFromFolder(string sourceFolderPath)
     {
-        if (string.IsNullOrWhiteSpace(archivePath) || !File.Exists(archivePath))
+        if (string.IsNullOrWhiteSpace(sourceFolderPath) || !Directory.Exists(sourceFolderPath))
         {
-            throw new FileNotFoundException(ParadoxGameLauncherStrings.Get("Paradox.Service.ImportArchiveMissing"), archivePath);
-        }
-
-        var extension = Path.GetExtension(archivePath);
-        if (!string.Equals(extension, ".zip", StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(extension, ".7z", StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(extension, ".rar", StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException(ParadoxGameLauncherStrings.Get("Paradox.Service.ImportArchiveUnsupported"));
-        }
-
-        if (!string.Equals(extension, ".zip", StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException(ParadoxGameLauncherStrings.Get("Paradox.Service.ImportArchiveZipOnly"));
+            throw new DirectoryNotFoundException(ParadoxGameLauncherStrings.Get("Paradox.Service.ImportFolderMissing"));
         }
 
         if (string.IsNullOrWhiteSpace(GameUserDirectory))
@@ -436,20 +423,14 @@ public sealed class ParadoxGameLauncherService
         var localModDirectory = Path.Combine(GameUserDirectory, "mod");
         Directory.CreateDirectory(localModDirectory);
 
-        using var archive = ZipFile.OpenRead(archivePath);
-        if (archive.Entries.Count == 0)
-        {
-            throw new InvalidOperationException(ParadoxGameLauncherStrings.Get("Paradox.Service.ImportArchiveEmpty"));
-        }
-
-        var descriptorEntry = FindImportDescriptorEntry(archive);
-        var values = descriptorEntry is null
-            ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-            : ReadClausewitzKeyValues(descriptorEntry);
+        var descriptorPath = FindFolderDescriptorPath(sourceFolderPath);
+        var values = !string.IsNullOrWhiteSpace(descriptorPath) && File.Exists(descriptorPath)
+            ? ReadClausewitzKeyValues(descriptorPath)
+            : new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         if (!values.TryGetValue("name", out var title) || string.IsNullOrWhiteSpace(title))
         {
-            title = Path.GetFileNameWithoutExtension(archivePath);
+            title = Path.GetFileName(Path.TrimEndingDirectorySeparator(sourceFolderPath));
         }
 
         values.TryGetValue("remote_file_id", out var remoteFileId);
@@ -459,7 +440,7 @@ public sealed class ParadoxGameLauncherService
             values.TryGetValue("supported_version", out version);
         }
 
-        var folderName = BuildImportedModFolderName(title, remoteFileId, archivePath);
+        var folderName = BuildImportedModFolderName(title, remoteFileId, sourceFolderPath);
         var contentDirectory = Path.Combine(localModDirectory, folderName);
         if (Directory.Exists(contentDirectory))
         {
@@ -467,24 +448,13 @@ public sealed class ParadoxGameLauncherService
             contentDirectory = Path.Combine(localModDirectory, folderName);
         }
 
-        Directory.CreateDirectory(contentDirectory);
-        ExtractZipArchive(archive, contentDirectory, stripRoot: ShouldStripZipRoot(archive, descriptorEntry));
-
-        var extractedDescriptorPath = FindExtractedDescriptorPath(contentDirectory);
-        if (!string.IsNullOrWhiteSpace(extractedDescriptorPath)
-            && File.Exists(extractedDescriptorPath)
-            && string.Equals(Path.GetDirectoryName(extractedDescriptorPath), contentDirectory, StringComparison.OrdinalIgnoreCase))
-        {
-            // Keep extracted descriptor.mod inside the content folder; create a launcher path descriptor next to it.
-        }
+        CopyDirectoryContents(sourceFolderPath, contentDirectory);
 
         var launcherDescriptorName = !string.IsNullOrWhiteSpace(remoteFileId)
             ? $"ugc_{remoteFileId.Trim()}.mod"
             : $"{SanitizeFileName(folderName)}.mod";
         var launcherDescriptorPath = Path.Combine(localModDirectory, launcherDescriptorName);
-        if (File.Exists(launcherDescriptorPath)
-            && !string.Equals(Path.GetFullPath(launcherDescriptorPath), Path.GetFullPath(extractedDescriptorPath ?? string.Empty),
-                StringComparison.OrdinalIgnoreCase))
+        if (File.Exists(launcherDescriptorPath))
         {
             launcherDescriptorName = $"{Path.GetFileNameWithoutExtension(launcherDescriptorName)}_{DateTime.Now:yyyyMMddHHmmss}.mod";
             launcherDescriptorPath = Path.Combine(localModDirectory, launcherDescriptorName);
@@ -614,8 +584,9 @@ public sealed class ParadoxGameLauncherService
 
         var resolvedArchivePath = !string.IsNullOrWhiteSpace(archivePath) ? archivePath : archive;
         var normalizedDescriptorPath = ParadoxModIdentity.NormalizePath(descriptorPath);
-        var launcherPath = ParadoxModIdentity.NormalizeLauncherPath(
-            GetLauncherModPath(normalizedDescriptorPath, remoteFileId));
+        // Build the launcher path from the original descriptor path so the .mod file name
+        // preserves its on-disk casing. HOI4 matches dlc_load.json entries case-sensitively.
+        var launcherPath = GetLauncherModPath(descriptorPath, remoteFileId);
         var contentPath = !string.IsNullOrWhiteSpace(resolvedArchivePath)
             ? resolvedArchivePath
             : Path.GetDirectoryName(normalizedDescriptorPath) ?? string.Empty;
@@ -693,7 +664,7 @@ public sealed class ParadoxGameLauncherService
         if (TryGetLocalModLauncherPath(mod.DescriptorPath, localModDirectory, out var localLauncherPath))
         {
             // Only auto-heal generated/official ugc_*.mod stubs; never rewrite hand-authored local .mod files.
-            var localFileName = Path.GetFileName(mod.DescriptorPath);
+            var localFileName = ResolveActualFileName(mod.DescriptorPath);
             if (localFileName.StartsWith("ugc_", StringComparison.OrdinalIgnoreCase)
                 && ShouldRefreshLocalLauncherDescriptor(mod, Path.Combine(localModDirectory, localFileName)))
             {
@@ -911,12 +882,36 @@ public sealed class ParadoxGameLauncherService
 
         if (descriptorFullPath.StartsWith(localModPrefix, StringComparison.OrdinalIgnoreCase))
         {
-            launcherPath = $"mod/{Path.GetFileName(descriptorPath)}";
+            // Resolve the actual on-disk file name so the launcher path preserves
+            // original casing. HOI4 matches dlc_load.json entries case-sensitively.
+            var actualFileName = ResolveActualFileName(descriptorPath);
+            launcherPath = $"mod/{actualFileName}";
             return true;
         }
 
         launcherPath = string.Empty;
         return false;
+    }
+
+    // Resolve the on-disk file name with original casing. HOI4 matches dlc_load.json
+    // entries case-sensitively, so the launcher path must match the actual .mod file name.
+    private static string ResolveActualFileName(string descriptorPath)
+    {
+        var fileName = Path.GetFileName(descriptorPath);
+        var directory = Path.GetDirectoryName(descriptorPath);
+        if (!string.IsNullOrWhiteSpace(directory) && Directory.Exists(directory))
+        {
+            // Enumerate to find the real file name with correct casing.
+            var match = Directory.GetFiles(directory, fileName)
+                .Select(Path.GetFileName)
+                .FirstOrDefault(name => string.Equals(name, fileName, StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrWhiteSpace(match))
+            {
+                return match;
+            }
+        }
+
+        return fileName;
     }
 
     private string ResolveModContentPath(ModEntry mod)
@@ -1099,158 +1094,63 @@ public sealed class ParadoxGameLauncherService
         return candidates;
     }
 
-    private static ZipArchiveEntry? FindImportDescriptorEntry(ZipArchive archive)
+    private static string? FindFolderDescriptorPath(string sourceFolderPath)
     {
-        var entries = archive.Entries
-            .Where(entry => !string.IsNullOrWhiteSpace(entry.Name))
-            .ToArray();
-
-        return entries.FirstOrDefault(entry =>
-                   string.Equals(entry.Name, "descriptor.mod", StringComparison.OrdinalIgnoreCase))
-               ?? entries.FirstOrDefault(entry =>
-                   string.Equals(Path.GetExtension(entry.Name), ".mod", StringComparison.OrdinalIgnoreCase)
-                   && entry.FullName.Count(character => character is '/' or '\\') <= 1);
-    }
-
-    private static Dictionary<string, string> ReadClausewitzKeyValues(ZipArchiveEntry entry)
-    {
-        using var stream = entry.Open();
-        using var reader = new StreamReader(stream);
-        var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-        while (reader.ReadLine() is { } rawLine)
+        var rootDescriptor = Path.Combine(sourceFolderPath, "descriptor.mod");
+        if (File.Exists(rootDescriptor))
         {
-            var line = rawLine.Trim();
-            if (line.Length == 0 || line.StartsWith('#'))
-            {
-                continue;
-            }
-
-            var equalsIndex = line.IndexOf('=');
-            if (equalsIndex <= 0)
-            {
-                continue;
-            }
-
-            var key = line[..equalsIndex].Trim();
-            var value = line[(equalsIndex + 1)..].Trim().Trim('"');
-            values[key] = value;
+            return rootDescriptor;
         }
 
-        return values;
-    }
-
-    private static bool ShouldStripZipRoot(ZipArchive archive, ZipArchiveEntry? descriptorEntry)
-    {
-        var topLevelNames = archive.Entries
-            .Select(GetZipTopLevelName)
-            .Where(name => !string.IsNullOrWhiteSpace(name))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-
-        if (topLevelNames.Length != 1)
-        {
-            return false;
-        }
-
-        var rootName = topLevelNames[0];
-        var hasRootDirectory = archive.Entries.Any(entry =>
-            entry.FullName.Replace('\\', '/').StartsWith(rootName + "/", StringComparison.OrdinalIgnoreCase));
-
-        if (!hasRootDirectory)
-        {
-            return false;
-        }
-
-        if (descriptorEntry is null)
-        {
-            return true;
-        }
-
-        var descriptorPath = descriptorEntry.FullName.Replace('\\', '/');
-        return descriptorPath.StartsWith(rootName + "/", StringComparison.OrdinalIgnoreCase)
-               || string.Equals(Path.GetFileName(descriptorPath), descriptorPath, StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static string? GetZipTopLevelName(ZipArchiveEntry entry)
-    {
-        var fullName = entry.FullName.Replace('\\', '/').Trim('/');
-        if (string.IsNullOrWhiteSpace(fullName))
-        {
-            return null;
-        }
-
-        var separatorIndex = fullName.IndexOf('/');
-        return separatorIndex < 0 ? fullName : fullName[..separatorIndex];
-    }
-
-    private static void ExtractZipArchive(ZipArchive archive, string destinationDirectory, bool stripRoot)
-    {
-        foreach (var entry in archive.Entries)
-        {
-            var relativePath = entry.FullName.Replace('\\', '/');
-            if (string.IsNullOrWhiteSpace(relativePath))
-            {
-                continue;
-            }
-
-            if (stripRoot)
-            {
-                var separatorIndex = relativePath.IndexOf('/');
-                if (separatorIndex < 0)
-                {
-                    // Single top-level file should still extract.
-                    if (string.IsNullOrWhiteSpace(entry.Name))
-                    {
-                        continue;
-                    }
-                }
-                else
-                {
-                    relativePath = relativePath[(separatorIndex + 1)..];
-                }
-            }
-
-            relativePath = relativePath.Trim('/');
-            if (string.IsNullOrWhiteSpace(relativePath))
-            {
-                continue;
-            }
-
-            var destinationPath = Path.GetFullPath(Path.Combine(destinationDirectory, relativePath));
-            var destinationRoot = Path.GetFullPath(destinationDirectory);
-            if (!destinationPath.StartsWith(destinationRoot, StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            if (string.IsNullOrWhiteSpace(entry.Name) || relativePath.EndsWith('/'))
-            {
-                Directory.CreateDirectory(destinationPath);
-                continue;
-            }
-
-            Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
-            entry.ExtractToFile(destinationPath, overwrite: true);
-        }
-    }
-
-    private static string? FindExtractedDescriptorPath(string contentDirectory)
-    {
-        var nestedDescriptor = Directory.EnumerateFiles(contentDirectory, "descriptor.mod", SearchOption.AllDirectories)
+        var rootModFiles = Directory.EnumerateFiles(sourceFolderPath, "*.mod", SearchOption.TopDirectoryOnly)
             .OrderBy(path => path.Length)
-            .FirstOrDefault();
-        if (!string.IsNullOrWhiteSpace(nestedDescriptor))
+            .ToArray();
+        if (rootModFiles.Length > 0)
         {
-            return nestedDescriptor;
+            return rootModFiles[0];
         }
 
-        return Directory.EnumerateFiles(contentDirectory, "*.mod", SearchOption.AllDirectories)
-            .OrderBy(path => path.Length)
-            .FirstOrDefault();
+        // Search one level of subdirectories for a single nested mod folder.
+        var subDirectories = Directory.GetDirectories(sourceFolderPath);
+        if (subDirectories.Length == 1)
+        {
+            var nested = Path.Combine(subDirectories[0], "descriptor.mod");
+            if (File.Exists(nested))
+            {
+                return nested;
+            }
+            var nestedMods = Directory.EnumerateFiles(subDirectories[0], "*.mod", SearchOption.TopDirectoryOnly)
+                .OrderBy(path => path.Length)
+                .ToArray();
+            if (nestedMods.Length > 0)
+            {
+                return nestedMods[0];
+            }
+        }
+
+        return null;
     }
 
-    private static string BuildImportedModFolderName(string title, string? remoteFileId, string archivePath)
+    private static void CopyDirectoryContents(string sourcePath, string destinationPath)
+    {
+        Directory.CreateDirectory(destinationPath);
+
+        // Copy all files from the source root.
+        foreach (var file in Directory.EnumerateFiles(sourcePath))
+        {
+            var destinationFile = Path.Combine(destinationPath, Path.GetFileName(file));
+            File.Copy(file, destinationFile, overwrite: true);
+        }
+
+        // Recursively copy subdirectories.
+        foreach (var directory in Directory.EnumerateDirectories(sourcePath))
+        {
+            var subDestination = Path.Combine(destinationPath, Path.GetFileName(directory));
+            CopyDirectoryContents(directory, subDestination);
+        }
+    }
+
+    private static string BuildImportedModFolderName(string title, string? remoteFileId, string sourceFolderPath)
     {
         if (!string.IsNullOrWhiteSpace(remoteFileId))
         {
@@ -1263,7 +1163,7 @@ public sealed class ParadoxGameLauncherService
             return fromTitle;
         }
 
-        return SanitizeFileName(Path.GetFileNameWithoutExtension(archivePath));
+        return SanitizeFileName(Path.GetFileName(Path.TrimEndingDirectorySeparator(sourceFolderPath)));
     }
 
     private static void WriteImportedPathDescriptor(
@@ -1608,4 +1508,3 @@ public sealed class ParadoxGameLauncherService
         }
     }
 }
-

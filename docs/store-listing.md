@@ -34,8 +34,8 @@ Before you rely on it as your only launch tool, back up your Paradox user folder
 - Home status, quick actions, and command-line start
 - No playable game content in the app package
 
-### What's new in 1.1.1
-Save cards now show an in-game date badge and country metadata (HOI4 tag or Stellaris empire name). Each card has a "reveal in folder" button. Stellaris folder-based saves appear as a single card with a file-count badge. The backup/restore feature has been removed; the save section is now browse, search, and delete. Save directory resolution is case-insensitive and handles underscore/space variants.
+### What's new in 1.1.2
+Mod import now accepts a folder instead of a zip archive: select a mod folder and Shadow copies it into the Paradox mod directory, auto-generating the .mod descriptor file. Refresh and save discovery now run off-thread with a loading overlay to keep the UI responsive.
 
 ## 中文
 
@@ -69,5 +69,5 @@ Shadow Studio 在本地运行。请先配置游戏可执行文件、Paradox 用�
 - 主页状态、快捷操作和命令行启动
 - 应用包内不含可玩的游戏内容
 
-### 1.1.1 更新内容
-存档卡片现在显示游戏内日期标签和国家元数据（HOI4 国家代码或群星帝国名称）。每张卡片新增「在文件夹中显示」按钮。群星文件夹型存档显示为单个卡片并标注文件数。移除备份 / 恢复功能，存档分区改为浏览、搜索和删除。存档目录解析改为大小写不敏感，并统一处理下划线 / 空格变体。
+### 1.1.2 更新内容
+Mod 导入改为选择文件夹而非压缩包：选择 Mod 文件夹后自动复制到 Paradox mod 目录并生成 .mod 描述符文件。刷新和存档发现改为后台线程执行，显示加载遮罩以保持界面响应。

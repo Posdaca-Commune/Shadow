@@ -8,7 +8,7 @@ Shadow 是一个基于 Avalonia 的 Paradox Interactive 工作站壳层。
 播放集、Mod 与 DLC，例如 Hearts of Iron IV、Crusader Kings III、
 Europa Universalis IV、Stellaris、Victoria 3 和 Imperator: Rome。
 
-> 状态：`1.1.1` 是当前版本。可用于 Windows 常规使用和商店打包，
+> 状态：`1.1.2` 是当前版本。可用于 Windows 常规使用和商店打包，
 > 但在把它作为唯一启动器之前，仍建议先备份游戏用户配置目录。
 
 ## 功能
@@ -37,7 +37,7 @@ Windows 发布物优先使用 MSIX 包。包内包含主程序和内置插件，
 
 ## 快速开始
 
-1. 从 GitHub Release 下载 `Shadow-1.1.1.msix`。
+1. 从 GitHub Release 下载 `Shadow-1.1.2.msix`。
 2. 使用 Windows 应用安装程序安装。
 3. 从开始菜单或桌面快捷方式启动 `Shadow`。
 4. 在左侧导航打开 `Paradox 游戏启动器`。
@@ -117,10 +117,10 @@ dotnet run --project Shadow/Shadow.csproj
 若要生成包含内置插件的 Windows x64 MSIX 包，请安装 Windows 10/11 SDK，然后运行：
 
 ```powershell
-.\scripts\build-msix.ps1 -Version 1.1.1
+.\scripts\build-msix.ps1 -Version 1.1.2
 ```
 
-生成的包会写入 `artifacts/msix/Shadow-1.1.1.msix`。
+生成的包会写入 `artifacts/msix/Shadow-1.1.2.msix`。
 MSIX 包在安装前需要签名。可使用 `-CertificatePath` 或 `-CertificateThumbprint`
 在打包时签名。
 
@@ -134,7 +134,7 @@ MSIX 包在安装前需要签名。可使用 `-CertificatePath` 或 `-Certificat
 
 ```powershell
 $password = Get-Content .\certs\Shadow.pfx.password.txt | ConvertTo-SecureString -AsPlainText -Force
-.\scripts\build-msix.ps1 -Version 1.1.1 -CertificatePath .\certs\Shadow.pfx -CertificatePassword $password
+.\scripts\build-msix.ps1 -Version 1.1.2 -CertificatePath .\certs\Shadow.pfx -CertificatePassword $password
 ```
 
 把 `certs/Shadow.cer` 发给测试者，先安装信任证书再安装 MSIX。完整流程见

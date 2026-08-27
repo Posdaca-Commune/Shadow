@@ -137,6 +137,7 @@
                 </StackPanel>
                 <Button Grid.Column="1"
                         Command="{Binding LaunchCommand}"
+                        IsEnabled="{Binding IsNotLoading}"
                         MinWidth="148"
                         VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal"
@@ -156,8 +157,25 @@
                 <views:ParadoxPlaysetsSectionView IsVisible="{Binding IsPlaysetsSelected}"/>
                 <views:ParadoxSavesSectionView IsVisible="{Binding IsSavesSelected}"/>
                 <views:ParadoxGameSettingsSectionView IsVisible="{Binding IsGameSettingsSelected}"/>
+                <!-- Loading overlay shown while game content is discovered off-thread -->
+                <Border IsVisible="{Binding IsLoading}"
+                        Background="{DynamicResource SmokeFillColorDefaultBrush}"
+                        CornerRadius="8"
+                        ZIndex="100">
+                    <StackPanel HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Spacing="14">
+                        <ui:FAProgressRing IsActive="True"
+                                        IsIndeterminate="True"
+                                        Width="40"
+                                        Height="40"/>
+                        <TextBlock Text="{Binding StatusText}"
+                                   FontSize="14"
+                                   Opacity="0.72"
+                                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
             </Grid>
         </Grid>
     </Grid>
 </UserControl>
-

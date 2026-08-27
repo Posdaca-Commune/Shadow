@@ -60,7 +60,7 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
             OnPropertyChanged(nameof(SelectedPlaysetSummaryText));
             OnPropertyChanged(nameof(SavesSummaryText));
         };
-        Refresh();
+        _ = RefreshAsync();
     }
 
     [ObservableProperty]
@@ -124,6 +124,8 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
     [ObservableProperty] private string _playsetModSearchText = string.Empty;
     [ObservableProperty] private string _availableModSearchText = string.Empty;
     [ObservableProperty] private string _statusText = ParadoxGameLauncherStrings.Get("Paradox.Status.Default");
+    [ObservableProperty] private bool _isLoading;
+    public bool IsNotLoading => !IsLoading;
     public int EnabledModCount => PlaysetMods.Count(mod => mod.IsEnabled);
     public int PlaysetModCount => PlaysetMods.Count;
     public int DisabledDlcCount => Dlcs.Count(dlc => !dlc.IsEnabled);
@@ -175,7 +177,7 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
         GameSettings.ReloadCommand.Execute(null);
         NotifyLauncherOptionProperties();
         OnPropertyChanged(nameof(SelectedPlaysetStorageDirectory));
-        Refresh();
+        _ = RefreshAsync();
         SetLocalizedStatusText("Paradox.Status.SwitchedGame", value.DisplayName);
     }
 
@@ -220,12 +222,27 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
 
 
     [RelayCommand]
-    private void Refresh()
+    private async Task RefreshAsync()
     {
+        if (IsLoading)
+        {
+            return;
+        }
+
+        IsLoading = true;
+        SetLocalizedStatusText("Paradox.Status.Loading");
         SaveHostPaths();
         ReloadStoredPlaysets();
+
+        // Heavy I/O — mod/DLC discovery, cover-image decoding — runs off the UI thread.
+        var (mods, dlcs) = await Task.Run(() =>
+            (
+                _service.DiscoverMods(),
+                _service.DiscoverDlcs()
+            ));
+
         Mods.Clear();
-        foreach (var mod in _service.DiscoverMods())
+        foreach (var mod in mods)
         {
             Mods.Add(mod);
         }
@@ -237,8 +254,9 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
         {
             SetLocalizedStatusText("Paradox.Status.ModIndexFailed", ex.Message);
         }
+
         Dlcs.Clear();
-        foreach (var dlc in _service.DiscoverDlcs())
+        foreach (var dlc in dlcs)
         {
             dlc.PropertyChanged += (_, _) => OnSelectionChanged();
             Dlcs.Add(dlc);
@@ -246,9 +264,10 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
         ApplySelectedPlaysetState();
         RebuildAvailableMods();
         RebuildFilteredMods();
-        ReloadSaves(showStatus: false);
+        await ReloadSavesAsync(showStatus: false);
         NotifyLauncherOptionProperties();
         SetLocalizedStatusText("Paradox.Status.Refreshed", Mods.Count, Dlcs.Count);
+        IsLoading = false;
     }
 
     [RelayCommand]
@@ -487,9 +506,14 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
 
     public void ReloadSaves(bool showStatus = true)
     {
+        _ = ReloadSavesAsync(showStatus);
+    }
+
+    public async Task ReloadSavesAsync(bool showStatus = true)
+    {
         try
         {
-            var saves = _service.DiscoverSaves();
+            var saves = await Task.Run(() => _service.DiscoverSaves());
             Saves.Clear();
             foreach (var save in saves)
             {
@@ -510,9 +534,9 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
     }
 
     [RelayCommand]
-    private void RefreshSaves()
+    private async Task RefreshSavesAsync()
     {
-        ReloadSaves(showStatus: true);
+        await ReloadSavesAsync(showStatus: true);
     }
 
     public void DeleteSave(SaveEntry save)
@@ -855,13 +879,13 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
         RebuildFilteredAvailableMods();
     }
 
-    public void ImportModFromArchive(string archivePath)
+    public async void ImportModFromFolder(string folderPath)
     {
         try
         {
             SaveHostPaths();
-            var imported = _service.ImportModFromArchive(archivePath);
-            Refresh();
+            var imported = _service.ImportModFromFolder(folderPath);
+            await RefreshAsync();
             SelectedMod = Mods.FirstOrDefault(mod =>
                 string.Equals(mod.Id, imported.Id, StringComparison.OrdinalIgnoreCase)
                 || string.Equals(mod.DescriptorPath, imported.DescriptorPath, StringComparison.OrdinalIgnoreCase));
@@ -1104,4 +1128,3 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
         };
     }
 }
-

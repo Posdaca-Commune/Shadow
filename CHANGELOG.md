@@ -135,3 +135,24 @@
 - This is an early beta intended for local Windows testing.
 - Back up the HOI4 user directory before using Shadow with important playsets.
 - The plugin API may still change before a stable release.
+
+## 1.1.2 - 2026-08-27
+
+### Changed
+
+- Mod import now accepts a folder instead of a zip archive. Select a mod folder,
+  and Shadow copies it into the Paradox `mod/` directory and auto-generates the
+  corresponding `.mod` descriptor file. This removes the `.zip`-only restriction.
+- Refresh and save discovery now run off the UI thread with a loading overlay,
+  keeping the interface responsive during heavy mod/DLC discovery.
+
+### Fixed
+
+- Local mods with mixed-case `.mod` file names (e.g. `ATA.mod`, `AED.mod`) were
+  written to `dlc_load.json` in lower case, but HOI4 matches entries
+  case-sensitively. The launcher path now resolves the actual on-disk file name
+  so the casing in `dlc_load.json` matches the real file.
+
+- Removed duplicate localization keys (`Paradox.Status.ImportedMod` and
+  `Paradox.Status.ImportedParadoxPlaysets`) that were accidentally introduced in
+  the previous release.

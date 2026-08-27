@@ -24,28 +24,21 @@ public partial class ParadoxModsSectionView : UserControl
         {
             return;
         }
-        var files = await storageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        var folder = await storageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
         {
             Title = ParadoxGameLauncherStrings.Get("Paradox.Dialog.ImportModTitle"),
             AllowMultiple = false,
-            FileTypeFilter =
-            [
-                new FilePickerFileType(ParadoxGameLauncherStrings.Get("Paradox.Dialog.ImportModZipFilter"))
-                {
-                    Patterns = ["*.zip"],
-                },
-            ],
         });
-        var file = files.FirstOrDefault();
-        if (file is null)
+        var selected = folder.FirstOrDefault();
+        if (selected is null)
         {
             return;
         }
-        var path = file.TryGetLocalPath();
+        var path = selected.TryGetLocalPath();
         if (string.IsNullOrWhiteSpace(path))
         {
             return;
         }
-        viewModel.ImportModFromArchive(path);
+        viewModel.ImportModFromFolder(path);
     }
 }
