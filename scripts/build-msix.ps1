@@ -4,9 +4,9 @@ param(
     [string]$Runtime = "win-x64",
     [string]$Version,
     [string]$PackageVersion,
-    [string]$PackageIdentity = "PosdacaCommune.Shadow",
-    [string]$Publisher = "CN=Posdaca Commune",
-    [string]$PublisherDisplayName = "Posdaca Commune",
+    [string]$PackageIdentity = "NS9927.ShadowStudio",
+    [string]$Publisher = "CN=B480C9D8-DB1E-4E4A-A7D7-900209EF2663",
+    [string]$PublisherDisplayName = "NS9927",
     [string]$MakeAppxPath,
     [string]$SignToolPath,
     [string]$CertificatePath,
@@ -379,4 +379,3 @@ $signArgs += $msixPath
 & $signTool @signArgs
 
 Write-Host "已生成并签名 MSIX：$msixPath"
-

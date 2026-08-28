@@ -20,7 +20,7 @@
                     <Button Click="ImportModButton_OnClick">
                         <StackPanel Orientation="Horizontal"
                                     Spacing="6">
-                            <ui:FASymbolIcon Symbol="OpenFile"/>
+                            <ui:FASymbolIcon Symbol="OpenFolder"/>
                             <TextBlock Text="{Binding Localizer.Version, Converter={x:Static loc:LocStringConverter.Instance}, ConverterParameter=Paradox.Action.ImportMod}"/>
                         </StackPanel>
                     </Button>

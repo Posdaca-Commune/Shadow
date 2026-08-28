@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Shadow Studio
+GenericName=Paradox Game Launcher
+Comment=Shadow Paradox multi-game launch pad
+Exec=Shadow
+Icon=com.posdacacommune.shadow
+Terminal=false
+Categories=Game;Utility;
+StartupWMClass=Shadow

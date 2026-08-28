@@ -24,6 +24,24 @@
 - MSIX 包清单注册 `shadow.exe` 应用执行别名，安装后可在终端通过 `shadow` 调用命令行功能；不要依赖安装时写入 `SHADOW_PATH` 这类全局环境变量。
 - MSIX 安装目录基本只读。内置插件可以随包发布；后续若支持用户安装插件，应把可写插件目录放到 `%LOCALAPPDATA%\Shadow\Plugins` 等用户数据路径。
 
+### macOS 打包
+
+- macOS 版本由 `scripts/build-macos.ps1` 生成 `.app` bundle，并可可选地生成 `.dmg`。
+- `Info.plist` 模板位于 `packaging/macos/Info.plist`，`CFBundleExecutable` 指向主程序可执行文件 `Shadow`（无扩展名）。
+- 生成 `.dmg` 需要运行在 macOS 上的 `hdiutil`；在非 macOS 主机上脚本只产出 `.app` 布局并跳过 `.dmg`。
+- macOS bundle 的 `Contents/MacOS/Plugins` 子目录用于内置插件，结构与 Windows 一致。
+
+### Linux 打包
+
+- Linux 版本由 `scripts/build-linux.ps1` 生成 `tar.gz` 便携包，并可可选地生成 `.AppImage`。
+- `.desktop` 文件位于 `packaging/linux/com.posdacacommune.shadow.desktop`，图标复用 `packaging/branding/` 下的资源。
+- 生成 `.AppImage` 需要 PATH 上有 `appimagetool`；缺失时脚本只产出 `tar.gz` 并跳过 `.AppImage`。
+- tar.gz 解压后可直接运行其中的 `Shadow.sh` 启动器，内置插件位于解压目录的 `Plugins` 子目录。
+
+### CI
+
+- `.github/workflows/build-msix.yml`、`build-macos.yml`、`build-linux.yml` 分别在对应平台 runner 上调用打包脚本。
+
 ## 协作约定
 
 - 可以调用 MCP 工具辅助查看、分析和修改项目。

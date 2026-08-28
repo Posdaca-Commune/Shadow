@@ -1,4 +1,4 @@
-﻿# Build output
+# Build output
 [Bb]in/
 [Oo]bj/
 [Dd]ebug/
@@ -62,3 +62,6 @@ Thumbs.db
 certs/*.pfx
 certs/*.p12
 certs/*.password.txt
+
+# Local packages for the icon builder tool
+scripts/iconbuilder/packages/

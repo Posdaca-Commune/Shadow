@@ -1,0 +1,50 @@
+name: Build macOS
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+
+  build:
+    strategy:
+      matrix:
+        configuration: [Debug, Release]
+        runtime: [osx-x64, osx-arm64]
+
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    # 项目目标框架为 net10.0
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.0.x
+
+    - name: Restore & build solution
+      run: dotnet build Shadow.slnx --configuration $env:Configuration
+      env:
+        Configuration: ${{ matrix.configuration }}
+
+    # 调用项目自带的打包脚本生成 .app bundle 与 .dmg。
+    # macOS runner 自带 hdiutil，可生成 .dmg；pwsh 已预装。
+    - name: Build & package macOS
+      run: pwsh scripts/build-macos.ps1 -Configuration $env:Configuration -Runtime $env:Runtime
+      env:
+        Configuration: ${{ matrix.configuration }}
+        Runtime: ${{ matrix.runtime }}
+
+    - name: Upload macOS artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: macOS-${{ matrix.runtime }}-${{ matrix.configuration }}
+        path: artifacts/macos
+        if-no-files-found: error

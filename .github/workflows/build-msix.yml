@@ -1,0 +1,77 @@
+name: Build MSIX
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+
+  build:
+
+    strategy:
+      matrix:
+        configuration: [Debug, Release]
+
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    # 安装 .NET SDK（项目目标框架为 net10.0）
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.0.x
+
+    # 还原并构建整个解决方案，确保所有项目都能编译通过
+    - name: Restore & build solution
+      run: dotnet build Shadow.slnx --configuration $env:Configuration
+      env:
+        Configuration: ${{ matrix.configuration }}
+
+    # 解码仓库 secret 里的 base64 编码签名证书，供打包脚本签名 MSIX 使用
+    - name: Decode signing certificate
+      if: ${{ vars.MSIX_ENABLE_SIGNING == 'true' }}
+      run: |
+        $pfx_bytes = [System.Convert]::FromBase64String("${{ secrets.MSIX_BASE64_PFX }}")
+        $certPath = Join-Path $env:GITHUB_WORKSPACE "certs\Shadow.pfx"
+        New-Item -ItemType Directory -Path (Split-Path $certPath) -Force | Out-Null
+        [IO.File]::WriteAllBytes($certPath, $pfx_bytes)
+        Write-Host "Signing certificate written to $certPath"
+
+    # 调用项目自带的打包脚本生成并签名 MSIX。
+    # PackageIdentity / Publisher / PublisherDisplayName 均沿用脚本默认值，
+    # 与 AppxManifest.xml 模板中的占位符保持一致。
+    - name: Build & package MSIX
+      run: |
+        $buildArgs = @{ Configuration = $env:Configuration }
+
+        if ($env:MSIX_ENABLE_SIGNING -eq 'true') {
+          $certPath = Join-Path $env:GITHUB_WORKSPACE 'certs\Shadow.pfx'
+          $buildArgs['CertificatePath']     = $certPath
+          $buildArgs['CertificatePassword'] = ConvertTo-SecureString $env:MSIX_PFX_PASSWORD -AsPlainText -Force
+          # 默认走 DigiCert 时间戳服务器，避免证书过期后已签发的包无法安装；
+          # 如需更换，设置仓库变量 MSIX_TIMESTAMP_URL 即可覆盖。
+          $buildArgs['TimestampUrl'] = if ($env:MSIX_TIMESTAMP_URL) { $env:MSIX_TIMESTAMP_URL } else { 'http://timestamp.digicert.com' }
+        }
+
+        & scripts\build-msix.ps1 @buildArgs
+      env:
+        Configuration: ${{ matrix.configuration }}
+        MSIX_ENABLE_SIGNING: ${{ vars.MSIX_ENABLE_SIGNING }}
+        MSIX_PFX_PASSWORD: ${{ secrets.MSIX_PFX_PASSWORD }}
+        MSIX_TIMESTAMP_URL: ${{ vars.MSIX_TIMESTAMP_URL }}
+
+    # 上传生成的 MSIX 包（以及 artifacts/msix 下的其它产物）
+    - name: Upload MSIX artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: MSIX-${{ matrix.configuration }}
+        path: artifacts/msix
+        if-no-files-found: error
