@@ -29,15 +29,18 @@ jobs:
       with:
         dotnet-version: 10.0.x
 
+    # macOS runner 默认 shell 为 bash，$env: 语法需要在 pwsh 下才能解析。
     - name: Restore & build solution
+      shell: pwsh
       run: dotnet build Shadow.slnx --configuration $env:Configuration
       env:
         Configuration: ${{ matrix.configuration }}
 
     # 调用项目自带的打包脚本生成 .app bundle 与 .dmg。
-    # macOS runner 自带 hdiutil，可生成 .dmg；pwsh 已预装。
+    # macOS runner 自带 hdiutil，可生成 .dmg。
     - name: Build & package macOS
-      run: pwsh scripts/build-macos.ps1 -Configuration $env:Configuration -Runtime $env:Runtime
+      shell: pwsh
+      run: scripts/build-macos.ps1 -Configuration $env:Configuration -Runtime $env:Runtime
       env:
         Configuration: ${{ matrix.configuration }}
         Runtime: ${{ matrix.runtime }}
