@@ -20,7 +20,7 @@ public sealed partial class ParadoxGameSettingsViewModel : ObservableObject
         ParadoxGameLauncherStrings.Register();
         _configuration = configuration;
         _service = service;
-        LoadFromSettings(_service.LoadGameSettings());
+        LoadFromSettings(TryLoadGameSettings());
         ShadowLocalizer.Instance.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName is not (nameof(ShadowLocalizer.CultureName)
@@ -115,16 +115,50 @@ public sealed partial class ParadoxGameSettingsViewModel : ObservableObject
     [RelayCommand]
     private void Reload()
     {
-        LoadFromSettings(_service.LoadGameSettings());
+        GameSettings settings;
+        try
+        {
+            settings = _service.LoadGameSettings();
+        }
+        catch (Exception ex)
+        {
+            // settings.txt may be locked while the game is running.
+            SetStatusText("Paradox.GameSettings.Status.LoadFailed", ex.Message);
+            return;
+        }
+
+        LoadFromSettings(settings);
         SetStatusText("Paradox.GameSettings.Status.Reloaded");
     }
 
     [RelayCommand]
     private void Save()
     {
-        SaveLauncherOptions();
-        _service.SaveGameSettings(CreateSettings());
+        try
+        {
+            SaveLauncherOptions();
+            _service.SaveGameSettings(CreateSettings());
+        }
+        catch (Exception ex)
+        {
+            SetStatusText("Paradox.GameSettings.Status.SaveFailed", ex.Message);
+            return;
+        }
+
         SetStatusText("Paradox.GameSettings.Status.Saved");
+    }
+
+    private GameSettings TryLoadGameSettings()
+    {
+        try
+        {
+            return _service.LoadGameSettings();
+        }
+        catch (Exception ex)
+        {
+            SetStatusText("Paradox.GameSettings.Status.LoadFailed", ex.Message);
+            return new GameSettings();
+        }
     }
 
     public void SaveLauncherOptions()
@@ -224,34 +258,48 @@ public sealed partial class ParadoxGameSettingsViewModel : ObservableObject
         }
     }
 
+    // Auto-saves launcher paths as they change. A locked state file must not
+    // throw out of a property setter, so failures surface via the status text.
+    private void TrySaveConfiguration()
+    {
+        try
+        {
+            _configuration.Save();
+        }
+        catch (Exception ex)
+        {
+            SetStatusText("Paradox.GameSettings.Status.SaveFailed", ex.Message);
+        }
+    }
+
     partial void OnGameExecutablePathChanged(string value)
     {
         _configuration.GameExecutablePath = value;
-        _configuration.Save();
+        TrySaveConfiguration();
     }
 
     partial void OnGameUserDirectoryChanged(string value)
     {
         _configuration.GameUserDirectory = value;
-        _configuration.Save();
+        TrySaveConfiguration();
     }
 
     partial void OnWorkshopDirectoryChanged(string value)
     {
         _configuration.WorkshopDirectory = value;
-        _configuration.Save();
+        TrySaveConfiguration();
     }
 
     partial void OnLaunchArgumentsChanged(string value)
     {
         _configuration.LaunchArguments = value;
-        _configuration.Save();
+        TrySaveConfiguration();
     }
 
     partial void OnCloseAfterLaunchChanged(bool value)
     {
         _configuration.CloseAfterLaunch = value;
-        _configuration.Save();
+        TrySaveConfiguration();
     }
 
     private void LoadFromSettings(GameSettings settings)

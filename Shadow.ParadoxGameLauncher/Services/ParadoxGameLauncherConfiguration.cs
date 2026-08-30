@@ -93,7 +93,23 @@ public sealed class ParadoxGameLauncherConfiguration
         }
         catch
         {
+            // Keep the unreadable file around for manual recovery instead of
+            // letting the constructor's initial Save() wipe it silently.
+            TryBackupCorruptState(statePath);
             return new ParadoxGameLauncherConfiguration(pluginDataDirectory, statePath, new ParadoxGameLauncherState());
+        }
+    }
+
+    private static void TryBackupCorruptState(string statePath)
+    {
+        try
+        {
+            var stamp = DateTimeOffset.UtcNow.ToString("yyyyMMddHHmmss");
+            File.Copy(statePath, $"{statePath}.corrupt-{stamp}.bak", overwrite: true);
+        }
+        catch
+        {
+            // Best effort only; never block startup over a failed backup.
         }
     }
 
@@ -108,7 +124,11 @@ public sealed class ParadoxGameLauncherConfiguration
         State.SelectedPlaysetId = SelectedPlaysetId;
 
         Directory.CreateDirectory(Path.GetDirectoryName(StatePath)!);
-        File.WriteAllText(StatePath, JsonSerializer.Serialize(State, SerializerOptions));
+        // Write to a temp file and replace, mirroring ParadoxWorkspacePlaysetStore,
+        // so a crash mid-write cannot leave a torn launcher-state.json behind.
+        var tempPath = StatePath + ".tmp";
+        File.WriteAllText(tempPath, JsonSerializer.Serialize(State, SerializerOptions));
+        File.Move(tempPath, StatePath, overwrite: true);
     }
 
     public void SelectGame(string gameId)

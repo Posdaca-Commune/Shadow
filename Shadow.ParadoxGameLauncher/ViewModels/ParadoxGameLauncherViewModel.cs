@@ -199,10 +199,26 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
             return;
         }
         _configuration.SelectedPlaysetId = value.Id;
-        _configuration.Save();
+        TrySaveConfiguration();
         ApplySelectedPlaysetState();
         OnPropertyChanged(nameof(ActivePlaysetName));
         OnSelectionChanged();
+    }
+
+    // Persists launcher state best-effort: a locked or unwritable state file
+    // surfaces in the status bar instead of throwing out of a command.
+    private bool TrySaveConfiguration()
+    {
+        try
+        {
+            _configuration.Save();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            SetLocalizedStatusText("Paradox.Status.StateSaveFailed", ex.Message);
+            return false;
+        }
     }
     public ShadowHomeStatus GetHomeStatus()
     {
@@ -303,7 +319,10 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
         _configuration.PlaysetStore.SavePlayset(playset);
         SelectedPlayset = playset;
         NewPlaysetName = string.Empty;
-        _configuration.Save();
+        if (!TrySaveConfiguration())
+        {
+            return;
+        }
         OnPlaysetCollectionChanged();
         SetLocalizedStatusText("Paradox.Status.CreatedPlayset", playset.Name);
     }
@@ -342,7 +361,10 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
         _configuration.PlaysetStore.DeletePlayset(playset);
         SelectedPlayset = Playsets.ElementAtOrDefault(Math.Clamp(index, 0, Playsets.Count - 1))
                           ?? Playsets.FirstOrDefault();
-        _configuration.Save();
+        if (!TrySaveConfiguration())
+        {
+            return;
+        }
         OnPlaysetCollectionChanged();
         SetLocalizedStatusText("Paradox.Status.DeletedPlayset", playset.Name);
     }
@@ -372,7 +394,19 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
     private void ImportParadoxPlaysets()
     {
         SaveHostPaths();
-        var importedPlaysets = _service.ImportParadoxPlaysets(Mods);
+        IReadOnlyList<Playset> importedPlaysets;
+        try
+        {
+            importedPlaysets = _service.ImportParadoxPlaysets(Mods);
+        }
+        catch (Exception ex)
+        {
+            // A locked or corrupt launcher database used to look like "no playsets
+            // found"; surface the real failure instead of swallowing it.
+            SetLocalizedStatusText("Paradox.Status.ImportFailed", ex.Message);
+            return;
+        }
+
         if (importedPlaysets.Count == 0)
         {
             SetLocalizedStatusText("Paradox.Status.NoParadoxPlaysets");

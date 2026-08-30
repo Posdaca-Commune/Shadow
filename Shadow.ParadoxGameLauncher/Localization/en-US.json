@@ -76,6 +76,8 @@
     "Paradox.GameSettings.Status.GamePathDetected":  "Game executable detected automatically.",
     "Paradox.GameSettings.Status.GamePathMissing":  "The game executable could not be detected. Choose the install folder manually.",
     "Paradox.GameSettings.Status.GamePathSelected":  "Using the game executable from the selected folder.",
+    "Paradox.GameSettings.Status.LoadFailed":  "Failed to read settings.txt: {0}",
+    "Paradox.GameSettings.Status.SaveFailed":  "Failed to write settings.txt: {0}",
     "Paradox.GameSettings.Status.UserDirectoryDetected":  "User directory detected automatically.",
     "Paradox.GameSettings.Status.UserDirectoryMissing":  "The user directory could not be detected. Choose it manually.",
     "Paradox.GameSettings.Status.UserDirectorySelected":  "Using the selected user directory.",
@@ -151,6 +153,7 @@
     "Paradox.Status.DeletedPlayset":  "Deleted playset: {0}",
     "Paradox.Status.ImportedMod":  "Imported mod: {0}",
     "Paradox.Status.ImportedParadoxPlaysets":  "Imported {0} Paradox playsets.",
+    "Paradox.Status.ImportFailed":  "Failed to import Paradox playsets: {0}",
     "Paradox.Status.Loading":  "Loading game content…",
     "Paradox.Status.Launched":  "Game started.",
     "Paradox.Status.ModIndexFailed":  "Failed to write mod index: {0}",
@@ -164,5 +167,6 @@
     "Paradox.Status.SaveDeleted":  "Deleted save: {0}",
     "Paradox.Status.SaveOperationFailed":  "Save operation failed: {0}",
     "Paradox.Status.SavesRefreshed":  "Refreshed saves: {0}",
+    "Paradox.Status.StateSaveFailed":  "Failed to save launcher state: {0}",
     "Paradox.Status.SwitchedGame":  "Switched to {0}."
 }

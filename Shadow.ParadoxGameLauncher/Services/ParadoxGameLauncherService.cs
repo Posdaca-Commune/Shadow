@@ -57,68 +57,103 @@ public sealed class ParadoxGameLauncherService
         var extensions = _configuration.SelectedGame.SaveFileExtensions
             .Select(extension => extension.ToLowerInvariant())
             .ToHashSet();
+        // IgnoreInaccessible keeps a single locked/protected entry from throwing
+        // out of the lazy enumeration; TryBuildSaveEntry skips the rest per item.
+        var enumerationOptions = new EnumerationOptions { IgnoreInaccessible = true };
         var saves = new List<SaveEntry>();
 
         // Folder-based saves (Stellaris): each subdirectory is one save containing
         // multiple timestamped .sav files (current state + built-in autosave history).
-        foreach (var subDir in Directory.EnumerateDirectories(directory))
+        foreach (var subDir in Directory.EnumerateDirectories(directory, "*", enumerationOptions))
         {
-            var subFiles = Directory.EnumerateFiles(subDir)
-                .Where(filePath => MatchesSaveExtension(filePath, extensions))
-                .ToList();
-            if (subFiles.Count == 0)
+            var folderEntry = TryBuildSaveEntry(() => BuildFolderSaveEntry(subDir, extensions));
+            if (folderEntry is not null)
             {
-                continue;
+                saves.Add(folderEntry);
             }
-
-            var latestFile = subFiles
-                .Select(filePath => new FileInfo(filePath))
-                .OrderByDescending(info => info.LastWriteTime)
-                .First();
-            var totalSize = subFiles.Sum(filePath => new FileInfo(filePath).Length);
-            var folderEntry = new SaveEntry
-            {
-                Name = Path.GetFileName(subDir),
-                FileName = Path.GetFileName(subDir),
-                FilePath = subDir,
-                Extension = Path.GetExtension(latestFile.Name).ToLowerInvariant(),
-                LastWriteTime = latestFile.LastWriteTime,
-                SizeBytes = totalSize,
-                IsFolder = true,
-                FileCount = subFiles.Count,
-            };
-            folderEntry.Metadata = SaveMetadataParser.Parse(folderEntry);
-            saves.Add(folderEntry);
         }
 
         // File-based saves (HOI4, EU4, etc.): each file in the save directory is one save.
-        foreach (var filePath in Directory.EnumerateFiles(directory))
+        foreach (var filePath in Directory.EnumerateFiles(directory, "*", enumerationOptions))
         {
-            if (!MatchesSaveExtension(filePath, extensions))
+            var fileEntry = TryBuildSaveEntry(() => BuildFileSaveEntry(filePath, extensions));
+            if (fileEntry is not null)
             {
-                continue;
+                saves.Add(fileEntry);
             }
-
-            var fileName = Path.GetFileName(filePath);
-            var info = new FileInfo(filePath);
-            var fileEntry = new SaveEntry
-            {
-                Name = Path.GetFileNameWithoutExtension(fileName),
-                FileName = fileName,
-                FilePath = filePath,
-                Extension = Path.GetExtension(fileName).ToLowerInvariant(),
-                LastWriteTime = info.LastWriteTime,
-                SizeBytes = info.Length,
-                IsFolder = false,
-                FileCount = 1,
-            };
-            fileEntry.Metadata = SaveMetadataParser.Parse(fileEntry);
-            saves.Add(fileEntry);
         }
 
         return saves
             .OrderByDescending(save => save.LastWriteTime)
             .ToList();
+    }
+
+    private static SaveEntry? TryBuildSaveEntry(Func<SaveEntry?> buildEntry)
+    {
+        try
+        {
+            return buildEntry();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // A save currently being written (or locked) by the game must not
+            // abort the whole refresh; skip the entry and keep the rest.
+            return null;
+        }
+    }
+
+    private SaveEntry? BuildFolderSaveEntry(string subDir, IReadOnlySet<string> extensions)
+    {
+        var subFiles = Directory.EnumerateFiles(subDir)
+            .Where(filePath => MatchesSaveExtension(filePath, extensions))
+            .ToList();
+        if (subFiles.Count == 0)
+        {
+            return null;
+        }
+
+        var latestFile = subFiles
+            .Select(filePath => new FileInfo(filePath))
+            .OrderByDescending(info => info.LastWriteTime)
+            .First();
+        var totalSize = subFiles.Sum(filePath => new FileInfo(filePath).Length);
+        var folderEntry = new SaveEntry
+        {
+            Name = Path.GetFileName(subDir),
+            FileName = Path.GetFileName(subDir),
+            FilePath = subDir,
+            Extension = Path.GetExtension(latestFile.Name).ToLowerInvariant(),
+            LastWriteTime = latestFile.LastWriteTime,
+            SizeBytes = totalSize,
+            IsFolder = true,
+            FileCount = subFiles.Count,
+        };
+        folderEntry.Metadata = SaveMetadataParser.Parse(folderEntry);
+        return folderEntry;
+    }
+
+    private SaveEntry? BuildFileSaveEntry(string filePath, IReadOnlySet<string> extensions)
+    {
+        if (!MatchesSaveExtension(filePath, extensions))
+        {
+            return null;
+        }
+
+        var fileName = Path.GetFileName(filePath);
+        var info = new FileInfo(filePath);
+        var fileEntry = new SaveEntry
+        {
+            Name = Path.GetFileNameWithoutExtension(fileName),
+            FileName = fileName,
+            FilePath = filePath,
+            Extension = Path.GetExtension(fileName).ToLowerInvariant(),
+            LastWriteTime = info.LastWriteTime,
+            SizeBytes = info.Length,
+            IsFolder = false,
+            FileCount = 1,
+        };
+        fileEntry.Metadata = SaveMetadataParser.Parse(fileEntry);
+        return fileEntry;
     }
 
     private static bool MatchesSaveExtension(string filePath, IReadOnlySet<string> extensions)
@@ -288,52 +323,51 @@ public sealed class ParadoxGameLauncherService
         }
 
         var modMap = BuildParadoxModMap(knownMods);
-        try
+
+        var connectionString = new SqliteConnectionStringBuilder
         {
-            var importedPlaysets = new List<Playset>();
-            using var connection = new SqliteConnection($"Data Source={databasePath};Mode=ReadOnly");
-            connection.Open();
+            DataSource = databasePath,
+            Mode = SqliteOpenMode.ReadOnly,
+        }.ToString();
+        using var connection = new SqliteConnection(connectionString);
+        connection.Open();
 
-            if (!TableExists(connection, "playsets") || !TableExists(connection, "playsets_mods"))
-            {
-                return [];
-            }
-
-            var playsets = ReadParadoxPlaysets(connection);
-            var playsetMods = ReadParadoxPlaysetMods(connection);
-            var launcherModMap = TableExists(connection, "mods")
-                ? ReadParadoxMods(connection)
-                : new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-            foreach (var playset in playsets)
-            {
-                var enabledModIds = playsetMods
-                    .Where(mod =>
-                        mod.Enabled && string.Equals(mod.PlaysetId, playset.Id, StringComparison.OrdinalIgnoreCase))
-                    .OrderBy(mod => mod.Position)
-                    .Select(mod => ResolveKnownModId(mod.ModId, launcherModMap, modMap))
-                    .Where(modId => !string.IsNullOrWhiteSpace(modId))
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .ToList();
-
-                importedPlaysets.Add(new Playset
-                {
-                    Id = $"paradox:{playset.Id}",
-                    Name = playset.Name,
-                    ModIds = enabledModIds.ToList(),
-                    EnabledModIds = enabledModIds,
-                    Source = "Paradox Launcher",
-                    IsExternal = true,
-                    CanEdit = false,
-                });
-            }
-
-            return importedPlaysets;
-        }
-        catch
+        if (!TableExists(connection, "playsets") || !TableExists(connection, "playsets_mods"))
         {
             return [];
         }
+
+        var playsets = ReadParadoxPlaysets(connection);
+        var playsetMods = ReadParadoxPlaysetMods(connection);
+        var launcherModMap = TableExists(connection, "mods")
+            ? ReadParadoxMods(connection)
+            : new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        var importedPlaysets = new List<Playset>();
+        foreach (var playset in playsets)
+        {
+            var enabledModIds = playsetMods
+                .Where(mod =>
+                    mod.Enabled && string.Equals(mod.PlaysetId, playset.Id, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(mod => mod.Position)
+                .Select(mod => ResolveKnownModId(mod.ModId, launcherModMap, modMap))
+                .Where(modId => !string.IsNullOrWhiteSpace(modId))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            importedPlaysets.Add(new Playset
+            {
+                Id = $"paradox:{playset.Id}",
+                Name = playset.Name,
+                ModIds = enabledModIds.ToList(),
+                EnabledModIds = enabledModIds,
+                Source = "Paradox Launcher",
+                IsExternal = true,
+                CanEdit = false,
+            });
+        }
+
+        return importedPlaysets;
     }
 
     public GameSettings LoadGameSettings()

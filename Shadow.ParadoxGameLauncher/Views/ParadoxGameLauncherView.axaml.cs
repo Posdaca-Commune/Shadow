@@ -17,6 +17,9 @@ public partial class ParadoxGameLauncherView : UserControl
     private readonly TranslateTransform _launcherContentTransform = new();
     private int _sectionAnimationVersion;
     private bool _isSectionAnimationReady;
+    // Tracks the VM that currently has a PropertyChanged subscription so repeated
+    // attach/data-context changes cannot add the handler twice or leave one behind.
+    private ParadoxGameLauncherViewModel? _subscribedViewModel;
 
     public ParadoxGameLauncherView()
     {
@@ -114,16 +117,24 @@ public partial class ParadoxGameLauncherView : UserControl
 
     private void UnsubscribeFromViewModel()
     {
-        if (DataContext is ParadoxGameLauncherViewModel oldViewModel)
+        if (_subscribedViewModel is not null)
         {
-            oldViewModel.PropertyChanged -= ViewModel_OnPropertyChanged;
+            _subscribedViewModel.PropertyChanged -= ViewModel_OnPropertyChanged;
+            _subscribedViewModel = null;
         }
     }
 
     private void SubscribeToViewModel()
     {
+        if (ReferenceEquals(_subscribedViewModel, DataContext))
+        {
+            return;
+        }
+
+        UnsubscribeFromViewModel();
         if (DataContext is ParadoxGameLauncherViewModel viewModel)
         {
+            _subscribedViewModel = viewModel;
             viewModel.PropertyChanged += ViewModel_OnPropertyChanged;
         }
     }

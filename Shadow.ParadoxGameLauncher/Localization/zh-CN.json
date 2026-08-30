@@ -76,6 +76,8 @@
     "Paradox.GameSettings.Status.GamePathDetected":  "已自动找到游戏程序。",
     "Paradox.GameSettings.Status.GamePathMissing":  "未能自动找到游戏程序，请手动选择安装目录。",
     "Paradox.GameSettings.Status.GamePathSelected":  "已使用所选目录中的游戏程序。",
+    "Paradox.GameSettings.Status.LoadFailed":  "读取 settings.txt 失败：{0}",
+    "Paradox.GameSettings.Status.SaveFailed":  "写入 settings.txt 失败：{0}",
     "Paradox.GameSettings.Status.UserDirectoryDetected":  "已自动找到用户目录。",
     "Paradox.GameSettings.Status.UserDirectoryMissing":  "未能自动找到用户目录，请手动选择。",
     "Paradox.GameSettings.Status.UserDirectorySelected":  "已使用所选用户目录。",
@@ -151,6 +153,7 @@
     "Paradox.Status.DeletedPlayset":  "已删除播放集：{0}",
     "Paradox.Status.ImportedMod":  "已导入 Mod：{0}",
     "Paradox.Status.ImportedParadoxPlaysets":  "已读取 {0} 个 Paradox 播放集。",
+    "Paradox.Status.ImportFailed":  "导入 Paradox 播放集失败：{0}",
     "Paradox.Status.Loading":  "正在加载游戏内容…",
     "Paradox.Status.Launched":  "游戏已启动。",
     "Paradox.Status.ModIndexFailed":  "Mod 索引写入失败：{0}",
@@ -164,5 +167,6 @@
     "Paradox.Status.SaveDeleted":  "已删除存档：{0}",
     "Paradox.Status.SaveOperationFailed":  "存档操作失败：{0}",
     "Paradox.Status.SavesRefreshed":  "已刷新存档：{0} 个",
+    "Paradox.Status.StateSaveFailed":  "保存启动器状态失败：{0}",
     "Paradox.Status.SwitchedGame":  "已切换到 {0}。"
 }
