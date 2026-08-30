@@ -1,5 +1,4 @@
 using Avalonia.Media.Imaging;
-using Shadow.Abstractions;
 using Shadow.ParadoxGameLauncher.Localization;
 
 namespace Shadow.ParadoxGameLauncher.Models;
@@ -27,11 +26,6 @@ public sealed class ModEntry : SelectableItem
         Version = version;
         CoverImagePath = coverImagePath;
         CoverImage = coverImage ?? TryLoadCoverImage(coverImagePath);
-        ShadowLocalizer.Instance.PropertyChanged += (_, _) =>
-        {
-            OnPropertyChanged(nameof(SourceLabel));
-            OnPropertyChanged(nameof(VersionLabel));
-        };
     }
 
     public string DescriptorPath { get; }
@@ -66,6 +60,16 @@ public sealed class ModEntry : SelectableItem
         ? ParadoxGameLauncherStrings.Get("Paradox.Mod.VersionUnknown")
         : Version;
 
+    // Called by the owning view model when the UI culture changes so bindings on
+    // localized labels refresh. Entries deliberately do not subscribe to the
+    // app-lifetime localizer themselves: they are recreated on every refresh and
+    // a permanent subscription would keep every generation alive in memory.
+    public void RaiseStringsChanged()
+    {
+        OnPropertyChanged(nameof(SourceLabel));
+        OnPropertyChanged(nameof(VersionLabel));
+    }
+
     public string WorkshopUrl => IsSteamWorkshopMod
         ? $"https://steamcommunity.com/sharedfiles/filedetails/?id={RemoteFileId}"
         : string.Empty;
@@ -82,7 +86,8 @@ public sealed class ModEntry : SelectableItem
         try
         {
             // Decode a small thumbnail for list cards instead of full-resolution workshop art.
-            return Bitmap.DecodeToWidth(File.OpenRead(coverImagePath), CoverDecodeWidth);
+            using var stream = File.OpenRead(coverImagePath);
+            return Bitmap.DecodeToWidth(stream, CoverDecodeWidth);
         }
         catch
         {

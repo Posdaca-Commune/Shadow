@@ -156,6 +156,7 @@
     "Paradox.Status.ModIndexFailed":  "Mod 索引写入失败：{0}",
     "Paradox.Status.NeedOnePlayset":  "至少需要保留一个播放集。",
     "Paradox.Status.NoParadoxPlaysets":  "未发现 Paradox 启动器播放集。",
+    "Paradox.Status.RefreshFailed":  "刷新失败：{0}",
     "Paradox.Status.Refreshed":  "已发现 {0} 个 mod，{1} 个 DLC。",
     "Paradox.Status.RemovedFromPlayset":  "已从播放集移除：{0}",
     "Paradox.Status.ReorderedMod":  "已调整加载顺序：{0}",

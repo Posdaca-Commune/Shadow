@@ -42,9 +42,35 @@ function Get-ProjectVersion {
 function Convert-ToPackageVersion {
     param([string]$InputVersion)
 
-    if ($InputVersion -match "^(\d+)\.(\d+)\.(\d+)(?:[-+].*?(\d+))?") {
-        $revision = if ($Matches[4]) { $Matches[4] } else { "0" }
-        return "$($Matches[1]).$($Matches[2]).$($Matches[3]).$revision"
+    # MSIX 要求新包版本严格大于已安装版本，因此预发布版本必须小于同版本号的正式版。
+    # 约定：正式版 X.Y.Z -> X.Y.Z.65535（每段上限）；预发布 X.Y.Z-<名称>.N -> X.Y.Z.N（无数字后缀时取 1，
+    # 且封顶 65534），保证 X.Y.Z-beta.1 < X.Y.Z-beta.2 < X.Y.Z 正式版。构建元数据（+build）按 semver 语义忽略。
+    if ($InputVersion -match "^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.\-]+))?(?:\+.*)?$") {
+        $major = [int]$Matches[1]
+        $minor = [int]$Matches[2]
+        $patch = [int]$Matches[3]
+
+        if ($major -gt 65535 -or $minor -gt 65535 -or $patch -gt 65535) {
+            throw "版本号 '$InputVersion' 超出 MSIX 每段 65535 的上限。"
+        }
+
+        $prerelease = $Matches[4]
+        if (-not $prerelease) {
+            return "$major.$minor.$patch.65535"
+        }
+
+        if ($prerelease -match "(?:^|\.)(\d+)$") {
+            $revision = [int]$Matches[1]
+        }
+        else {
+            $revision = 1
+        }
+
+        if ($revision -gt 65534) {
+            $revision = 65534
+        }
+
+        return "$major.$minor.$patch.$revision"
     }
 
     throw "无法从版本号 '$InputVersion' 推导 MSIX 四段数字版本。请用 -PackageVersion 显式指定，例如 1.0.0.0。"
@@ -116,7 +142,9 @@ function Get-NuGetSdkBuildToolsRoot {
         throw "无法定位 Microsoft.Windows.SDK.BuildTools 包目录。"
     }
 
-    $versionDir = Get-ChildItem -LiteralPath $packageDir -Directory | Sort-Object Name -Descending | Select-Object -First 1
+    $versionDir = Get-ChildItem -LiteralPath $packageDir -Directory |
+        Sort-Object { [version]$_.Name } -Descending |
+        Select-Object -First 1
     if (-not $versionDir) {
         throw "Microsoft.Windows.SDK.BuildTools 包目录为空。"
     }
@@ -164,7 +192,7 @@ function Resolve-WindowsSdkTool {
     $sdkBinRoot = "${env:ProgramFiles(x86)}\Windows Kits\10\bin"
     if (Test-Path -LiteralPath $sdkBinRoot) {
         $candidate = Get-ChildItem -LiteralPath $sdkBinRoot -Directory |
-            Sort-Object Name -Descending |
+            Sort-Object { [version]$_.Name } -Descending |
             ForEach-Object { Join-Path $_.FullName "x64\$ToolName" } |
             Where-Object { Test-Path -LiteralPath $_ } |
             Select-Object -First 1
@@ -302,6 +330,10 @@ if (-not $SkipBuild) {
         -p:DebugSymbols=false `
         -o $packageRoot
 
+    if ($LASTEXITCODE -ne 0) {
+        throw "主程序 dotnet publish 失败，退出码 $LASTEXITCODE。"
+    }
+
     foreach ($plugin in $pluginProjects) {
         $pluginProjectPath = Join-Path $repoRoot $plugin.Project
         dotnet publish $pluginProjectPath `
@@ -313,6 +345,10 @@ if (-not $SkipBuild) {
             -p:DebugType=None `
             -p:DebugSymbols=false `
             -o $plugin.Output
+
+        if ($LASTEXITCODE -ne 0) {
+            throw "插件 $($plugin.Name) dotnet publish 失败，退出码 $LASTEXITCODE。"
+        }
     }
 }
 
@@ -342,6 +378,10 @@ $makeAppx = Resolve-WindowsSdkTool -ToolName "makeappx.exe" -ExplicitPath $MakeA
 $msixPath = Join-Path $artifactRoot "Shadow-$Version.msix"
 
 & $makeAppx pack /d $packageRoot /p $msixPath /o
+
+if ($LASTEXITCODE -ne 0) {
+    throw "makeappx 打包失败，退出码 $LASTEXITCODE。"
+}
 
 if (-not (Test-Path -LiteralPath $msixPath)) {
     throw "MSIX 生成失败，未找到输出文件：$msixPath"
@@ -377,5 +417,9 @@ else {
 
 $signArgs += $msixPath
 & $signTool @signArgs
+
+if ($LASTEXITCODE -ne 0) {
+    throw "signtool 签名失败，退出码 $LASTEXITCODE。MSIX 未签名：$msixPath"
+}
 
 Write-Host "已生成并签名 MSIX：$msixPath"

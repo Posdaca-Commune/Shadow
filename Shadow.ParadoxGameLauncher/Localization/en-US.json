@@ -156,6 +156,7 @@
     "Paradox.Status.ModIndexFailed":  "Failed to write mod index: {0}",
     "Paradox.Status.NeedOnePlayset":  "At least one playset must remain.",
     "Paradox.Status.NoParadoxPlaysets":  "No Paradox launcher playsets were found.",
+    "Paradox.Status.RefreshFailed":  "Refresh failed: {0}",
     "Paradox.Status.Refreshed":  "Found {0} mods and {1} DLC.",
     "Paradox.Status.RemovedFromPlayset":  "Removed from playset: {0}",
     "Paradox.Status.ReorderedMod":  "Adjusted load order: {0}",

@@ -27,18 +27,20 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Path fragments use forward slashes so the script also runs on Linux
+# (pwsh on Unix does not treat "\" as a separator).
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
-$artifactRoot = Join-Path $repoRoot "artifacts\linux"
+$artifactRoot = Join-Path $repoRoot "artifacts/linux"
 $stagingRoot = Join-Path $artifactRoot "staging"
 $pluginProjects = @(
     @{
         Name = "ParadoxGameLauncher"
-        Project = "Shadow.ParadoxGameLauncher\Shadow.ParadoxGameLauncher.csproj"
-        Output = Join-Path $stagingRoot "Plugins\ParadoxGameLauncher"
+        Project = "Shadow.ParadoxGameLauncher/Shadow.ParadoxGameLauncher.csproj"
+        Output = Join-Path $stagingRoot "Plugins/ParadoxGameLauncher"
     }
 )
 
-$desktopEntrySource = Join-Path $repoRoot "packaging\linux\com.posdacacommune.shadow.desktop"
+$desktopEntrySource = Join-Path $repoRoot "packaging/linux/com.posdacacommune.shadow.desktop"
 
 function Get-ProjectVersion {
     $propsPath = Join-Path $repoRoot "Directory.Build.props"
@@ -91,7 +93,7 @@ foreach ($plugin in $pluginProjects) {
 if (-not $SkipBuild) {
     $selfContainedValue = $SelfContained.ToString().ToLowerInvariant()
 
-    dotnet publish (Join-Path $repoRoot "Shadow\Shadow.csproj") `
+    dotnet publish (Join-Path $repoRoot "Shadow/Shadow.csproj") `
         --configuration $Configuration `
         --runtime $Runtime `
         --self-contained:$selfContainedValue `
@@ -99,6 +101,10 @@ if (-not $SkipBuild) {
         -p:DebugType=None `
         -p:DebugSymbols=false `
         -o $stagingRoot
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "dotnet publish failed for the host app (exit code $LASTEXITCODE)."
+    }
 
     foreach ($plugin in $pluginProjects) {
         $pluginProjectPath = Join-Path $repoRoot $plugin.Project
@@ -111,6 +117,10 @@ if (-not $SkipBuild) {
             -p:DebugType=None `
             -p:DebugSymbols=false `
             -o $plugin.Output
+
+        if ($LASTEXITCODE -ne 0) {
+            throw "dotnet publish failed for plugin $($plugin.Name) (exit code $LASTEXITCODE)."
+        }
     }
 }
 
@@ -130,34 +140,56 @@ foreach ($plugin in $pluginProjects) {
 }
 
 # Copy the .desktop entry and icon next to the app for downstream packaging.
-$desktopDir = Join-Path $stagingRoot "share\applications"
-$iconDir = Join-Path $stagingRoot "share\icons\hicolor\512x512\apps"
+$desktopDir = Join-Path $stagingRoot "share/applications"
+$iconDir = Join-Path $stagingRoot "share/icons/hicolor/512x512/apps"
 New-Item -ItemType Directory -Path $desktopDir -Force | Out-Null
 New-Item -ItemType Directory -Path $iconDir -Force | Out-Null
 
 Copy-Item -LiteralPath $desktopEntrySource -Destination (Join-Path $desktopDir "com.posdacacommune.shadow.desktop") -Force
 
 # Prefer a dedicated png icon; fall back to the SVG branding asset.
-$pngIcon = Join-Path $repoRoot "packaging\linux\com.posdacacommune.shadow.png"
-$svgIcon = Join-Path $repoRoot "packaging\branding\shadow-icon.svg"
+$pngIcon = Join-Path $repoRoot "packaging/linux/com.posdacacommune.shadow.png"
+$svgIcon = Join-Path $repoRoot "packaging/branding/shadow-icon.svg"
 if (Test-Path -LiteralPath $pngIcon) {
     Copy-Item -LiteralPath $pngIcon -Destination (Join-Path $iconDir "com.posdacacommune.shadow.png") -Force
 }
 elseif (Test-Path -LiteralPath $svgIcon) {
-    $scalableDir = Join-Path $stagingRoot "share\icons\hicolor\scalable\apps"
+    $scalableDir = Join-Path $stagingRoot "share/icons/hicolor/scalable/apps"
     New-Item -ItemType Directory -Path $scalableDir -Force | Out-Null
     Copy-Item -LiteralPath $svgIcon -Destination (Join-Path $scalableDir "com.posdacacommune.shadow.svg") -Force
 }
 
 # Provide a top-level launcher script so users can run `./Shadow.sh` after extract.
-# Single-quoted lines keep $(...) and $ literal for the shell.
+# Single-quoted lines keep $(...) and $ literal for the shell. Written via
+# WriteAllText so line endings stay LF (Set-Content would emit CRLF on Windows
+# hosts, which breaks the shebang with "bad interpreter").
 $launcherPath = Join-Path $stagingRoot "Shadow.sh"
 $launcher = @(
     '#!/bin/sh',
     'DIR="$(dirname "$(readlink -f "$0")")"',
     'exec "$DIR/Shadow" "$@"'
 )
-Set-Content -LiteralPath $launcherPath -Value $launcher -Encoding ASCII
+$launcherText = ($launcher -join "`n") + "`n"
+[System.IO.File]::WriteAllText($launcherPath, $launcherText)
+
+# Ensure the launcher and the apphost binary carry the execute bit before tar
+# packs them; on Linux dotnet publish already marks the apphost, Copy-Item does
+# not preserve modes for newly created files such as Shadow.sh.
+$chmod = Get-Command chmod -ErrorAction SilentlyContinue
+if ($chmod) {
+    & $chmod.Source +x $launcherPath
+    if ($LASTEXITCODE -ne 0) {
+        throw "chmod +x failed for $launcherPath (exit code $LASTEXITCODE)."
+    }
+
+    $mainExecutable = Join-Path $stagingRoot "Shadow"
+    if (Test-Path -LiteralPath $mainExecutable) {
+        & $chmod.Source +x $mainExecutable
+        if ($LASTEXITCODE -ne 0) {
+            throw "chmod +x failed for $mainExecutable (exit code $LASTEXITCODE)."
+        }
+    }
+}
 
 if ($SkipTarball) {
     Write-Host "Linux staging directory generated at: $stagingRoot"
@@ -167,16 +199,11 @@ if ($SkipTarball) {
 $tarballName = "Shadow-$Version-$Runtime.tar.gz"
 $tarballPath = Join-Path $artifactRoot $tarballName
 
-# tar with -h to resolve symlinks; produce gzip from the staging directory.
+# Pack the staging directory contents directly (-C) so extracting the tarball
+# yields Shadow.sh and friends at the extraction root instead of under staging/.
 $tar = Get-Command tar -ErrorAction SilentlyContinue
 if ($tar) {
-    Push-Location (Split-Path $stagingRoot -Parent)
-    try {
-        & $tar.Source -czf $tarballPath (Split-Path $stagingRoot -Leaf)
-    }
-    finally {
-        Pop-Location
-    }
+    & $tar.Source -czf $tarballPath -C $stagingRoot "."
 
     if ($LASTEXITCODE -ne 0) {
         throw "tar failed to create $tarballName"
@@ -222,12 +249,18 @@ elseif (Test-Path -LiteralPath $svgIcon) {
     Copy-Item -LiteralPath $svgIcon -Destination (Join-Path $appDirRoot "com.posdacacommune.shadow.svg") -Force
 }
 
+if ($chmod) {
+    & $chmod.Source +x $appRunPath
+    if ($LASTEXITCODE -ne 0) {
+        throw "chmod +x failed for $appRunPath (exit code $LASTEXITCODE)."
+    }
+}
+
 $appImagePath = Join-Path $artifactRoot "Shadow-$Version-$Runtime.AppImage"
 & $appimagetool.Source "$appDirRoot" "$appImagePath"
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Warning "appimagetool reported failure; AppImage not produced."
-    return
+    throw "appimagetool failed (exit code $LASTEXITCODE); AppImage not produced."
 }
 
 Write-Host "Linux AppImage generated: $appImagePath"

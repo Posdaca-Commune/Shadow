@@ -21,8 +21,9 @@
 .\scripts\create-msix-cert.ps1 -Force -Password (Read-Host -AsSecureString)
 ```
 
-默认主题名是 `CN=Posdaca Commune`，必须与
-`scripts/build-msix.ps1` 的 `-Publisher` / `AppxManifest.xml` 中的 Publisher 一致。
+默认主题名是 `CN=B480C9D8-DB1E-4E4A-A7D7-900209EF2663`，与
+`scripts/build-msix.ps1` 的 `-Publisher` 默认值一致；如果覆盖了
+`-Subject`，签名时也要传对应的 `-Publisher`。
 
 ## 产物
 
@@ -62,7 +63,7 @@ Import-Certificate `
 
 ```powershell
 Get-ChildItem Cert:\LocalMachine\TrustedPeople |
-    Where-Object { $_.Subject -eq 'CN=Posdaca Commune' } |
+    Where-Object { $_.Subject -eq 'CN=B480C9D8-DB1E-4E4A-A7D7-900209EF2663' } |
     Remove-Item
 ```
 
@@ -70,3 +71,6 @@ Get-ChildItem Cert:\LocalMachine\TrustedPeople |
 
 - `.pfx` 和密码文件属于私钥材料，已在 `.gitignore` 中忽略。
 - 自签证书只适合内测；正式发布应使用受信任的代码签名证书，或走 Microsoft Store。
+- 仓库里已提交的 `Shadow.cer` 是旧主题名（`CN=Posdaca Commune`）生成的示例；
+  如需用它给默认 `-Publisher` 的包签名，请用 `-Force` 重新生成证书，
+  或在打包时显式传 `-Publisher "CN=Posdaca Commune"`。

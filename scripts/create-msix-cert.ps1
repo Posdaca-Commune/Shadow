@@ -1,6 +1,8 @@
 ﻿[CmdletBinding()]
 param(
-    [string]$Subject = "CN=Posdaca Commune",
+    # 默认主题名与 scripts/build-msix.ps1 的 -Publisher 默认值一致，
+    # 这样生成的证书可以直接给默认配置的 MSIX 包签名。
+    [string]$Subject = "CN=B480C9D8-DB1E-4E4A-A7D7-900209EF2663",
     [string]$FriendlyName = "Shadow MSIX Test Signing",
     [string]$OutputDirectory,
     [string]$CertificateName = "Shadow",
@@ -73,6 +75,7 @@ $cert = New-SelfSignedCertificate `
     -HashAlgorithm SHA256 `
     -NotAfter $notAfter
 
+$exportSucceeded = $false
 try {
     Export-PfxCertificate `
         -Cert $cert `
@@ -82,10 +85,19 @@ try {
     Export-Certificate `
         -Cert $cert `
         -FilePath $cerPath | Out-Null
+
+    $exportSucceeded = $true
 }
 finally {
     # Keep the private key only in the exported PFX for packaging machines.
-    Remove-Item -LiteralPath "Cert:\CurrentUser\My\$($cert.Thumbprint)" -Force -ErrorAction SilentlyContinue
+    # Only delete the in-store certificate (and its private key) after both
+    # exports succeeded; otherwise the private key would be lost forever.
+    if ($exportSucceeded) {
+        Remove-Item -LiteralPath "Cert:\CurrentUser\My\$($cert.Thumbprint)" -Force -ErrorAction SilentlyContinue
+    }
+    else {
+        Write-Warning "证书导出失败，已保留存储中的原始证书（含私钥）：Cert:\CurrentUser\My\$($cert.Thumbprint)"
+    }
 }
 
 if ($InstallLocally) {

@@ -451,7 +451,7 @@ public sealed class ParadoxGameLauncherService
         CopyDirectoryContents(sourceFolderPath, contentDirectory);
 
         var launcherDescriptorName = !string.IsNullOrWhiteSpace(remoteFileId)
-            ? $"ugc_{remoteFileId.Trim()}.mod"
+            ? BuildUgcDescriptorFileName(remoteFileId)
             : $"{SanitizeFileName(folderName)}.mod";
         var launcherDescriptorPath = Path.Combine(localModDirectory, launcherDescriptorName);
         if (File.Exists(launcherDescriptorPath))
@@ -1215,11 +1215,24 @@ public sealed class ParadoxGameLauncherService
         return value.Replace("\\", "\\\\").Replace("\"", "\\\"");
     }
 
+    // remote_file_id is read verbatim from third-party .mod files and is used as a
+    // file name; sanitize it so it can never escape the mod directory ("..", "\\", "/").
+    private static string BuildUgcDescriptorFileName(string remoteFileId)
+    {
+        var safeId = SanitizeFileName(remoteFileId.Trim());
+        if (safeId.Length > 64)
+        {
+            safeId = safeId[..64];
+        }
+
+        return $"ugc_{safeId}.mod";
+    }
+
     private static string GetGeneratedDescriptorFileName(string descriptorPath, string? remoteFileId)
     {
         if (!string.IsNullOrWhiteSpace(remoteFileId))
         {
-            return $"ugc_{remoteFileId}.mod";
+            return BuildUgcDescriptorFileName(remoteFileId);
         }
 
         var name = Path.GetFileNameWithoutExtension(descriptorPath);

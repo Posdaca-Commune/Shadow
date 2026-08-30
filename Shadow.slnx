@@ -2,4 +2,5 @@
   <Project Path="Shadow.Abstractions/Shadow.Abstractions.csproj" />
   <Project Path="Shadow.ParadoxGameLauncher/Shadow.ParadoxGameLauncher.csproj" />
   <Project Path="Shadow/Shadow.csproj" />
+  <Project Path="tests/Shadow.Tests/Shadow.Tests.csproj" />
 </Solution>

@@ -59,6 +59,17 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
             OnPropertyChanged(nameof(SelectedPlaysetEditStateText));
             OnPropertyChanged(nameof(SelectedPlaysetSummaryText));
             OnPropertyChanged(nameof(SavesSummaryText));
+            // Entries are recreated on every refresh, so instead of each holding a
+            // permanent subscription to the app-lifetime localizer, refresh their
+            // localized labels from this single subscription.
+            foreach (var mod in Mods)
+            {
+                mod.RaiseStringsChanged();
+            }
+            foreach (var playsetMod in PlaysetMods)
+            {
+                playsetMod.RaiseStringsChanged();
+            }
         };
         _ = RefreshAsync();
     }
@@ -230,44 +241,55 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
         }
 
         IsLoading = true;
-        SetLocalizedStatusText("Paradox.Status.Loading");
-        SaveHostPaths();
-        ReloadStoredPlaysets();
-
-        // Heavy I/O — mod/DLC discovery, cover-image decoding — runs off the UI thread.
-        var (mods, dlcs) = await Task.Run(() =>
-            (
-                _service.DiscoverMods(),
-                _service.DiscoverDlcs()
-            ));
-
-        Mods.Clear();
-        foreach (var mod in mods)
-        {
-            Mods.Add(mod);
-        }
         try
         {
-            _configuration.PlaysetStore.SaveModIndex(Mods);
+            SetLocalizedStatusText("Paradox.Status.Loading");
+            SaveHostPaths();
+            ReloadStoredPlaysets();
+
+            // Heavy I/O — mod/DLC discovery, cover-image decoding — runs off the UI thread.
+            var (mods, dlcs) = await Task.Run(() =>
+                (
+                    _service.DiscoverMods(),
+                    _service.DiscoverDlcs()
+                ));
+
+            Mods.Clear();
+            foreach (var mod in mods)
+            {
+                Mods.Add(mod);
+            }
+            try
+            {
+                _configuration.PlaysetStore.SaveModIndex(Mods);
+            }
+            catch (Exception ex)
+            {
+                SetLocalizedStatusText("Paradox.Status.ModIndexFailed", ex.Message);
+            }
+
+            Dlcs.Clear();
+            foreach (var dlc in dlcs)
+            {
+                dlc.PropertyChanged += (_, _) => OnSelectionChanged();
+                Dlcs.Add(dlc);
+            }
+            ApplySelectedPlaysetState();
+            RebuildAvailableMods();
+            RebuildFilteredMods();
+            await ReloadSavesAsync(showStatus: false);
+            NotifyLauncherOptionProperties();
+            SetLocalizedStatusText("Paradox.Status.Refreshed", Mods.Count, Dlcs.Count);
         }
         catch (Exception ex)
         {
-            SetLocalizedStatusText("Paradox.Status.ModIndexFailed", ex.Message);
+            SetLocalizedStatusText("Paradox.Status.RefreshFailed", ex.Message);
         }
-
-        Dlcs.Clear();
-        foreach (var dlc in dlcs)
+        finally
         {
-            dlc.PropertyChanged += (_, _) => OnSelectionChanged();
-            Dlcs.Add(dlc);
+            // Must run even when refresh throws, otherwise Launch stays disabled forever.
+            IsLoading = false;
         }
-        ApplySelectedPlaysetState();
-        RebuildAvailableMods();
-        RebuildFilteredMods();
-        await ReloadSavesAsync(showStatus: false);
-        NotifyLauncherOptionProperties();
-        SetLocalizedStatusText("Paradox.Status.Refreshed", Mods.Count, Dlcs.Count);
-        IsLoading = false;
     }
 
     [RelayCommand]

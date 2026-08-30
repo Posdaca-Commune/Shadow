@@ -1,6 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Avalonia.Media.Imaging;
-using Shadow.Abstractions;
 
 namespace Shadow.ParadoxGameLauncher.Models;
 
@@ -10,11 +9,6 @@ public sealed partial class PlaysetModEntry : ObservableObject
     {
         Mod = mod;
         IsEnabled = isEnabled;
-        ShadowLocalizer.Instance.PropertyChanged += (_, _) =>
-        {
-            OnPropertyChanged(nameof(SourceLabel));
-            OnPropertyChanged(nameof(VersionLabel));
-        };
     }
 
     public ModEntry Mod { get; }
@@ -38,6 +32,14 @@ public sealed partial class PlaysetModEntry : ObservableObject
     public bool IsCoverPlaceholderVisible => Mod.IsCoverPlaceholderVisible;
 
     public bool CanOpenWorkshopPage => Mod.CanOpenWorkshopPage;
+
+    // Raised on the wrapper so bindings that target PlaysetModEntry itself refresh
+    // when the owning view model reports a culture change (see ModEntry.RaiseStringsChanged).
+    public void RaiseStringsChanged()
+    {
+        OnPropertyChanged(nameof(SourceLabel));
+        OnPropertyChanged(nameof(VersionLabel));
+    }
 
     [ObservableProperty]
     private bool _isEnabled;

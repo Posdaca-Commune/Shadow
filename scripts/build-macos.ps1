@@ -27,8 +27,10 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Path fragments use forward slashes so the same script runs on macOS (pwsh on
+# Unix does not treat "\" as a separator) and on Windows for layout inspection.
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
-$artifactRoot = Join-Path $repoRoot "artifacts\macos"
+$artifactRoot = Join-Path $repoRoot "artifacts/macos"
 $stagingRoot = Join-Path $artifactRoot "staging"
 $publishRoot = Join-Path $artifactRoot "publish"
 $appBundleRoot = Join-Path $artifactRoot "Shadow Studio.app"
@@ -39,12 +41,12 @@ $resourcesRoot = Join-Path $contentsRoot "Resources"
 $pluginProjects = @(
     @{
         Name = "ParadoxGameLauncher"
-        Project = "Shadow.ParadoxGameLauncher\Shadow.ParadoxGameLauncher.csproj"
-        Output = Join-Path $macosRoot "Plugins\ParadoxGameLauncher"
+        Project = "Shadow.ParadoxGameLauncher/Shadow.ParadoxGameLauncher.csproj"
+        Output = Join-Path $macosRoot "Plugins/ParadoxGameLauncher"
     }
 )
 
-$manifestTemplate = Join-Path $repoRoot "packaging\macos\Info.plist"
+$manifestTemplate = Join-Path $repoRoot "packaging/macos/Info.plist"
 
 function Get-ProjectVersion {
     $propsPath = Join-Path $repoRoot "Directory.Build.props"
@@ -112,7 +114,7 @@ foreach ($plugin in $pluginProjects) {
 if (-not $SkipBuild) {
     $selfContainedValue = $SelfContained.ToString().ToLowerInvariant()
 
-    dotnet publish (Join-Path $repoRoot "Shadow\Shadow.csproj") `
+    dotnet publish (Join-Path $repoRoot "Shadow/Shadow.csproj") `
         --configuration $Configuration `
         --runtime $Runtime `
         --self-contained:$selfContainedValue `
@@ -120,6 +122,10 @@ if (-not $SkipBuild) {
         -p:DebugType=None `
         -p:DebugSymbols=false `
         -o $publishRoot
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "dotnet publish failed for the host app (exit code $LASTEXITCODE)."
+    }
 
     # Publish to a space-free path, then move into the .app bundle so the
     # native dotnet argument parser doesn't split on the space in the bundle name.
@@ -136,6 +142,10 @@ if (-not $SkipBuild) {
             -p:DebugType=None `
             -p:DebugSymbols=false `
             -o $plugin.Output
+
+        if ($LASTEXITCODE -ne 0) {
+            throw "dotnet publish failed for plugin $($plugin.Name) (exit code $LASTEXITCODE)."
+        }
     }
 }
 
@@ -162,7 +172,7 @@ Write-PackageManifest `
 
 # Bundle icon: copy the .icns when present, otherwise fall back to the SVG in
 # packaging/branding. A real .icns should be generated during release prep.
-$icnsSource = Join-Path $repoRoot "packaging\macos\shadow.icns"
+$icnsSource = Join-Path $repoRoot "packaging/macos/shadow.icns"
 if (Test-Path -LiteralPath $icnsSource) {
     Copy-Item -LiteralPath $icnsSource -Destination (Join-Path $resourcesRoot "shadow.icns") -Force
 }
@@ -172,11 +182,18 @@ if ($SkipBundle) {
     return
 }
 
-# Make the main executable runnable.
+# Make the main executable runnable. Unix permission bits only exist when the
+# script runs on macOS; cross-builds from Windows cannot restore them here and
+# rely on the tar/zip transfer preserving modes.
 $mainExecutable = Join-Path $macosRoot "Shadow"
 if (Test-Path -LiteralPath $mainExecutable) {
-    # chmod via .NET; shells on Windows won't have chmod available.
-    [System.IO.File]::SetAttributes($mainExecutable, [System.IO.FileAttributes]::Normal)
+    $chmod = Get-Command chmod -ErrorAction SilentlyContinue
+    if ($chmod) {
+        & $chmod.Source +x $mainExecutable
+        if ($LASTEXITCODE -ne 0) {
+            throw "chmod +x failed for $mainExecutable (exit code $LASTEXITCODE)."
+        }
+    }
     Write-Host "macOS app bundle generated: $appBundleRoot"
 }
 else {
