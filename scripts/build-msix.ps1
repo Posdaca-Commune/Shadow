@@ -76,6 +76,17 @@ function Convert-ToPackageVersion {
     throw "无法从版本号 '$InputVersion' 推导 MSIX 四段数字版本。请用 -PackageVersion 显式指定，例如 1.0.0.0。"
 }
 
+# SDK/NuGet tool roots mix version-numbered directories with plain architecture
+# names (arm64, x64, x86); only parseable version names take part in the sort.
+function Get-VersionSortedDirectories {
+    param([string]$Directory)
+
+    $parsed = $null
+    return @(Get-ChildItem -LiteralPath $Directory -Directory |
+        Where-Object { [version]::TryParse($_.Name, [ref]$parsed) } |
+        Sort-Object { [version]$_.Name } -Descending)
+}
+
 function Get-NuGetSdkBuildToolsRoot {
     $toolsRoot = Join-Path $repoRoot "artifacts\tools\Microsoft.Windows.SDK.BuildTools"
     $existing = Get-ChildItem -LiteralPath $toolsRoot -Recurse -Filter "makeappx.exe" -ErrorAction SilentlyContinue |
@@ -142,8 +153,7 @@ function Get-NuGetSdkBuildToolsRoot {
         throw "无法定位 Microsoft.Windows.SDK.BuildTools 包目录。"
     }
 
-    $versionDir = Get-ChildItem -LiteralPath $packageDir -Directory |
-        Sort-Object { [version]$_.Name } -Descending |
+    $versionDir = Get-VersionSortedDirectories -Directory $packageDir |
         Select-Object -First 1
     if (-not $versionDir) {
         throw "Microsoft.Windows.SDK.BuildTools 包目录为空。"
@@ -191,8 +201,7 @@ function Resolve-WindowsSdkTool {
 
     $sdkBinRoot = "${env:ProgramFiles(x86)}\Windows Kits\10\bin"
     if (Test-Path -LiteralPath $sdkBinRoot) {
-        $candidate = Get-ChildItem -LiteralPath $sdkBinRoot -Directory |
-            Sort-Object { [version]$_.Name } -Descending |
+        $candidate = Get-VersionSortedDirectories -Directory $sdkBinRoot |
             ForEach-Object { Join-Path $_.FullName "x64\$ToolName" } |
             Where-Object { Test-Path -LiteralPath $_ } |
             Select-Object -First 1
