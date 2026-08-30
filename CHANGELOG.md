@@ -1,5 +1,67 @@
 # Changelog
 
+## 1.1.3 - 2026-08-31
+
+### Added
+
+- Early Linux support in the Paradox Game Launcher plugin: Steam library and
+  Paradox user directory discovery (including Flatpak Steam), native Linux
+  executable candidates, cross-platform file manager and URL opening, and a
+  `steam://rungameid` launch fallback when no native executable is configured.
+- Unit test project `Shadow.Tests` covering command-line parsing, save metadata
+  parsing, and path discovery; CI now runs the tests on Windows, Linux, and
+  macOS runners.
+
+### Changed
+
+- Packaging scripts now fail fast on native command errors. The macOS and Linux
+  scripts use portable paths so they run on their target platforms, and the
+  Linux tarball ships executable bits, LF line endings, and extracts to the
+  extraction root.
+- MSIX version derivation no longer ranks prerelease versions above the final
+  release; the test signing certificate subject now matches the packaging
+  script's default Publisher.
+- Microsoft.Data.Sqlite upgraded from 11.0.0-preview.7 to the 10.0.11 stable
+  release.
+- Removed dead code (unbound commands and an unused drag-reorder animation path).
+
+### Fixed
+
+- A failed refresh could leave the plugin stuck in the loading state with the
+  launch button disabled; errors now surface in the status bar.
+- Generated `ugc_*.mod` descriptor file names sanitize `remote_file_id`,
+  preventing path traversal from third-party mod files.
+- Launcher entries no longer leak through permanent localizer subscriptions, and
+  cover image streams are disposed.
+- `settings.txt` and `launcher-state.json` I/O failures no longer crash the app;
+  `launcher-state.json` is written atomically and corrupt files are backed up
+  before being rebuilt.
+- Paradox playset import surfaces database errors instead of reporting "no
+  playsets found"; SQLite connection strings handle paths containing `;`.
+- Save discovery skips individual locked or inaccessible saves instead of
+  failing the whole refresh.
+- Concurrent GUI/CLI saves no longer collide on the same temporary file.
+
+## 1.1.2 - 2026-08-27
+
+### Changed
+
+- Mod import now accepts a folder instead of a zip archive. Select a mod folder,
+  and Shadow copies it into the Paradox `mod/` directory and auto-generates the
+  corresponding `.mod` descriptor file. This removes the `.zip`-only restriction.
+- Refresh and save discovery now run off the UI thread with a loading overlay,
+  keeping the interface responsive during heavy mod/DLC discovery.
+
+### Fixed
+
+- Local mods with mixed-case `.mod` file names (e.g. `ATA.mod`, `AED.mod`) were
+  written to `dlc_load.json` in lower case, but HOI4 matches entries
+  case-sensitively. The launcher path now resolves the actual on-disk file name
+  so the casing in `dlc_load.json` matches the real file.
+- Removed duplicate localization keys (`Paradox.Status.ImportedMod` and
+  `Paradox.Status.ImportedParadoxPlaysets`) that were accidentally introduced in
+  the previous release.
+
 ## 1.1.1 - 2026-08-25
 
 ### Added
@@ -135,24 +197,3 @@
 - This is an early beta intended for local Windows testing.
 - Back up the HOI4 user directory before using Shadow with important playsets.
 - The plugin API may still change before a stable release.
-
-## 1.1.2 - 2026-08-27
-
-### Changed
-
-- Mod import now accepts a folder instead of a zip archive. Select a mod folder,
-  and Shadow copies it into the Paradox `mod/` directory and auto-generates the
-  corresponding `.mod` descriptor file. This removes the `.zip`-only restriction.
-- Refresh and save discovery now run off the UI thread with a loading overlay,
-  keeping the interface responsive during heavy mod/DLC discovery.
-
-### Fixed
-
-- Local mods with mixed-case `.mod` file names (e.g. `ATA.mod`, `AED.mod`) were
-  written to `dlc_load.json` in lower case, but HOI4 matches entries
-  case-sensitively. The launcher path now resolves the actual on-disk file name
-  so the casing in `dlc_load.json` matches the real file.
-
-- Removed duplicate localization keys (`Paradox.Status.ImportedMod` and
-  `Paradox.Status.ImportedParadoxPlaysets`) that were accidentally introduced in
-  the previous release.

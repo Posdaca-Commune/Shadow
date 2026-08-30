@@ -9,9 +9,10 @@ plugin is `Shadow.ParadoxGameLauncher`, a multi-game launcher and playset manage
 for titles such as Hearts of Iron IV, Crusader Kings III, Europa Universalis IV,
 Stellaris, Victoria 3, and Imperator: Rome.
 
-> Status: `1.1.2` is the current release. It is ready for general Windows
-> use and Store packaging, but you should still back up your game user
-> configuration before relying on it as your only launcher.
+> Status: `1.1.3` is the current release. It is ready for general Windows
+> use and Store packaging, with early Linux support for the bundled launcher
+> plugin. You should still back up your game user configuration before relying
+> on it as your only launcher.
 
 ## Features
 
@@ -32,7 +33,9 @@ Stellaris, Victoria 3, and Imperator: Rome.
 
 ## Requirements
 
-- Windows 10 or Windows 11.
+- Windows 10 or Windows 11 for the MSIX package. A portable Linux tarball
+  (x64/arm64, built from CI) also runs the shell and the bundled launcher
+  plugin, with native Paradox game installs or Steam.
 - One or more supported Paradox games installed locally.
 - For source builds: .NET SDK 10 and the workloads required by Avalonia.
 
@@ -42,7 +45,7 @@ separate .NET runtime.
 
 ## Getting Started
 
-1. Download `Shadow-1.1.2.msix` from the GitHub release.
+1. Download `Shadow-1.1.3.msix` from the GitHub release.
 2. Install the package with Windows App Installer.
 3. Start `Shadow` from the Start menu or desktop shortcut.
 4. Open `Paradox Game Launcher` from the left navigation.
@@ -127,10 +130,10 @@ To create a Windows x64 MSIX package with the bundled plugin, install the
 Windows 10/11 SDK, then run:
 
 ```powershell
-.\scripts\build-msix.ps1 -Version 1.1.2
+.\scripts\build-msix.ps1 -Version 1.1.3
 ```
 
-The generated package is written to `artifacts/msix/Shadow-1.1.2.msix`.
+The generated package is written to `artifacts/msix/Shadow-1.1.3.msix`.
 MSIX packages must be signed before installation. Use `-CertificatePath` or
 `-CertificateThumbprint` to sign during packaging.
 
@@ -144,7 +147,7 @@ Example with a PFX certificate:
 
 ```powershell
 $password = Get-Content .\certs\Shadow.pfx.password.txt | ConvertTo-SecureString -AsPlainText -Force
-.\scripts\build-msix.ps1 -Version 1.1.2 -CertificatePath .\certs\Shadow.pfx -CertificatePassword $password
+.\scripts\build-msix.ps1 -Version 1.1.3 -CertificatePath .\certs\Shadow.pfx -CertificatePassword $password
 ```
 
 Share `certs/Shadow.cer` with testers so they can trust the package before

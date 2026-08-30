@@ -34,6 +34,9 @@ Before you rely on it as your only launch tool, back up your Paradox user folder
 - Home status, quick actions, and command-line start
 - No playable game content in the app package
 
+### What's new in 1.1.3
+This release hardens the launcher: a failed refresh no longer locks the UI, generated mod descriptor names resist path traversal from third-party mods, and launcher state is written atomically with automatic backups of corrupt files. Steam and Paradox folder discovery now also works on Linux, with a steam:// launch fallback. Packaging scripts fail fast and the release ships with a cross-platform unit test suite.
+
 ### What's new in 1.1.2
 Mod import now accepts a folder instead of a zip archive: select a mod folder and Shadow copies it into the Paradox mod directory, auto-generating the .mod descriptor file. Refresh and save discovery now run off-thread with a loading overlay to keep the UI responsive.
 
@@ -68,6 +71,9 @@ Shadow Studio 在本地运行。请先配置游戏可执行文件、Paradox 用�
 - DLC 和设置写入标准本地游戏文件
 - 主页状态、快捷操作和命令行启动
 - 应用包内不含可玩的游戏内容
+
+### 1.1.3 更新内容
+本版本重点加固启动器：刷新失败不再卡死界面，生成的 Mod 描述符文件名可抵御第三方 Mod 的路径穿越，启动器状态改为原子写入并自动备份损坏文件。Steam 与 Paradox 目录发现现已支持 Linux，并提供 steam:// 启动回退。打包脚本失败即报错，本版本起附带跨平台单元测试。
 
 ### 1.1.2 更新内容
 Mod 导入改为选择文件夹而非压缩包：选择 Mod 文件夹后自动复制到 Paradox mod 目录并生成 .mod 描述符文件。刷新和存档发现改为后台线程执行，显示加载遮罩以保持界面响应。
