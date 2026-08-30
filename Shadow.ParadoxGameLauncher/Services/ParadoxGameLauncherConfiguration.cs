@@ -124,9 +124,11 @@ public sealed class ParadoxGameLauncherConfiguration
         State.SelectedPlaysetId = SelectedPlaysetId;
 
         Directory.CreateDirectory(Path.GetDirectoryName(StatePath)!);
-        // Write to a temp file and replace, mirroring ParadoxWorkspacePlaysetStore,
-        // so a crash mid-write cannot leave a torn launcher-state.json behind.
-        var tempPath = StatePath + ".tmp";
+        // Write to a per-invocation temp file and replace, mirroring
+        // ParadoxWorkspacePlaysetStore: a crash mid-write cannot leave a torn
+        // launcher-state.json behind, and concurrent saves (GUI + CLI) cannot
+        // collide on the same temp path. Last completed writer wins.
+        var tempPath = $"{StatePath}.{Guid.NewGuid():N}.tmp";
         File.WriteAllText(tempPath, JsonSerializer.Serialize(State, SerializerOptions));
         File.Move(tempPath, StatePath, overwrite: true);
     }

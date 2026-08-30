@@ -231,7 +231,7 @@ public sealed class ParadoxGameLauncherService
                 return;
             }
 
-            Process.Start(new ProcessStartInfo
+            using var openFolder = Process.Start(new ProcessStartInfo
             {
                 FileName = "explorer.exe",
                 Arguments = $"\"{save.FilePath}\"",
@@ -245,7 +245,7 @@ public sealed class ParadoxGameLauncherService
             return;
         }
 
-        Process.Start(new ProcessStartInfo
+        using var selectInFolder = Process.Start(new ProcessStartInfo
         {
             FileName = "explorer.exe",
             Arguments = $"/select,\"{save.FilePath}\"",
@@ -260,7 +260,7 @@ public sealed class ParadoxGameLauncherService
             Directory.CreateDirectory(directory);
         }
 
-        Process.Start(new ProcessStartInfo
+        using var openDirectory = Process.Start(new ProcessStartInfo
         {
             FileName = directory,
             UseShellExecute = true,
@@ -540,11 +540,6 @@ public sealed class ParadoxGameLauncherService
                ?? throw new InvalidOperationException(ParadoxGameLauncherStrings.Get("Paradox.Service.ProcessFailed"));
     }
 
-    public void SaveConfiguration()
-    {
-        _configuration.Save();
-    }
-
     public void OpenModLocation(ModEntry mod)
     {
         var targetPath = ResolveModContentPath(mod);
@@ -563,7 +558,7 @@ public sealed class ParadoxGameLauncherService
             throw new InvalidOperationException(ParadoxGameLauncherStrings.Get("Paradox.Service.ModLocationMissing"));
         }
 
-        Process.Start(new ProcessStartInfo
+        using var openModLocation = Process.Start(new ProcessStartInfo
         {
             FileName = targetPath,
             UseShellExecute = true,
@@ -577,7 +572,7 @@ public sealed class ParadoxGameLauncherService
             return;
         }
 
-        Process.Start(new ProcessStartInfo
+        using var openWorkshop = Process.Start(new ProcessStartInfo
         {
             FileName = mod.WorkshopUrl,
             UseShellExecute = true,
@@ -1234,11 +1229,6 @@ public sealed class ParadoxGameLauncherService
         if (sourceValues.TryGetValue("picture", out var picture) && !string.IsNullOrWhiteSpace(picture))
         {
             lines.Add($"picture=\"{EscapeClausewitzString(picture)}\"");
-        }
-
-        if (sourceValues.TryGetValue("tags", out var tags) && !string.IsNullOrWhiteSpace(tags))
-        {
-            // tags are usually multi-line blocks; skip incomplete single-line captures.
         }
 
         File.WriteAllText(descriptorPath, string.Join(Environment.NewLine, lines.Concat([string.Empty])));

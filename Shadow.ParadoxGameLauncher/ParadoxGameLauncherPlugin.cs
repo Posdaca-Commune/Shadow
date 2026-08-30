@@ -87,16 +87,19 @@ public sealed class ParadoxGameLauncherPlugin : IShadowCommandPlugin
 
             var dlcs = service.DiscoverDlcs();
             service.ApplyPlayset(playset, mods, ApplyDlcSelection(playset, dlcs));
-            var process = service.StartGame(extraArguments);
-            configuration.SelectedPlaysetId = playset.Id;
-            configuration.Save();
+            // Dispose the wrapper handle after launch; the game process keeps running.
+            using (var process = service.StartGame(extraArguments))
+            {
+                configuration.SelectedPlaysetId = playset.Id;
+                configuration.Save();
 
-            return ShadowCommandResult.Success(
-                ParadoxGameLauncherStrings.Format(
-                    "Paradox.Command.Launched",
-                    configuration.SelectedGame.DisplayName,
-                    playset.Name,
-                    process.Id));
+                return ShadowCommandResult.Success(
+                    ParadoxGameLauncherStrings.Format(
+                        "Paradox.Command.Launched",
+                        configuration.SelectedGame.DisplayName,
+                        playset.Name,
+                        process.Id));
+            }
         }
         catch (Exception ex)
         {

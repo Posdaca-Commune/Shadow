@@ -22,7 +22,6 @@ public partial class ParadoxPlaysetsSectionView : UserControl
 {
     private readonly record struct PlaysetModCardInfo(Border Card, PlaysetModEntry Mod, double Top, double Stride);
 
-    private const int DragReorderAnimationMs = 150;
     // Vertical gap between playset mod cards (ListBoxItem bottom margin).
     private const double PlaysetItemGap = 8.0;
     private const double InsertIndicatorBarHalf = 1.5;
@@ -720,40 +719,10 @@ public partial class ParadoxPlaysetsSectionView : UserControl
         return filteredIndex >= 0 ? filteredIndex : viewModel.PlaysetMods.IndexOf(mod);
     }
 
-    private int GetCurrentPlaysetCount()
-    {
-        if (DataContext is not ParadoxGameLauncherViewModel viewModel)
-        {
-            return 0;
-        }
-        return viewModel.FilteredPlaysetMods.Count > 0 || !string.IsNullOrWhiteSpace(viewModel.PlaysetModSearchText)
-            ? viewModel.FilteredPlaysetMods.Count
-            : viewModel.PlaysetMods.Count;
-    }
-
     private static Transitions CreateYAxisTransformTransitions()
     {
         return new Transitions
         {
-            new DoubleTransition
-            {
-                Property = TranslateTransform.YProperty,
-                Duration = TimeSpan.FromMilliseconds(150),
-                Easing = new CubicEaseOut()
-            }
-        };
-    }
-
-    private static Transitions CreateDropTransformTransitions()
-    {
-        return new Transitions
-        {
-            new DoubleTransition
-            {
-                Property = TranslateTransform.XProperty,
-                Duration = TimeSpan.FromMilliseconds(150),
-                Easing = new CubicEaseOut()
-            },
             new DoubleTransition
             {
                 Property = TranslateTransform.YProperty,
@@ -861,100 +830,6 @@ private static bool IsPlaysetModCard(Border border)
         ClearDragFields();
     }
 
-    private async Task ResetDragStateWithAnimationAsync(Action? commitAfterAnimation)
-    {
-        Border? draggedCard = _draggedCard;
-        TranslateTransform? draggedCardTransform = _draggedCardTransform;
-        double draggedCardDropYOffset = GetDraggedCardDropYOffset();
-        double draggedCardOriginalOpacity = _draggedCardOriginalOpacity;
-        int draggedCardOriginalZIndex = _draggedCardOriginalZIndex;
-        Transitions? draggedCardOriginalTransitions = _draggedCardOriginalTransitions;
-        BoxShadows draggedCardOriginalBoxShadow = _draggedCardOriginalBoxShadow;
-        List<KeyValuePair<Border, TranslateTransform>> displacedTransforms = _displacedCardTransforms.ToList();
-        int insertIndicatorVersion = _insertIndicatorAnimationVersion + 1;
-        Control? draggedItemContainer = _draggedItemContainer;
-        int draggedItemContainerOriginalZIndex = _draggedItemContainerOriginalZIndex;
-        bool draggedItemContainerOriginalClipToBounds = _draggedItemContainerOriginalClipToBounds;
-        _displacedCardTransforms.Clear();
-        ClearDragFields();
-        if (draggedCard != null)
-        {
-            draggedCard.Opacity = draggedCardOriginalOpacity;
-            draggedCard.BoxShadow = draggedCardOriginalBoxShadow;
-            if (draggedCardTransform != null)
-            {
-                draggedCardTransform.Transitions = CreateDropTransformTransitions();
-                draggedCardTransform.X = 0;
-                draggedCardTransform.Y = draggedCardDropYOffset;
-            }
-        }
-        HideInsertIndicator();
-        await Task.Delay(TimeSpan.FromMilliseconds(DragReorderAnimationMs));
-        commitAfterAnimation?.Invoke();
-        foreach (var (card, transform) in displacedTransforms)
-        {
-            if (card.RenderTransform == transform)
-            {
-                card.RenderTransform = null;
-            }
-        }
-        if (_insertIndicatorAnimationVersion == insertIndicatorVersion)
-        {
-            PlaysetInsertIndicator.IsVisible = false;
-        }
-        if (draggedCard != null && draggedCard.RenderTransform == draggedCardTransform)
-        {
-            draggedCard.ZIndex = draggedCardOriginalZIndex;
-            draggedCard.RenderTransform = null;
-            draggedCard.Transitions = draggedCardOriginalTransitions;
-        }
-        if (draggedItemContainer is not null)
-        {
-            draggedItemContainer.ZIndex = draggedItemContainerOriginalZIndex;
-            draggedItemContainer.ClipToBounds = draggedItemContainerOriginalClipToBounds;
-        }
-    }
-
-    private double GetDraggedCardDropYOffset()
-    {
-        if (_draggedMod == null || _previewInsertIndex < 0 || _dragStartCards.Count == 0)
-        {
-            return 0;
-        }
-        var startIndex = _dragStartCards.FindIndex(item => item.Mod == _draggedMod);
-        if (startIndex < 0)
-        {
-            return 0;
-        }
-        // _previewInsertIndex is the gap among remaining cards. Map it back to a stable
-        // visual target using the pre-drag card tops.
-        var remaining = _dragStartCards
-            .Select((item, index) => (item, index))
-            .Where(pair => pair.index != startIndex)
-            .Select(pair => pair.item)
-            .ToList();
-        double targetTop;
-        if (remaining.Count == 0)
-        {
-            targetTop = _dragStartCards[startIndex].Top;
-        }
-        else if (_previewInsertIndex <= 0)
-        {
-            targetTop = remaining[0].Top;
-        }
-        else if (_previewInsertIndex >= remaining.Count)
-        {
-            var last = remaining[^1];
-            targetTop = last.Top + last.Stride;
-        }
-        else
-        {
-            targetTop = remaining[_previewInsertIndex].Top;
-        }
-
-        return targetTop - _dragStartCards[startIndex].Top;
-    }
-
     private void ClearDragFields()
     {
         _draggedCard = null;
@@ -966,34 +841,6 @@ private static bool IsPlaysetModCard(Border border)
         _draggedCardOriginalTransitions = null;
         _draggedItemContainer = null;
         _dragStartCards.Clear();
-    }
-
-    private static int ResolvePlaysetMoveTargetIndex(
-        ParadoxGameLauncherViewModel viewModel,
-        PlaysetModEntry draggedMod,
-        int filteredTargetIndex)
-    {
-        if (string.IsNullOrWhiteSpace(viewModel.PlaysetModSearchText)
-            || viewModel.FilteredPlaysetMods.Count == viewModel.PlaysetMods.Count)
-        {
-            return filteredTargetIndex;
-        }
-        if (filteredTargetIndex < 0 || viewModel.FilteredPlaysetMods.Count == 0)
-        {
-            return viewModel.PlaysetMods.IndexOf(draggedMod);
-        }
-        if (filteredTargetIndex >= viewModel.FilteredPlaysetMods.Count)
-        {
-            var lastVisible = viewModel.FilteredPlaysetMods[^1];
-            var lastIndex = viewModel.PlaysetMods.IndexOf(lastVisible);
-            return lastIndex < 0 ? viewModel.PlaysetMods.Count - 1 : lastIndex;
-        }
-        var targetMod = viewModel.FilteredPlaysetMods[filteredTargetIndex];
-        if (ReferenceEquals(targetMod, draggedMod))
-        {
-            return viewModel.PlaysetMods.IndexOf(draggedMod);
-        }
-        return viewModel.PlaysetMods.IndexOf(targetMod);
     }
 
     private static bool IsInteractiveSource(StyledElement? element)

@@ -439,44 +439,6 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
         OnPlaysetCollectionChanged();
     }
 
-    [RelayCommand]
-    private void MoveSelectedModUp()
-    {
-        MoveSelectedMod(-1);
-    }
-
-    [RelayCommand]
-    private void MoveSelectedModDown()
-    {
-        MoveSelectedMod(1);
-    }
-
-    [RelayCommand]
-    private void AddSelectedModToPlayset()
-    {
-        if (SelectedPlayset is null || SelectedAvailableMod is null || !EnsureSelectedPlaysetCanEdit())
-        {
-            return;
-        }
-        if (PlaysetMods.Any(mod => string.Equals(mod.Id, SelectedAvailableMod.Id, StringComparison.OrdinalIgnoreCase)))
-        {
-            return;
-        }
-        var entry = new PlaysetModEntry(SelectedAvailableMod, true);
-        entry.PropertyChanged += (_, _) =>
-        {
-            PersistCurrentPlaysetState();
-            OnSelectionChanged();
-        };
-        PlaysetMods.Add(entry);
-        SelectedPlaysetMod = entry;
-        SelectedAvailableMod = null;
-        PersistCurrentPlaysetState();
-        RebuildAvailableMods();
-        OnSelectionChanged();
-        SetLocalizedStatusText("Paradox.Status.AddedToPlayset", entry.Title);
-    }
-
     public void AddModToPlayset(ModEntry mod)
     {
         AddModsToPlayset([mod]);
@@ -668,43 +630,6 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
         RemoveModFromPlayset(mod);
     }
 
-    public void MovePlaysetMod(PlaysetModEntry mod, int targetIndex)
-    {
-        if (!EnsureSelectedPlaysetCanEdit())
-        {
-            return;
-        }
-
-        var oldIndex = PlaysetMods.IndexOf(mod);
-        if (oldIndex < 0 || PlaysetMods.Count <= 1)
-        {
-            return;
-        }
-
-        var boundedTargetIndex = Math.Clamp(targetIndex, 0, PlaysetMods.Count - 1);
-        if (oldIndex == boundedTargetIndex)
-        {
-            return;
-        }
-
-        // Rebuild explicit order instead of relying only on Move semantics + filtered projection.
-        var reordered = PlaysetMods.ToList();
-        reordered.RemoveAt(oldIndex);
-        reordered.Insert(boundedTargetIndex, mod);
-
-        PlaysetMods.Clear();
-        foreach (var entry in reordered)
-        {
-            PlaysetMods.Add(entry);
-        }
-
-        SelectedPlaysetMod = mod;
-        RebuildFilteredPlaysetMods();
-        PersistCurrentPlaysetState();
-        OnSelectionChanged();
-        SetLocalizedStatusText("Paradox.Status.ReorderedMod", mod.Title);
-    }
-
     public void ReorderPlaysetMod(PlaysetModEntry mod, IReadOnlyList<PlaysetModEntry> orderedVisibleMods)
     {
         if (!EnsureSelectedPlaysetCanEdit() || orderedVisibleMods.Count == 0)
@@ -780,36 +705,6 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
     }
 
     [RelayCommand]
-    private void EnableAllPlaysetMods()
-    {
-        if (!EnsureSelectedPlaysetCanEdit())
-        {
-            return;
-        }
-        foreach (var mod in PlaysetMods)
-        {
-            mod.IsEnabled = true;
-        }
-        PersistCurrentPlaysetState();
-        OnSelectionChanged();
-    }
-
-    [RelayCommand]
-    private void DisableAllPlaysetMods()
-    {
-        if (!EnsureSelectedPlaysetCanEdit())
-        {
-            return;
-        }
-        foreach (var mod in PlaysetMods)
-        {
-            mod.IsEnabled = false;
-        }
-        PersistCurrentPlaysetState();
-        OnSelectionChanged();
-    }
-
-    [RelayCommand]
     private void EnableAllDlcs()
     {
         foreach (var dlc in Dlcs)
@@ -825,7 +720,8 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
         try
         {
             SavePlayset();
-            _service.StartGame();
+            // Dispose the wrapper handle after launch; the game process keeps running.
+            using var process = _service.StartGame();
             SetLocalizedStatusText("Paradox.Status.Launched");
             if (_configuration.CloseAfterLaunch)
             {
@@ -1036,13 +932,8 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
         OnPropertyChanged(nameof(SelectedPlaysetEditStateText));
         OnPropertyChanged(nameof(SelectedPlaysetSummaryText));
         DeletePlaysetCommand.NotifyCanExecuteChanged();
-        AddSelectedModToPlaysetCommand.NotifyCanExecuteChanged();
         RemoveSelectedModFromPlaysetCommand.NotifyCanExecuteChanged();
         RemovePlaysetModCommand.NotifyCanExecuteChanged();
-        MoveSelectedModUpCommand.NotifyCanExecuteChanged();
-        MoveSelectedModDownCommand.NotifyCanExecuteChanged();
-        EnableAllPlaysetModsCommand.NotifyCanExecuteChanged();
-        DisableAllPlaysetModsCommand.NotifyCanExecuteChanged();
         EnableAllDlcsCommand.NotifyCanExecuteChanged();
     }
 
@@ -1120,24 +1011,6 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
         OnPropertyChanged(nameof(WorkshopDirectory));
         OnPropertyChanged(nameof(LaunchArguments));
         OnPropertyChanged(nameof(CloseAfterLaunch));
-    }
-
-    private void MoveSelectedMod(int direction)
-    {
-        if (SelectedPlaysetMod is null || !EnsureSelectedPlaysetCanEdit())
-        {
-            return;
-        }
-        var oldIndex = PlaysetMods.IndexOf(SelectedPlaysetMod);
-        var newIndex = oldIndex + direction;
-        if (oldIndex < 0 || newIndex < 0 || newIndex >= PlaysetMods.Count)
-        {
-            return;
-        }
-        PlaysetMods.Move(oldIndex, newIndex);
-        RebuildFilteredPlaysetMods();
-        PersistCurrentPlaysetState();
-        OnSelectionChanged();
     }
 
     private void ReloadStoredPlaysets()

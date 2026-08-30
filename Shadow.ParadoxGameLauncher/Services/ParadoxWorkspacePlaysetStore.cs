@@ -46,11 +46,6 @@ public sealed class ParadoxWorkspacePlaysetStore
         return new ParadoxWorkspacePlaysetStore(GetWorkspaceDirectory(game));
     }
 
-    public static ParadoxWorkspacePlaysetStore CreateDefault()
-    {
-        return CreateForGame(ParadoxGameCatalog.Default);
-    }
-
     public IReadOnlyList<Playset> LoadPlaysets()
     {
         Directory.CreateDirectory(PlaysetsDirectory);
