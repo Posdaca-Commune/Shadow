@@ -44,6 +44,12 @@ jobs:
       env:
         Configuration: ${{ matrix.configuration }}
 
+    # 运行单元测试
+    - name: Run unit tests
+      run: dotnet test tests/Shadow.Tests/Shadow.Tests.csproj --configuration $env:Configuration --no-build
+      env:
+        Configuration: ${{ matrix.configuration }}
+
     # 解码仓库 secret 里的 base64 编码签名证书，供打包脚本签名 MSIX 使用
     - name: Decode signing certificate
       if: ${{ vars.MSIX_ENABLE_SIGNING == 'true' }}

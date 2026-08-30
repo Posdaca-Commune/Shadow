@@ -21,6 +21,13 @@ public sealed class ParadoxGameDefinition
 
     public required string ExecutableFileName { get; init; }
 
+    /// <summary>
+    /// Executable paths relative to the Steam install directory used on
+    /// Linux/macOS builds of the game (e.g. "binaries/ck3"). The game's
+    /// <see cref="Id"/> is always tried as a last-resort candidate.
+    /// </summary>
+    public IReadOnlyList<string> LinuxExecutableFileNames { get; init; } = [];
+
     public required string SteamAppId { get; init; }
 
     /// <summary>
@@ -36,10 +43,34 @@ public sealed class ParadoxGameDefinition
 
     public IReadOnlyList<string> SteamFolderNames { get; init; } = [];
 
-    public string DefaultUserDirectory => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-        "Paradox Interactive",
-        DocumentsFolderName);
+    /// <summary>
+    /// Executable file names to probe for the given platform, most likely first.
+    /// Native Windows builds use "<id>.exe"; Linux/macOS builds ship differently
+    /// named binaries per game.
+    /// </summary>
+    public IReadOnlyList<string> GetExecutableFileNames(bool isWindows)
+    {
+        if (isWindows)
+        {
+            return [ExecutableFileName];
+        }
+
+        var candidates = new List<string>(LinuxExecutableFileNames) { Id };
+        return candidates
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    public string DefaultUserDirectory => OperatingSystem.IsWindows()
+        ? Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            "Paradox Interactive",
+            DocumentsFolderName)
+        : Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Paradox Interactive",
+            DocumentsFolderName);
 
     public override string ToString() => DisplayName;
 }

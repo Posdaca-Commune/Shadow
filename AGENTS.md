@@ -41,6 +41,15 @@
 ### CI
 
 - `.github/workflows/build-msix.yml`、`build-macos.yml`、`build-linux.yml` 分别在对应平台 runner 上调用打包脚本。
+- 三个工作流都会在各自平台上运行 `tests/Shadow.Tests` 单元测试（Linux/macOS runner 验证跨平台逻辑）。
+
+### 跨平台（Linux 优先）
+
+- 插件的路径发现（`ParadoxPathDiscovery`）是跨平台的：Steam 根目录在 Linux 上探测 `~/.steam/steam`、`~/.local/share/Steam`、`~/.steam/root` 和 Flatpak 的 `~/.var/app/com.valvesoftware.Steam/data/Steam`，并通过 `steamapps/libraryfolders.vdf` 枚举其它库。
+- Linux 上 Paradox 游戏用户目录位于 `~/.local/share/Paradox Interactive/<游戏>/`（同时探测 Flatpak 变体），Windows 上才是 Documents。
+- 每个游戏在 `ParadoxGameCatalog` 中定义了 `LinuxExecutableFileNames`（如 `binaries/ck3`、`bin/victoria3`）；未找到原生可执行文件时，`StartGame` 回退通过 `steam://rungameid/<AppId>` 启动（该回退不转发启动参数）。
+- 打开文件/目录/URL 统一走 `StartPlatformOpen`（Windows shell、macOS `open`、Linux `xdg-open`）；Linux 没有"在文件管理器中选中文件"的标准能力，`RevealInFileManager` 会退化为打开所在目录。
+- 新增平台相关逻辑时应保持纯函数化（注入路径而非读环境），使其能在任意平台上被 `tests/Shadow.Tests` 覆盖。
 
 ## 协作约定
 

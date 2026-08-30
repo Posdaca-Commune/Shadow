@@ -581,7 +581,7 @@ public sealed partial class ParadoxGameLauncherViewModel : ObservableObject, ISh
 
         try
         {
-            _service.RevealSaveInExplorer(save);
+            _service.RevealSave(save);
         }
         catch (Exception ex)
         {

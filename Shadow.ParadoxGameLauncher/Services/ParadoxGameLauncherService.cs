@@ -219,52 +219,99 @@ public sealed class ParadoxGameLauncherService
 
     public void OpenSaveDirectory()
     {
-        OpenDirectoryInExplorer(SaveDirectory);
+        OpenInFileManager(SaveDirectory);
     }
 
-    public void RevealSaveInExplorer(SaveEntry save)
+    public void RevealSave(SaveEntry save)
     {
         if (save.IsFolder)
         {
-            if (!Directory.Exists(save.FilePath))
+            if (Directory.Exists(save.FilePath))
             {
-                return;
+                OpenInFileManager(save.FilePath);
             }
 
-            using var openFolder = Process.Start(new ProcessStartInfo
-            {
-                FileName = "explorer.exe",
-                Arguments = $"\"{save.FilePath}\"",
-                UseShellExecute = true,
-            });
             return;
         }
 
-        if (!File.Exists(save.FilePath))
+        if (File.Exists(save.FilePath))
         {
-            return;
+            RevealInFileManager(save.FilePath);
         }
-
-        using var selectInFolder = Process.Start(new ProcessStartInfo
-        {
-            FileName = "explorer.exe",
-            Arguments = $"/select,\"{save.FilePath}\"",
-            UseShellExecute = true,
-        });
     }
 
-    private static void OpenDirectoryInExplorer(string directory)
+    /// <summary>
+    /// Opens a directory in the platform file manager (Explorer/Files/Finder).
+    /// </summary>
+    private static void OpenInFileManager(string directory)
     {
         if (!Directory.Exists(directory))
         {
             Directory.CreateDirectory(directory);
         }
 
-        using var openDirectory = Process.Start(new ProcessStartInfo
+        using var process = StartPlatformOpen(directory);
+    }
+
+    /// <summary>
+    /// Reveals a file in the platform file manager, selecting it where the
+    /// platform supports it (Windows/macOS); on Linux the containing directory
+    /// is opened instead.
+    /// </summary>
+    private static void RevealInFileManager(string filePath)
+    {
+        if (OperatingSystem.IsWindows())
         {
-            FileName = directory,
-            UseShellExecute = true,
-        });
+            using var select = Process.Start(new ProcessStartInfo
+            {
+                FileName = "explorer.exe",
+                Arguments = $"/select,\"{filePath}\"",
+                UseShellExecute = true,
+            });
+            return;
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            var reveal = new ProcessStartInfo
+            {
+                FileName = "open",
+                UseShellExecute = false,
+            };
+            reveal.ArgumentList.Add("-R");
+            reveal.ArgumentList.Add(filePath);
+            using var process = Process.Start(reveal);
+            return;
+        }
+
+        // xdg-open has no "select file" mode; open the containing directory.
+        var directory = Path.GetDirectoryName(filePath);
+        OpenInFileManager(!string.IsNullOrWhiteSpace(directory) && Directory.Exists(directory)
+            ? directory
+            : Directory.GetCurrentDirectory());
+    }
+
+    /// <summary>
+    /// Hands a file, directory or URL to the platform shell: shell-execute on
+    /// Windows, `open` on macOS, `xdg-open` on Linux.
+    /// </summary>
+    private static Process? StartPlatformOpen(string target)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return Process.Start(new ProcessStartInfo(target)
+            {
+                UseShellExecute = true,
+            });
+        }
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = OperatingSystem.IsMacOS() ? "open" : "xdg-open",
+            UseShellExecute = false,
+        };
+        startInfo.ArgumentList.Add(target);
+        return Process.Start(startInfo);
     }
 
     public IReadOnlyList<ModEntry> DiscoverMods()
@@ -507,12 +554,24 @@ public sealed class ParadoxGameLauncherService
 
     public Process StartGame(IEnumerable<string>? extraArguments = null)
     {
-        if (!File.Exists(_configuration.GameExecutablePath))
+        var executablePath = _configuration.GameExecutablePath;
+        if (!File.Exists(executablePath))
         {
-            throw new InvalidOperationException(ParadoxGameLauncherStrings.Get("Paradox.Service.SelectExecutable"));
+            // No native executable is configured. This is common on Linux, where
+            // the install may only be launchable through the Steam client, so
+            // fall back to the Steam run shortcut. Launch arguments cannot be
+            // forwarded through steam:// URLs.
+            var game = _configuration.SelectedGame;
+            if (string.IsNullOrWhiteSpace(game.SteamAppId))
+            {
+                throw new InvalidOperationException(ParadoxGameLauncherStrings.Get("Paradox.Service.SelectExecutable"));
+            }
+
+            using var steamLaunch = StartPlatformOpen($"steam://rungameid/{game.SteamAppId}");
+            return steamLaunch
+                   ?? throw new InvalidOperationException(ParadoxGameLauncherStrings.Get("Paradox.Service.ProcessFailed"));
         }
 
-        var executablePath = _configuration.GameExecutablePath;
         var startInfo = new ProcessStartInfo
         {
             FileName = executablePath,
@@ -558,11 +617,7 @@ public sealed class ParadoxGameLauncherService
             throw new InvalidOperationException(ParadoxGameLauncherStrings.Get("Paradox.Service.ModLocationMissing"));
         }
 
-        using var openModLocation = Process.Start(new ProcessStartInfo
-        {
-            FileName = targetPath,
-            UseShellExecute = true,
-        });
+        OpenInFileManager(targetPath);
     }
 
     public void OpenWorkshopPage(ModEntry mod)
@@ -572,11 +627,7 @@ public sealed class ParadoxGameLauncherService
             return;
         }
 
-        using var openWorkshop = Process.Start(new ProcessStartInfo
-        {
-            FileName = mod.WorkshopUrl,
-            UseShellExecute = true,
-        });
+        using var process = StartPlatformOpen(mod.WorkshopUrl);
     }
 
     private string GetParadoxLauncherDatabasePath()

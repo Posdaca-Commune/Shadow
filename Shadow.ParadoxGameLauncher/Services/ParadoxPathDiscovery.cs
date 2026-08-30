@@ -67,22 +67,35 @@ public static class ParadoxPathDiscovery
             return null;
         }
 
-        var direct = Path.Combine(directory, game.ExecutableFileName);
-        if (File.Exists(direct))
-        {
-            return direct;
-        }
+        // Probe the current platform's names first, then the other platform's,
+        // so a Windows host can also resolve a Linux install directory and
+        // vice versa.
+        var isWindows = OperatingSystem.IsWindows();
+        var candidates = game.GetExecutableFileNames(isWindows)
+            .Concat(game.GetExecutableFileNames(!isWindows))
+            .Distinct(StringComparer.OrdinalIgnoreCase);
 
-        try
+        foreach (var executableName in candidates)
         {
-            foreach (var file in Directory.EnumerateFiles(directory, game.ExecutableFileName, SearchOption.AllDirectories))
+            // GetFullPath also normalizes the candidate's '/' separators to the
+            // platform separator, keeping returned paths uniformly formatted.
+            var direct = Path.GetFullPath(Path.Combine(directory, executableName));
+            if (File.Exists(direct))
             {
-                return file;
+                return direct;
             }
-        }
-        catch
-        {
-            // Best-effort only: install folders can contain inaccessible subdirectories.
+
+            try
+            {
+                foreach (var file in Directory.EnumerateFiles(directory, executableName, SearchOption.AllDirectories))
+                {
+                    return Path.GetFullPath(file);
+                }
+            }
+            catch
+            {
+                // Best-effort only: install folders can contain inaccessible subdirectories.
+            }
         }
 
         return null;
@@ -124,13 +137,50 @@ public static class ParadoxPathDiscovery
 
     private static IEnumerable<string> EnumerateUserDirectoryCandidates(ParadoxGameDefinition game)
     {
+        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var xdgDataHome = Environment.GetEnvironmentVariable("XDG_DATA_HOME");
+        return GetUserDirectoryCandidates(game, userProfile, xdgDataHome, OperatingSystem.IsWindows());
+    }
+
+    /// <summary>
+    /// Pure candidate enumeration so tests can exercise each platform layout
+    /// without touching the real user profile.
+    /// </summary>
+    internal static IEnumerable<string> GetUserDirectoryCandidates(
+        ParadoxGameDefinition game,
+        string? userProfile,
+        string? xdgDataHome,
+        bool isWindows)
+    {
         yield return game.DefaultUserDirectory;
 
-        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (isWindows)
+        {
+            if (!string.IsNullOrWhiteSpace(userProfile))
+            {
+                yield return Path.Combine(userProfile, "OneDrive", "Documents", "Paradox Interactive", game.DocumentsFolderName);
+                yield return Path.Combine(userProfile, "Documents", "Paradox Interactive", game.DocumentsFolderName);
+            }
+
+            yield break;
+        }
+
+        // Linux/macOS: Paradox games keep their user directories under
+        // $XDG_DATA_HOME/Paradox Interactive (defaults to ~/.local/share).
+        var dataHome = !string.IsNullOrWhiteSpace(xdgDataHome)
+            ? xdgDataHome
+            : Path.Combine(userProfile ?? string.Empty, ".local", "share");
+        if (!string.IsNullOrWhiteSpace(dataHome))
+        {
+            yield return Path.Combine(dataHome, "Paradox Interactive", game.DocumentsFolderName);
+        }
+
+        // Flatpak Steam keeps per-app data under ~/.var/app/<app-id>.
         if (!string.IsNullOrWhiteSpace(userProfile))
         {
-            yield return Path.Combine(userProfile, "OneDrive", "Documents", "Paradox Interactive", game.DocumentsFolderName);
-            yield return Path.Combine(userProfile, "Documents", "Paradox Interactive", game.DocumentsFolderName);
+            yield return Path.Combine(
+                userProfile, ".var", "app", "com.valvesoftware.Steam", "data",
+                "Paradox Interactive", game.DocumentsFolderName);
         }
     }
 
@@ -159,16 +209,38 @@ public static class ParadoxPathDiscovery
 
     private static IEnumerable<string> EnumerateKnownSteamRoots()
     {
-        yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Steam");
-        yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Steam");
-
         if (OperatingSystem.IsWindows())
         {
+            yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Steam");
+            yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Steam");
+
             foreach (var registryRoot in ReadSteamRootsFromRegistry())
             {
                 yield return registryRoot;
             }
+
+            yield break;
         }
+
+        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (string.IsNullOrWhiteSpace(userProfile))
+        {
+            yield break;
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            yield return Path.Combine(userProfile, "Library", "Application Support", "Steam");
+            yield break;
+        }
+
+        // Linux: canonical install paths plus the Flatpak data root. ~/.steam/steam
+        // and ~/.steam/root are typically symlinks to ~/.local/share/Steam.
+        yield return Path.Combine(userProfile, ".steam", "steam");
+        yield return Path.Combine(userProfile, ".steam", "root");
+        yield return Path.Combine(userProfile, ".local", "share", "Steam");
+        yield return Path.Combine(
+            userProfile, ".var", "app", "com.valvesoftware.Steam", "data", "Steam");
     }
 
     private static IEnumerable<string> ReadLibraryFolders(string steamRoot)
@@ -189,7 +261,23 @@ public static class ParadoxPathDiscovery
             yield break;
         }
 
-        foreach (var line in lines)
+        foreach (var path in ExtractLibraryPaths(string.Join(Environment.NewLine, lines)))
+        {
+            if (Directory.Exists(path))
+            {
+                yield return Path.GetFullPath(path);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Extracts the "path" values from a Steam libraryfolders.vdf file.
+    /// Pure string handling so it can be unit-tested.
+    /// </summary>
+    internal static IReadOnlyList<string> ExtractLibraryPaths(string vdfContent)
+    {
+        var paths = new List<string>();
+        foreach (var line in vdfContent.Split(['\r', '\n']))
         {
             var trimmed = line.Trim();
             if (!trimmed.Contains("\"path\"", StringComparison.OrdinalIgnoreCase))
@@ -204,11 +292,13 @@ public static class ParadoxPathDiscovery
             }
 
             var path = parts[^1].Replace(@"\\", @"\");
-            if (Directory.Exists(path))
+            if (!string.IsNullOrWhiteSpace(path))
             {
-                yield return Path.GetFullPath(path);
+                paths.Add(path);
             }
         }
+
+        return paths;
     }
 
     [SupportedOSPlatform("windows")]

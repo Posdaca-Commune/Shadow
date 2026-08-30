@@ -45,6 +45,13 @@ jobs:
       env:
         Configuration: ${{ matrix.configuration }}
 
+    # 在真实 macOS 环境运行单元测试
+    - name: Run unit tests
+      shell: pwsh
+      run: dotnet test tests/Shadow.Tests/Shadow.Tests.csproj --configuration $env:Configuration --no-build
+      env:
+        Configuration: ${{ matrix.configuration }}
+
     # 调用项目自带的打包脚本生成 .app bundle 与 .dmg。
     # macOS runner 自带 hdiutil，可生成 .dmg。
     - name: Build & package macOS

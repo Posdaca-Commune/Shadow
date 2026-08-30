@@ -30,6 +30,10 @@
     </ItemGroup>
 
     <ItemGroup>
+        <InternalsVisibleTo Include="Shadow.Tests"/>
+    </ItemGroup>
+
+    <ItemGroup>
       <Compile Update="Views\ParadoxGameSettingsSectionView.axaml.cs">
         <DependentUpon>ParadoxGameSettingsSectionView.axaml</DependentUpon>
       </Compile>
